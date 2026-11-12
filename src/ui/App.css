@@ -355,3 +355,64 @@ footer a {
 	padding: 2px 0;
 	font-size: 0.85rem;
 }
+
+/* Nature picker */
+.nature-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.nature-row,
+.nature-result {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.nature-arrow {
+	width: 1.2em;
+	font-weight: 700;
+}
+
+.nature-arrow.up {
+	color: #e03131;
+}
+
+.nature-arrow.down {
+	color: #1c7ed6;
+}
+
+.nature-picker button.nature-button {
+	min-width: 96px;
+	padding: 4px 10px;
+	font-size: 0.85rem;
+	background: transparent;
+	color: var(--text);
+	border: 2px solid var(--border);
+}
+
+.nature-picker button.nature-button.up.selected {
+	background: #ffe3e3;
+	border-color: #e03131;
+	color: #1f2430;
+	font-weight: 600;
+}
+
+.nature-picker button.nature-button.down.selected {
+	background: #d0ebff;
+	border-color: #1c7ed6;
+	color: #1f2430;
+	font-weight: 600;
+}
+
+.nature-picker button.nature-button.neutral.selected {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+
+.nature-picker button.nature-button:disabled {
+	opacity: 0.35;
+}

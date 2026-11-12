@@ -3,9 +3,9 @@ import type { BoxEntry } from "../core/box";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
-import Nature from "../vendor/pokesleep-tool/util/Nature";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
 import { formatAmount, ingredientLabel } from "./names";
+import NaturePicker from "./NaturePicker";
 import SubSkillPicker from "./SubSkillPicker";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
@@ -20,7 +20,6 @@ const defaultSkillLevel = (name: string) => {
 	const p = pokemons.find((x) => x.name === name);
 	return p ? Math.max(p.evolutionCount + 1, 1) : 1;
 };
-const natureNames = Nature.allNatures.map((n) => n.name);
 
 const emptyDraft = (): BoxEntry => ({
 	id: "",
@@ -141,16 +140,10 @@ export default function BoxView(props: {
 							))}
 						</select>
 					</label>
-					<label>
-						Nature
-						<select value={draft.nature} onChange={(e) => setDraft({ ...draft, nature: e.target.value })}>
-							{natureNames.map((n) => (
-								<option key={n} value={n}>
-									{n}
-								</option>
-							))}
-						</select>
-					</label>
+				</div>
+				<div className="subskill-field">
+					<span className="field-label">Nature (pick one ▲ and one ▼)</span>
+					<NaturePicker value={draft.nature} onChange={(nature) => setDraft({ ...draft, nature })} />
 				</div>
 				<div className="subskill-field">
 					<span className="field-label">Subskills (click in order: Lv10 → 25 → 50 → 70 → 80)</span>
