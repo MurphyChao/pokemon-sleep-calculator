@@ -9,6 +9,8 @@ export type SubSkillLevel = (typeof subSkillLevels)[number];
 /** A Pokémon the user owns, as entered on the Box screen. */
 export interface BoxEntry {
 	id: string;
+	/** Optional name chosen by the user, shown instead of the generated label. */
+	nickname?: string;
 	pokemonName: string;
 	level: number;
 	/** Main skill level. Older saved entries may lack it; pokesleep-tool then uses its default. */

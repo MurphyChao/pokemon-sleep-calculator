@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { formatAmount, ingredientLabel } from "./names";
+import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel, subSkillSummary } from "./names";
 import NaturePicker from "./NaturePicker";
 import SubSkillPicker from "./SubSkillPicker";
 
@@ -53,6 +53,7 @@ export default function BoxView(props: {
 	const { box, setBox, details } = props;
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	const isEditing = draft.id !== "";
+	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
 	const maxSkillLevel = draftPokemon ? getMaxSkillLevel(draftPokemon.skill) : 1;
@@ -86,6 +87,14 @@ export default function BoxView(props: {
 								<option key={n} value={n} />
 							))}
 						</datalist>
+					</label>
+					<label>
+						Nickname (optional)
+						<input
+							value={draft.nickname ?? ""}
+							placeholder="e.g. Sandslash HSM"
+							onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
+						/>
 					</label>
 					<div className="field">
 						<label htmlFor="level-input">Level</label>
@@ -174,6 +183,7 @@ export default function BoxView(props: {
 								<th>Ingredients</th>
 								<th>Skill Lv</th>
 								<th>Nature</th>
+								<th>Subskills</th>
 								<th>Ingredients / day</th>
 								<th />
 							</tr>
@@ -181,11 +191,22 @@ export default function BoxView(props: {
 						<tbody>
 							{box.map((e) => (
 								<tr key={e.id}>
-									<td>{e.pokemonName}</td>
+									<td title={entryTooltip(e)}>
+										{e.nickname?.trim() ? (
+											<>
+												{e.nickname.trim()}
+												<div className="muted small">{e.pokemonName}</div>
+											</>
+										) : (
+											e.pokemonName
+										)}
+										{duplicateNumber(labels.get(e.id)) && <span className="tag">{duplicateNumber(labels.get(e.id))}</span>}
+									</td>
 									<td>{e.level}</td>
 									<td>{e.ingredient}</td>
 									<td>{e.skillLevel ?? "–"}</td>
 									<td>{e.nature}</td>
+									<td title={entryTooltip(e)}>{subSkillSummary(e) || "–"}</td>
 									<td>
 										<YieldSummary detail={details.get(e.id)} />
 									</td>
@@ -247,4 +268,9 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 					)}
 		</>
 	);
+}
+
+/** "#2" if the label was numbered because of an identical entry, otherwise undefined. */
+function duplicateNumber(label: string | undefined): string | undefined {
+	return label?.match(/ (#\d+)$/)?.[1];
 }
