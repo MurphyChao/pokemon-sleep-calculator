@@ -416,3 +416,10 @@ footer a {
 .nature-picker button.nature-button:disabled {
 	opacity: 0.35;
 }
+
+.settings-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 24px;
+	margin-bottom: 12px;
+}

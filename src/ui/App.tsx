@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
-import { dailyIngredientYieldDetail, type IngredientYield, type YieldDetail } from "../core/yield";
+import {
+	dailyIngredientYieldDetail,
+	defaultYieldOptions,
+	type IngredientYield,
+	type YieldDetail,
+	type YieldOptions,
+} from "../core/yield";
 import BoxView from "./BoxView";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
@@ -10,18 +16,20 @@ type Tab = "box" | "solver";
 export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
 	const [box, setBox] = useStoredState<BoxEntry[]>("pscalc.box.v1", []);
+	const [storedOptions, setOptions] = useStoredState<YieldOptions>("pscalc.yieldOptions", defaultYieldOptions);
+	const options = { ...defaultYieldOptions, ...storedOptions };
 
 	const details = useMemo(() => {
 		const map = new Map<string, YieldDetail>();
 		for (const e of box) {
 			try {
-				map.set(e.id, dailyIngredientYieldDetail(e));
+				map.set(e.id, dailyIngredientYieldDetail(e, options));
 			} catch {
 				map.set(e.id, { help: {}, skill: {}, total: {} });
 			}
 		}
 		return map;
-	}, [box]);
+	}, [box, options.inventoryLimit, options.campTicket]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],
@@ -42,6 +50,26 @@ export default function App() {
 						Solver
 					</button>
 				</nav>
+				<div className="settings-bar">
+					<label className="check">
+						<input
+							type="checkbox"
+							checked={options.inventoryLimit}
+							onChange={(e) => setOptions({ ...options, inventoryLimit: e.target.checked })}
+						/>
+						Inventory limit
+						<span className="muted small">(off: bag never fills)</span>
+					</label>
+					<label className="check">
+						<input
+							type="checkbox"
+							checked={options.campTicket}
+							onChange={(e) => setOptions({ ...options, campTicket: e.target.checked })}
+						/>
+						Good Camp Ticket
+						<span className="muted small">(help speed and inventory ×1.2)</span>
+					</label>
+				</div>
 			</header>
 			<main>
 				{tab === "box" ? (
@@ -53,8 +81,8 @@ export default function App() {
 			<footer>
 				Pokémon data and ingredient model from{" "}
 				<a href="https://github.com/nitoyon/pokesleep-tool">nitoyon/pokesleep-tool</a> (MIT). Recipes from{" "}
-				<a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0). Yields assume a 100 sleep score,
-				checking in every 3 hours while awake, and no teammate bonuses. Ingredients from main skills (Ingredient Magnet,
+				<a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0). Yields assume a 100 sleep score and no teammate
+				bonuses. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet,
 				Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that
 				copy other skills are not counted. Mythical Pokémon are not supported yet.
 			</footer>

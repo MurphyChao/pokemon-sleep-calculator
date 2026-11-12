@@ -93,3 +93,17 @@ test("key level buttons set the level and the number box still accepts any level
 	fireEvent.click(screen.getByRole("button", { name: "80" }));
 	expect(level.value).toBe("80");
 });
+
+test("inventory limit and camp ticket checkboxes are saved", () => {
+	render(<App />);
+	const limit = screen.getByLabelText(/Inventory limit/) as HTMLInputElement;
+	const ticket = screen.getByLabelText(/Good Camp Ticket/) as HTMLInputElement;
+	expect(limit.checked).toBe(true);
+	expect(ticket.checked).toBe(false);
+	fireEvent.click(limit);
+	fireEvent.click(ticket);
+	expect(JSON.parse(localStorage.getItem("pscalc.yieldOptions") ?? "{}")).toEqual({
+		inventoryLimit: false,
+		campTicket: true,
+	});
+});

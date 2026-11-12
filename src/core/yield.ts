@@ -2,10 +2,23 @@ import { type IngredientName, IngredientNames } from "../vendor/pokesleep-tool/d
 import { getIngredientDrawIngredients } from "../vendor/pokesleep-tool/util/MainSkill";
 import type PokemonIv from "../vendor/pokesleep-tool/util/PokemonIv";
 import PokemonStrength, { type StrengthResult } from "../vendor/pokesleep-tool/util/PokemonStrength";
+import { AlwaysTap } from "../vendor/pokesleep-tool/util/Energy";
 import { createStrengthParameter } from "../vendor/pokesleep-tool/util/StrengthParameter";
 import { type BoxEntry, toPokemonIv } from "./box";
 
 export type IngredientYield = Partial<Record<IngredientName, number>>;
+
+export interface YieldOptions {
+	/**
+	 * true: the bag can fill up (collected every 3 hours while awake, not while asleep).
+	 * false: ingredients are collected continuously, so the bag never fills.
+	 */
+	inventoryLimit: boolean;
+	/** Good Camp Ticket: help speed ×1.2 and inventory ×1.2. */
+	campTicket: boolean;
+}
+
+export const defaultYieldOptions: YieldOptions = { inventoryLimit: true, campTicket: false };
 
 export interface YieldDetail {
 	/** Ingredients from regular helps. */
@@ -54,11 +67,16 @@ function skillIngredients(iv: PokemonIv, result: StrengthResult): IngredientYiel
 
 /**
  * Expected ingredients per day, using pokesleep-tool's model with its default
- * assumptions (100 sleep score, collecting every 3 hours while awake, no teammate bonuses).
+ * assumptions (100 sleep score, no teammate bonuses) plus the given options.
  */
-export function dailyIngredientYieldDetail(entry: BoxEntry): YieldDetail {
+export function dailyIngredientYieldDetail(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): YieldDetail {
 	const iv = toPokemonIv(entry);
-	const result = new PokemonStrength(iv, createStrengthParameter({ period: 24 })).calculate();
+	const param = createStrengthParameter({
+		period: 24,
+		isGoodCampTicketSet: options.campTicket,
+		...(!options.inventoryLimit && { tapFrequencyAwake: AlwaysTap, tapFrequencyAsleep: AlwaysTap }),
+	});
+	const result = new PokemonStrength(iv, param).calculate();
 	const help: IngredientYield = {};
 	for (const ing of result.ingredients) {
 		if (ing.count > 0) {
@@ -73,6 +91,6 @@ export function dailyIngredientYieldDetail(entry: BoxEntry): YieldDetail {
 	return { help, skill, total };
 }
 
-export function dailyIngredientYield(entry: BoxEntry): IngredientYield {
-	return dailyIngredientYieldDetail(entry).total;
+export function dailyIngredientYield(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): IngredientYield {
+	return dailyIngredientYieldDetail(entry, options).total;
 }

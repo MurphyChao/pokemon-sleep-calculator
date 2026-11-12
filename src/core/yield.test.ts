@@ -54,3 +54,26 @@ describe("main skill ingredients", () => {
 	});
 });
 
+
+describe("yield options", () => {
+	const sum = (y: Record<string, number | undefined>) => Object.values(y).reduce((a: number, b) => a + (b ?? 0), 0);
+	const gourgeist = entry("Gourgeist (Small)", 60, "ABC"); // carry limit 10, fills up overnight
+
+	test("removing the inventory limit never lowers yield, and raises it for a small bag", () => {
+		const limited = sum(dailyIngredientYield(gourgeist, { inventoryLimit: true, campTicket: false }));
+		const unlimited = sum(dailyIngredientYield(gourgeist, { inventoryLimit: false, campTicket: false }));
+		expect(unlimited).toBeGreaterThan(limited);
+	});
+
+	test("Good Camp Ticket raises yield", () => {
+		const off = sum(dailyIngredientYield(gourgeist, { inventoryLimit: true, campTicket: false }));
+		const on = sum(dailyIngredientYield(gourgeist, { inventoryLimit: true, campTicket: true }));
+		expect(on).toBeGreaterThan(off);
+	});
+
+	test("defaults match the original behaviour (limit on, no ticket)", () => {
+		expect(dailyIngredientYield(gourgeist)).toEqual(
+			dailyIngredientYield(gourgeist, { inventoryLimit: true, campTicket: false }),
+		);
+	});
+});
