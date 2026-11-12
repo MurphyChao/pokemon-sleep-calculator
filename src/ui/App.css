@@ -256,3 +256,86 @@ footer a {
 	align-items: center;
 	gap: 12px;
 }
+
+/* Subskill picker */
+.subskill-field {
+	margin-top: 12px;
+}
+
+.field-label {
+	display: block;
+	font-size: 0.9rem;
+	color: var(--muted);
+	margin-bottom: 6px;
+}
+
+.subskill-slots,
+.subskill-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.subskill-slots {
+	margin-bottom: 10px;
+}
+
+.subskill-picker button.subskill-slot,
+.subskill-picker button.subskill-button {
+	color: #1f2430;
+	border-width: 2px;
+	padding: 4px 10px;
+	font-size: 0.85rem;
+}
+
+.subskill-slot {
+	min-width: 150px;
+	text-align: left;
+}
+
+.subskill-slot.empty {
+	background: transparent;
+	border: 2px dashed var(--border);
+	color: var(--muted);
+	opacity: 1;
+	cursor: default;
+}
+
+.subskill-slot.next {
+	border-color: var(--accent);
+}
+
+.subskill-picker .lv {
+	font-size: 0.75rem;
+	font-weight: 700;
+	margin-right: 6px;
+	opacity: 0.75;
+}
+
+.subskill-button .lv {
+	margin: 0 0 0 6px;
+}
+
+.subskill-picker .gold {
+	background: #fff3bf;
+	border-color: #f2c94c;
+}
+
+.subskill-picker .blue {
+	background: #d0ebff;
+	border-color: #74c0fc;
+}
+
+.subskill-picker .white {
+	background: #f1f3f5;
+	border-color: #ced4da;
+}
+
+.subskill-button.selected {
+	box-shadow: inset 0 0 0 2px var(--accent);
+	font-weight: 600;
+}
+
+.subskill-button:disabled {
+	opacity: 0.4;
+}

@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { type BoxEntry, subSkillLevels, type SubSkillLevel } from "../core/box";
+import type { BoxEntry } from "../core/box";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import Nature from "../vendor/pokesleep-tool/util/Nature";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
 import { maxLevel } from "../vendor/pokesleep-tool/util/PokemonRp";
-import SubSkill, { type SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { formatAmount, ingredientLabel } from "./names";
+import SubSkillPicker from "./SubSkillPicker";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 const pokemonNames = pokemons.filter((p) => getPokemonRarity(p) !== "mythical").map((p) => p.name);
@@ -18,7 +18,6 @@ const defaultSkillLevel = (name: string) => {
 	return p ? Math.max(p.evolutionCount + 1, 1) : 1;
 };
 const natureNames = Nature.allNatures.map((n) => n.name);
-const subSkillNames = SubSkill.allSubSkillNames;
 
 const emptyDraft = (): BoxEntry => ({
 	id: "",
@@ -66,9 +65,6 @@ export default function BoxView(props: {
 		}
 		setDraft(emptyDraft());
 	};
-
-	const setSubSkill = (lv: SubSkillLevel, value: string) =>
-		setDraft({ ...draft, subSkills: { ...draft.subSkills, [lv]: (value || null) as SubSkillType | null } });
 
 	return (
 		<div className="box-view">
@@ -138,19 +134,10 @@ export default function BoxView(props: {
 							))}
 						</select>
 					</label>
-					{subSkillLevels.map((lv) => (
-						<label key={lv}>
-							Subskill {lv.replace("lv", "Lv")}
-							<select value={draft.subSkills[lv] ?? ""} onChange={(e) => setSubSkill(lv, e.target.value)}>
-								<option value="">(none)</option>
-								{subSkillNames.map((n) => (
-									<option key={n} value={n}>
-										{n}
-									</option>
-								))}
-							</select>
-						</label>
-					))}
+				</div>
+				<div className="subskill-field">
+					<span className="field-label">Subskills (click in order: Lv10 → 25 → 50 → 70 → 80)</span>
+					<SubSkillPicker value={draft.subSkills} onChange={(subSkills) => setDraft({ ...draft, subSkills })} />
 				</div>
 				<div className="actions">
 					<button type="button" onClick={save} disabled={!validName}>
