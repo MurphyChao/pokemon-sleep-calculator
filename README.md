@@ -13,6 +13,11 @@ npm test         # unit tests (vitest)
 npm run build    # typecheck + production build to dist/
 ```
 
+## Deployment
+
+Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
+`.github/workflows/deploy.yml` (repo Settings → Pages → Source must be "GitHub Actions").
+
 ## Data sources
 
 - **Pokémon data and ingredient-yield model:** copied unmodified from
