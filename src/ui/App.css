@@ -121,7 +121,8 @@ select {
 	gap: 10px 16px;
 }
 
-.form-grid label {
+.form-grid label,
+.form-grid .field {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -338,4 +339,19 @@ footer a {
 
 .subskill-button:disabled {
 	opacity: 0.4;
+}
+
+.form-grid .field > label {
+	display: block;
+}
+
+.key-levels {
+	display: flex;
+	gap: 4px;
+}
+
+.key-levels button {
+	flex: 1;
+	padding: 2px 0;
+	font-size: 0.85rem;
 }

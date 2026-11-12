@@ -5,11 +5,14 @@ import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokes
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import Nature from "../vendor/pokesleep-tool/util/Nature";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { maxLevel } from "../vendor/pokesleep-tool/util/PokemonRp";
 import { formatAmount, ingredientLabel } from "./names";
 import SubSkillPicker from "./SubSkillPicker";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
+/** pokesleep-tool's Pokémon model accepts levels 1–100. */
+const maxPokemonLevel = 100;
+const keyLevels = [30, 50, 60, 70, 80];
+
 const pokemonNames = pokemons.filter((p) => getPokemonRarity(p) !== "mythical").map((p) => p.name);
 
 /** pokesleep-tool's default skill level for a newly caught Pokémon. */
@@ -85,18 +88,32 @@ export default function BoxView(props: {
 							))}
 						</datalist>
 					</label>
-					<label>
-						Level
+					<div className="field">
+						<label htmlFor="level-input">Level</label>
 						<input
+							id="level-input"
 							type="number"
 							min={1}
-							max={maxLevel}
+							max={maxPokemonLevel}
 							value={draft.level}
 							onChange={(e) =>
-								setDraft({ ...draft, level: Math.min(maxLevel, Math.max(1, Number(e.target.value) || 1)) })
+								setDraft({ ...draft, level: Math.min(maxPokemonLevel, Math.max(1, Number(e.target.value) || 1)) })
 							}
 						/>
-					</label>
+						<div className="key-levels">
+							{keyLevels.map((lv) => (
+								<button
+									type="button"
+									key={lv}
+									className={draft.level === lv ? "" : "secondary"}
+									aria-pressed={draft.level === lv}
+									onClick={() => setDraft({ ...draft, level: lv })}
+								>
+									{lv}
+								</button>
+							))}
+						</div>
+					</div>
 					<label>
 						Ingredients (Lv1 / Lv30 / Lv60)
 						<select

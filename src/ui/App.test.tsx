@@ -81,3 +81,15 @@ test("adds a Pokémon from the Box form", () => {
 	expect(screen.getByText("Box (1)")).toBeTruthy();
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].pokemonName).toBe("Sandslash");
 });
+
+test("key level buttons set the level and the number box still accepts any level", () => {
+	render(<App />);
+	const level = screen.getByLabelText("Level") as HTMLInputElement;
+	fireEvent.click(screen.getByRole("button", { name: "60" }));
+	expect(level.value).toBe("60");
+	expect(screen.getByRole("button", { name: "60" }).getAttribute("aria-pressed")).toBe("true");
+	fireEvent.change(level, { target: { value: "61" } });
+	expect(level.value).toBe("61");
+	fireEvent.click(screen.getByRole("button", { name: "80" }));
+	expect(level.value).toBe("80");
+});
