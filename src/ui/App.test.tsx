@@ -58,7 +58,8 @@ test("Scald Chunky Salad: auto team, bench ranking, and moving Sandslash onto th
 	expect(rowOf(bench, "Sandslash").textContent).toMatch(/Makes it possible|−\d\.\d\d/);
 	// Independent of the current team: skill Lv6 Sandslash saves about 0.47 slots vs. the best team without it.
 	const cells = rowOf(bench, "Sandslash").querySelectorAll("td");
-	expect(Number(cells[cells.length - 3].textContent?.replace("−", ""))).toBeCloseTo(0.47, 1);
+	// Columns end with: Saves (current team), Saves (vs. best), Extra Tasty, Replaces, button.
+	expect(Number(cells[cells.length - 4].textContent?.replace("−", ""))).toBeCloseTo(0.47, 1);
 
 	// And back to the team.
 	fireEvent.click(within(rowOf(bench, "Sandslash")).getByText("To team"));
@@ -106,4 +107,34 @@ test("inventory limit and camp ticket checkboxes are saved", () => {
 		inventoryLimit: false,
 		campTicket: true,
 	});
+});
+
+test("Extra Tasty: a Tasty Chance Pokémon on the bench shows slot-equivalents for Mon–Sat and Sunday", () => {
+	renderSolver([
+		entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+		entry("meow", "Meowscarada", "AAA"),
+		entry("drag", "Dragonite", "ABB"),
+		entry("spirit", "Spiritomb", "AAA"),
+		entry("amoon", "Amoonguss", "AAA"),
+		entry("swampert", "Swampert", "AAA", 6),
+	]);
+	expect(section("Current team").textContent).toMatch(/Extra Tasty chance: Mon–Sat 10% .* Sunday 30%/);
+	const cells = rowOf(section("Bench"), "Swampert").querySelectorAll("td");
+	const tastyCell = cells[cells.length - 3].textContent ?? "";
+	const [weekday, sunday] = tastyCell.split("/").map((x) => Number(x.trim().replace("+", "")));
+	expect(weekday).toBeGreaterThan(0);
+	expect(sunday).toBeGreaterThan(weekday);
+
+	// On the team it raises the team's Extra Tasty chance.
+	fireEvent.click(within(rowOf(section("Bench"), "Swampert")).getByText("To team"));
+	expect(section("Current team").textContent).not.toMatch(/Mon–Sat 10% /);
+});
+
+test("pot size check shows Mon–Sat and doubled Sunday pot", () => {
+	localStorage.setItem("pscalc.potSize", JSON.stringify(69));
+	renderSolver([entry("spirit", "Spiritomb", "AAA")]);
+	const text = screen.getByText(/Pot size needed/).textContent ?? "";
+	expect(text).toContain("Mon–Sat 69");
+	expect(text).toContain("Sunday 138");
+	expect(text).toContain("fits on Sunday");
 });

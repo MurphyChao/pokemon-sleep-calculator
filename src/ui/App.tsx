@@ -8,6 +8,7 @@ import {
 	type YieldOptions,
 } from "../core/yield";
 import BoxView from "./BoxView";
+import type { TastySource } from "../core/tasty";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 
@@ -32,6 +33,13 @@ export default function App() {
 	}, [box, options.inventoryLimit, options.campTicket]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
+		[details],
+	);
+	const tasty = useMemo(
+		() =>
+			new Map<string, TastySource>(
+				[...details].flatMap(([id, d]) => (d.tasty ? [[id, d.tasty] as [string, TastySource]] : [])),
+			),
 		[details],
 	);
 
@@ -75,7 +83,7 @@ export default function App() {
 				{tab === "box" ? (
 					<BoxView box={box} setBox={setBox} details={details} />
 				) : (
-					<SolverView box={box} yields={yields} />
+					<SolverView box={box} yields={yields} tasty={tasty} campTicket={options.campTicket} />
 				)}
 			</main>
 			<footer>

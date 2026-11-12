@@ -77,3 +77,20 @@ describe("yield options", () => {
 		);
 	});
 });
+
+describe("Extra Tasty skills", () => {
+	test("Tasty Chance S reports its per-trigger bonus and daily triggers", () => {
+		const d = dailyIngredientYieldDetail({ ...entry("Swampert", 60, "AAA"), skillLevel: 6 });
+		expect(d.tasty?.perTrigger).toBe(10);
+		expect(d.tasty?.triggersPerDay).toBeGreaterThan(0);
+	});
+
+	test("Bulk Up reports its secondary Extra Tasty bonus", () => {
+		const d = dailyIngredientYieldDetail({ ...entry("Heracross", 60, "AAA"), skillLevel: 1 });
+		expect(d.tasty?.perTrigger).toBe(1);
+	});
+
+	test("other skills have no Extra Tasty source", () => {
+		expect(dailyIngredientYieldDetail(entry("Meowscarada", 60, "AAA")).tasty).toBeUndefined();
+	});
+});

@@ -5,6 +5,7 @@ import PokemonStrength, { type StrengthResult } from "../vendor/pokesleep-tool/u
 import { AlwaysTap } from "../vendor/pokesleep-tool/util/Energy";
 import { createStrengthParameter } from "../vendor/pokesleep-tool/util/StrengthParameter";
 import { type BoxEntry, toPokemonIv } from "./box";
+import type { TastySource } from "./tasty";
 
 export type IngredientYield = Partial<Record<IngredientName, number>>;
 
@@ -27,6 +28,8 @@ export interface YieldDetail {
 	skill: IngredientYield;
 	/** help + skill */
 	total: IngredientYield;
+	/** Set if the main skill raises the Extra Tasty chance. */
+	tasty?: TastySource;
 }
 
 /** Ingredients that Ingredient Magnet S can give (all known ingredients, as in pokesleep-tool). */
@@ -66,6 +69,21 @@ function skillIngredients(iv: PokemonIv, result: StrengthResult): IngredientYiel
 }
 
 /**
+ * Extra Tasty chance from the main skill. Tasty Chance S's per-trigger value is its main value;
+ * Bulk Up and Mystical Fire raise it as their secondary effect.
+ */
+function tastySource(iv: PokemonIv, result: StrengthResult): TastySource | undefined {
+	switch (iv.versatileSkill) {
+		case "Tasty Chance S":
+			return { perTrigger: result.skillValuePerTrigger, triggersPerDay: result.skillCount };
+		case "Cooking Assist S (Bulk Up)":
+		case "Cooking Advance S (Mystical Fire)":
+			return { perTrigger: result.skillValuePerTrigger2, triggersPerDay: result.skillCount };
+	}
+	return undefined;
+}
+
+/**
  * Expected ingredients per day, using pokesleep-tool's model with its default
  * assumptions (100 sleep score, no teammate bonuses) plus the given options.
  */
@@ -88,7 +106,7 @@ export function dailyIngredientYieldDetail(entry: BoxEntry, options: YieldOption
 	for (const [name, n] of Object.entries(skill) as [IngredientName, number][]) {
 		total[name] = (total[name] ?? 0) + n;
 	}
-	return { help, skill, total };
+	return { help, skill, total, tasty: tastySource(iv, result) };
 }
 
 export function dailyIngredientYield(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): IngredientYield {
