@@ -1,0 +1,851 @@
+[
+	{
+		"id": "fancy_apple_curry",
+		"name": "Fancy Apple Curry",
+		"type": "curry",
+		"bonus": 18.7,
+		"ingredients": {
+			"apple": 7
+		}
+	},
+	{
+		"id": "simple_chowder",
+		"name": "Simple Chowder",
+		"type": "curry",
+		"bonus": 18.7,
+		"ingredients": {
+			"milk": 7
+		}
+	},
+	{
+		"id": "mild_honey_curry",
+		"name": "Mild Honey Curry",
+		"type": "curry",
+		"bonus": 18.7,
+		"ingredients": {
+			"honey": 7
+		}
+	},
+	{
+		"id": "beanburger_curry",
+		"name": "Beanburger Curry",
+		"type": "curry",
+		"bonus": 18.7,
+		"ingredients": {
+			"sausage": 7
+		}
+	},
+	{
+		"id": "hearty_cheeseburger_curry",
+		"name": "Hearty Cheeseburger Curry",
+		"type": "curry",
+		"bonus": 18.77,
+		"ingredients": {
+			"milk": 8,
+			"sausage": 8
+		}
+	},
+	{
+		"id": "drought_katsu_curry",
+		"name": "\"Drought\" Katsu Curry",
+		"type": "curry",
+		"bonus": 18.77,
+		"ingredients": {
+			"sausage": 10,
+			"oil": 5
+		}
+	},
+	{
+		"id": "solar_power_tomato_curry",
+		"name": "\"Solar Power\" Tomato Curry",
+		"type": "curry",
+		"bonus": 18.77,
+		"ingredients": {
+			"tomato": 10,
+			"herb": 5
+		}
+	},
+	{
+		"id": "melty_omelette_curry",
+		"name": "Melty Omelette Curry",
+		"type": "curry",
+		"bonus": 18.77,
+		"ingredients": {
+			"egg": 10,
+			"tomato": 6
+		}
+	},
+	{
+		"id": "soft_potato_chowder",
+		"name": "Soft Potato Chowder",
+		"type": "curry",
+		"bonus": 20.51,
+		"ingredients": {
+			"milk": 10,
+			"potato": 8,
+			"mushroom": 4
+		}
+	},
+	{
+		"id": "bulk_up_bean_curry",
+		"name": "\"Bulk Up\" Bean Curry",
+		"type": "curry",
+		"bonus": 20.51,
+		"ingredients": {
+			"soy": 12,
+			"sausage": 6,
+			"herb": 4,
+			"egg": 4
+		}
+	},
+	{
+		"id": "spore_mushroom_curry",
+		"name": "\"Spore\" Mushroom Curry",
+		"type": "curry",
+		"bonus": 20.51,
+		"ingredients": {
+			"mushroom": 14,
+			"potato": 9
+		}
+	},
+	{
+		"id": "egg_bomb_curry",
+		"name": "\"Egg Bomb\" Curry",
+		"type": "curry",
+		"bonus": 25,
+		"ingredients": {
+			"honey": 12,
+			"apple": 11,
+			"egg": 8,
+			"potato": 4
+		}
+	},
+	{
+		"id": "limber_corn_stew",
+		"name": "\"Limber\" Corn Stew",
+		"type": "curry",
+		"bonus": 25,
+		"ingredients": {
+			"corn": 14,
+			"milk": 8,
+			"potato": 8
+		}
+	},
+	{
+		"id": "dizzy_punch_spicy_curry",
+		"name": "\"Dizzy Punch\" Spicy Curry",
+		"type": "curry",
+		"bonus": 35,
+		"ingredients": {
+			"coffee": 11,
+			"herb": 11,
+			"honey": 11
+		}
+	},
+	{
+		"id": "spicy_leek_curry",
+		"name": "Spicy Leek Curry",
+		"type": "curry",
+		"bonus": 25,
+		"ingredients": {
+			"leek": 14,
+			"ginger": 10,
+			"herb": 8
+		}
+	},
+	{
+		"id": "ninja_curry",
+		"name": "Ninja Curry",
+		"type": "curry",
+		"bonus": 48,
+		"ingredients": {
+			"soy": 24,
+			"sausage": 9,
+			"leek": 12,
+			"mushroom": 5
+		}
+	},
+	{
+		"id": "grilled_tail_curry",
+		"name": "Grilled Tail Curry",
+		"type": "curry",
+		"bonus": 25,
+		"ingredients": {
+			"tail": 8,
+			"herb": 25
+		}
+	},
+	{
+		"id": "dream_eater_butter_curry",
+		"name": "\"Dream Eater\" Butter Curry",
+		"type": "curry",
+		"bonus": 35,
+		"ingredients": {
+			"potato": 18,
+			"tomato": 15,
+			"cacao": 12,
+			"milk": 10
+		}
+	},
+	{
+		"id": "inferno_corn_keema_curry",
+		"name": "\"Inferno\" Corn Keema Curry",
+		"type": "curry",
+		"bonus": 48,
+		"ingredients": {
+			"herb": 27,
+			"sausage": 24,
+			"corn": 14,
+			"ginger": 12
+		}
+	},
+	{
+		"id": "hidden_power_perk_up_stew",
+		"name": "\"Hidden Power\" Perk-Up Stew",
+		"type": "curry",
+		"bonus": 61,
+		"ingredients": {
+			"soy": 28,
+			"tomato": 25,
+			"mushroom": 23,
+			"coffee": 16
+		}
+	},
+	{
+		"id": "cut_sukiyaki_curry",
+		"name": "\"Cut\" Sukiyaki Curry",
+		"type": "curry",
+		"bonus": 61,
+		"ingredients": {
+			"leek": 27,
+			"sausage": 26,
+			"honey": 26,
+			"egg": 22
+		}
+	},
+	{
+		"id": "role_play_pumpkaboo_stew",
+		"name": "\"Role Play\" Pumpkaboo Stew",
+		"type": "curry",
+		"bonus": 48,
+		"ingredients": {
+			"pumpkin": 10,
+			"sausage": 16,
+			"potato": 18,
+			"mushroom": 25
+		}
+	},
+	{
+		"id": "overgrow_avocado_gratin",
+		"name": "\"Overgrow\" Avocado Gratin",
+		"type": "curry",
+		"bonus": 78,
+		"ingredients": {
+			"avocado": 22,
+			"potato": 20,
+			"milk": 41,
+			"oil": 32
+		}
+	},
+	{
+		"id": "greengrass_curry_bun",
+		"name": "Greengrass Curry Bun",
+		"type": "curry",
+		"bonus": 48,
+		"ingredients": {
+			"ginger": 20,
+			"herb": 20,
+			"soy": 8,
+			"oil": 15
+		}
+	},
+	{
+		"id": "bounce_curry_udon",
+		"name": "\"Bounce\" Curry Udon",
+		"type": "curry",
+		"bonus": 78,
+		"ingredients": {
+			"ginger": 39,
+			"mushroom": 31,
+			"herb": 22,
+			"sausage": 20
+		}
+	},
+	{
+		"id": "fancy_apple_salad",
+		"name": "Fancy Apple Salad",
+		"type": "salad",
+		"bonus": 18.7,
+		"ingredients": {
+			"apple": 8
+		}
+	},
+	{
+		"id": "bean_ham_salad",
+		"name": "Bean Ham Salad",
+		"type": "salad",
+		"bonus": 18.7,
+		"ingredients": {
+			"sausage": 8
+		}
+	},
+	{
+		"id": "snoozy_tomato_salad",
+		"name": "Snoozy Tomato Salad",
+		"type": "salad",
+		"bonus": 18.7,
+		"ingredients": {
+			"tomato": 8
+		}
+	},
+	{
+		"id": "snow_cloak_caesar_salad",
+		"name": "\"Snow Cloak\" Caesar Salad",
+		"type": "salad",
+		"bonus": 18.77,
+		"ingredients": {
+			"milk": 10,
+			"sausage": 6
+		}
+	},
+	{
+		"id": "water_veil_tofu_salad",
+		"name": "\"Water Veil\" Tofu Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"soy": 15,
+			"tomato": 9
+		}
+	},
+	{
+		"id": "heat_wave_tofu_salad",
+		"name": "\"Heat Wave\" Tofu Salad",
+		"type": "salad",
+		"bonus": 18.77,
+		"ingredients": {
+			"soy": 10,
+			"herb": 6
+		}
+	},
+	{
+		"id": "dazzling_apple_cheese_salad",
+		"name": "\"Dazzling\" Apple Cheese Salad",
+		"type": "salad",
+		"bonus": 20.51,
+		"ingredients": {
+			"apple": 15,
+			"milk": 5,
+			"oil": 3
+		}
+	},
+	{
+		"id": "fury_attack_corn_salad",
+		"name": "\"Fury Attack\" Corn Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"corn": 9,
+			"oil": 8
+		}
+	},
+	{
+		"id": "moomoo_caprese_salad",
+		"name": "Moomoo Caprese Salad",
+		"type": "salad",
+		"bonus": 20.51,
+		"ingredients": {
+			"milk": 12,
+			"tomato": 6,
+			"oil": 5
+		}
+	},
+	{
+		"id": "immunity_leek_salad",
+		"name": "\"Immunity\" Leek Salad",
+		"type": "salad",
+		"bonus": 18.77,
+		"ingredients": {
+			"leek": 10,
+			"ginger": 5
+		}
+	},
+	{
+		"id": "superpower_extreme_salad",
+		"name": "\"Superpower\" Extreme Salad",
+		"type": "salad",
+		"bonus": 20.51,
+		"ingredients": {
+			"sausage": 9,
+			"ginger": 6,
+			"egg": 5,
+			"potato": 3
+		}
+	},
+	{
+		"id": "contrary_chocolate_meat_salad",
+		"name": "\"Contrary\" Chocolate Meat Salad",
+		"type": "salad",
+		"bonus": 20.51,
+		"ingredients": {
+			"cacao": 14,
+			"sausage": 9
+		}
+	},
+	{
+		"id": "gluttony_potato_salad",
+		"name": "\"Gluttony\" Potato Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"potato": 14,
+			"egg": 9,
+			"sausage": 7,
+			"apple": 6
+		}
+	},
+	{
+		"id": "overheat_ginger_salad",
+		"name": "\"Overheat\" Ginger Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"herb": 17,
+			"ginger": 10,
+			"tomato": 8
+		}
+	},
+	{
+		"id": "spore_mushroom_salad",
+		"name": "\"Spore\" Mushroom Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"mushroom": 17,
+			"tomato": 8,
+			"oil": 8
+		}
+	},
+	{
+		"id": "calm_mind_fruit_salad",
+		"name": "\"Calm Mind\" Fruit Salad",
+		"type": "salad",
+		"bonus": 48,
+		"ingredients": {
+			"apple": 21,
+			"honey": 16,
+			"corn": 12
+		}
+	},
+	{
+		"id": "slowpoke_tail_pepper_salad",
+		"name": "Slowpoke Tail Pepper Salad",
+		"type": "salad",
+		"bonus": 25,
+		"ingredients": {
+			"tail": 10,
+			"herb": 10,
+			"oil": 15
+		}
+	},
+	{
+		"id": "ninja_salad",
+		"name": "Ninja Salad",
+		"type": "salad",
+		"bonus": 48,
+		"ingredients": {
+			"leek": 15,
+			"soy": 19,
+			"mushroom": 12,
+			"ginger": 11
+		}
+	},
+	{
+		"id": "cross_chop_salad",
+		"name": "\"Cross Chop\" Salad",
+		"type": "salad",
+		"bonus": 35,
+		"ingredients": {
+			"egg": 20,
+			"sausage": 15,
+			"corn": 11,
+			"tomato": 10
+		}
+	},
+	{
+		"id": "greengrass_salad",
+		"name": "Greengrass Salad",
+		"type": "salad",
+		"bonus": 48,
+		"ingredients": {
+			"oil": 22,
+			"corn": 17,
+			"tomato": 14,
+			"potato": 9
+		}
+	},
+	{
+		"id": "petal_blizzard_layered_salad",
+		"name": "\"Petal Blizzard\" Layered Salad",
+		"type": "salad",
+		"bonus": 48,
+		"ingredients": {
+			"egg": 25,
+			"oil": 17,
+			"potato": 15,
+			"sausage": 12
+		}
+	},
+	{
+		"id": "apple_acid_yogurt_dressed_salad",
+		"name": "\"Apple Acid\" Yogurt-Dressed Salad",
+		"type": "salad",
+		"bonus": 78,
+		"ingredients": {
+			"egg": 35,
+			"apple": 28,
+			"tomato": 23,
+			"milk": 18
+		}
+	},
+	{
+		"id": "defiant_coffee_dressed_salad",
+		"name": "\"Defiant\" Coffee-Dressed Salad",
+		"type": "salad",
+		"bonus": 61,
+		"ingredients": {
+			"coffee": 28,
+			"sausage": 28,
+			"oil": 22,
+			"potato": 22
+		}
+	},
+	{
+		"id": "luscious_avocado_salad",
+		"name": "Luscious Avocado Salad",
+		"type": "salad",
+		"bonus": 35,
+		"ingredients": {
+			"avocado": 14,
+			"soy": 18,
+			"oil": 10
+		}
+	},
+	{
+		"id": "bulldoze_guacamole_and_chips",
+		"name": "\"Bulldoze\" Guacamole and Chips",
+		"type": "salad",
+		"bonus": 78,
+		"ingredients": {
+			"avocado": 28,
+			"corn": 25,
+			"herb": 30,
+			"soy": 22
+		}
+	},
+	{
+		"id": "scald_chunky_salad",
+		"name": "\"Scald\" Chunky Salad",
+		"type": "salad",
+		"bonus": 61,
+		"ingredients": {
+			"pumpkin": 20,
+			"potato": 30,
+			"corn": 18,
+			"mushroom": 27
+		}
+	},
+	{
+		"id": "warm_moomoo_milk",
+		"name": "Warm Moomoo Milk",
+		"type": "dessert",
+		"bonus": 18.7,
+		"ingredients": {
+			"milk": 7
+		}
+	},
+	{
+		"id": "fancy_apple_juice",
+		"name": "Fancy Apple Juice",
+		"type": "dessert",
+		"bonus": 18.7,
+		"ingredients": {
+			"apple": 8
+		}
+	},
+	{
+		"id": "craft_soda_pop",
+		"name": "Craft Soda Pop",
+		"type": "dessert",
+		"bonus": 18.7,
+		"ingredients": {
+			"honey": 9
+		}
+	},
+	{
+		"id": "lucky_chant_apple_pie",
+		"name": "\"Lucky Chant\" Apple Pie",
+		"type": "dessert",
+		"bonus": 18.77,
+		"ingredients": {
+			"apple": 12,
+			"milk": 4
+		}
+	},
+	{
+		"id": "fluffy_sweet_potatoes",
+		"name": "\"Fluffy\" Sweet Potatoes",
+		"type": "dessert",
+		"bonus": 18.77,
+		"ingredients": {
+			"potato": 9,
+			"milk": 5
+		}
+	},
+	{
+		"id": "ember_ginger_tea",
+		"name": "\"Ember\" Ginger Tea",
+		"type": "dessert",
+		"bonus": 18.77,
+		"ingredients": {
+			"ginger": 9,
+			"apple": 7
+		}
+	},
+	{
+		"id": "cloud_nine_soy_cake",
+		"name": "\"Cloud Nine\" Soy Cake",
+		"type": "dessert",
+		"bonus": 18.77,
+		"ingredients": {
+			"egg": 8,
+			"soy": 7
+		}
+	},
+	{
+		"id": "stalwart_vegetable_juice",
+		"name": "\"Stalwart\" Vegetable Juice",
+		"type": "dessert",
+		"bonus": 18.77,
+		"ingredients": {
+			"tomato": 9,
+			"apple": 7
+		}
+	},
+	{
+		"id": "big_malasada",
+		"name": "Big Malasada",
+		"type": "dessert",
+		"bonus": 20.51,
+		"ingredients": {
+			"oil": 10,
+			"milk": 7,
+			"honey": 6
+		}
+	},
+	{
+		"id": "hustle_protein_smoothie",
+		"name": "\"Hustle\" Protein Smoothie",
+		"type": "dessert",
+		"bonus": 20.51,
+		"ingredients": {
+			"soy": 15,
+			"cacao": 8
+		}
+	},
+	{
+		"id": "huge_power_soy_donuts",
+		"name": "\"Huge Power\" Soy Donuts",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"oil": 12,
+			"soy": 16,
+			"cacao": 7
+		}
+	},
+	{
+		"id": "sweet_scent_chocolate_cake",
+		"name": "\"Sweet Scent\" Chocolate Cake",
+		"type": "dessert",
+		"bonus": 20.51,
+		"ingredients": {
+			"honey": 9,
+			"cacao": 8,
+			"milk": 7
+		}
+	},
+	{
+		"id": "petal_dance_chocolate_tart",
+		"name": "\"Petal Dance\" Chocolate Tart",
+		"type": "dessert",
+		"bonus": 25,
+		"ingredients": {
+			"apple": 11,
+			"cacao": 11
+		}
+	},
+	{
+		"id": "lovely_kiss_smoothie",
+		"name": "\"Lovely Kiss\" Smoothie",
+		"type": "dessert",
+		"bonus": 25,
+		"ingredients": {
+			"apple": 11,
+			"milk": 9,
+			"honey": 7,
+			"cacao": 8
+		}
+	},
+	{
+		"id": "steadfast_ginger_cookies",
+		"name": "\"Steadfast\" Ginger Cookies",
+		"type": "dessert",
+		"bonus": 25,
+		"ingredients": {
+			"honey": 14,
+			"ginger": 12,
+			"cacao": 5,
+			"egg": 4
+		}
+	},
+	{
+		"id": "nerolis_restorative_tea",
+		"name": "Neroli's Restorative Tea",
+		"type": "dessert",
+		"bonus": 25,
+		"ingredients": {
+			"ginger": 11,
+			"apple": 15,
+			"mushroom": 9
+		}
+	},
+	{
+		"id": "explosion_popcorn",
+		"name": "\"Explosion\" Popcorn",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"corn": 15,
+			"oil": 14,
+			"milk": 7
+		}
+	},
+	{
+		"id": "early_bird_coffee_jelly",
+		"name": "\"Early Bird\" Coffee Jelly",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"coffee": 16,
+			"milk": 14,
+			"honey": 12
+		}
+	},
+	{
+		"id": "mold_breaker_corn_tiramisu",
+		"name": "\"Mold Breaker\" Corn Tiramisu",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"coffee": 14,
+			"corn": 14,
+			"milk": 12
+		}
+	},
+	{
+		"id": "jigglypuffs_fruity_flan",
+		"name": "Jigglypuff's Fruity Flan",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"honey": 20,
+			"egg": 15,
+			"milk": 10,
+			"apple": 10
+		}
+	},
+	{
+		"id": "teatime_corn_scones",
+		"name": "\"Teatime\" Corn Scones",
+		"type": "dessert",
+		"bonus": 48,
+		"ingredients": {
+			"apple": 20,
+			"ginger": 20,
+			"corn": 18,
+			"milk": 9
+		}
+	},
+	{
+		"id": "flower_gift_macarons",
+		"name": "\"Flower Gift\" Macarons",
+		"type": "dessert",
+		"bonus": 48,
+		"ingredients": {
+			"cacao": 25,
+			"egg": 25,
+			"honey": 17,
+			"milk": 10
+		}
+	},
+	{
+		"id": "zing_zap_spiced_cola",
+		"name": "\"Zing Zap\" Spiced Cola",
+		"type": "dessert",
+		"bonus": 61,
+		"ingredients": {
+			"apple": 35,
+			"ginger": 20,
+			"leek": 20,
+			"coffee": 12
+		}
+	},
+	{
+		"id": "clodsire_eclair",
+		"name": "Clodsire Éclair",
+		"type": "dessert",
+		"bonus": 61,
+		"ingredients": {
+			"cacao": 30,
+			"milk": 26,
+			"coffee": 24,
+			"honey": 22
+		}
+	},
+	{
+		"id": "honey_gather_chocolate_waffles",
+		"name": "\"Honey Gather\" Chocolate Waffles",
+		"type": "dessert",
+		"bonus": 78,
+		"ingredients": {
+			"honey": 38,
+			"corn": 28,
+			"oil": 28,
+			"cacao": 21
+		}
+	},
+	{
+		"id": "scary_face_pancakes",
+		"name": "\"Scary Face\" Pancakes",
+		"type": "dessert",
+		"bonus": 78,
+		"ingredients": {
+			"pumpkin": 18,
+			"egg": 24,
+			"honey": 32,
+			"tomato": 29
+		}
+	},
+	{
+		"id": "leaf_tornado_smoothie",
+		"name": "\"Leaf Tornado\" Smoothie",
+		"type": "dessert",
+		"bonus": 35,
+		"ingredients": {
+			"avocado": 18,
+			"tomato": 16,
+			"milk": 14
+		}
+	}
+]

@@ -1,0 +1,66 @@
+import type { PokemonType } from "../data/pokemons";
+
+/**
+ * Base berry strength per Pokémon type.
+ */
+export const berryBaseStrength: { [type in PokemonType]: number } = {
+	normal: 28,
+	fire: 27,
+	water: 31,
+	electric: 25,
+	grass: 30,
+	ice: 32,
+	fighting: 27,
+	poison: 32,
+	ground: 29,
+	flying: 24,
+	psychic: 26,
+	bug: 24,
+	rock: 30,
+	ghost: 26,
+	dragon: 35,
+	dark: 31,
+	steel: 33,
+	fairy: 26,
+};
+
+/**
+ * Calculates the berry strength for a Pokémon at a given level,
+ * optionally applying a field bonus and a berry strength multiplier.
+ *
+ * @param type - Pokémon type.
+ * @param level - Pokémon level.
+ * @param fieldBonus - Area bonus in percent (e.g. 25 means 25%). Defaults to 0.
+ * @param berryStrengthMultiplier - Multiplier for favorite berry etc. Defaults to 1.
+ * @param isBig - Big berry or not.
+ * @param berryZoneRate - Berry zone bonus in percent (e.g. 50 means 50%).
+ */
+export function getBerryStrength(
+	type: PokemonType,
+	level: number,
+	fieldBonus = 0,
+	berryStrengthMultiplier = 1,
+	isBig: boolean = false,
+	berryZoneRate = 0,
+): number {
+	if (level === 0) {
+		return 0;
+	}
+	const b0 = berryBaseStrength[type];
+	const rawStrength =
+		Math.max(b0 + level - 1, Math.round(1.025 ** (level - 1) * b0)) *
+		(isBig ? 10 : 1);
+	const withBonus = Math.ceil(
+		rawStrength * (1 + fieldBonus / 100) * (1 + berryZoneRate / 100),
+	);
+	return Math.ceil(withBonus * berryStrengthMultiplier);
+}
+
+export function getBerryRank(type: PokemonType): number {
+	return (
+		Object.values(berryBaseStrength)
+			.sort()
+			.reverse()
+			.indexOf(berryBaseStrength[type]) + 1
+	);
+}
