@@ -7,12 +7,14 @@ import {
 	type EnergyMember,
 	type EnergyProblem,
 	maxRecipeLevel,
+	resolveMembers,
+	teamHealSources,
 	type SwapOption,
 	swapAnalysis,
 } from "../core/energy";
 import { sundayBaseChance, weekdayBaseChance } from "../core/tasty";
 import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
-import type { StrengthOptions, YieldDetail } from "../core/yield";
+import type { Heal, StrengthOptions, YieldDetail } from "../core/yield";
 import { getFavoriteBerries } from "../vendor/pokesleep-tool/data/fields";
 import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/pokesleep-tool/data/pokemons";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
@@ -50,10 +52,12 @@ export default function EnergyView(props: {
 	box: BoxEntry[];
 	recipe: Recipe;
 	details: Map<string, YieldDetail>;
+	/** With simulated energy: yields when healed by the team's healers. */
+	healedDetail?: (id: string, heal: Heal | undefined) => YieldDetail;
 	settings: EnergySettings;
 	setSettings: (s: EnergySettings) => void;
 }) {
-	const { box, recipe, details, settings, setSettings } = props;
+	const { box, recipe, details, healedDetail, settings, setSettings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -61,20 +65,21 @@ export default function EnergyView(props: {
 	const pinned = pinnedRaw.filter((id) => byId.has(id));
 	const excluded = excludedRaw.filter((id) => byId.has(id) && !pinned.includes(id));
 
-	const members: EnergyMember[] = useMemo(
-		() =>
-			box.map((e) => {
-				const d = details.get(e.id);
-				return {
-					id: e.id,
-					yield: d?.total ?? {},
-					berry: d?.berryStrength ?? 0,
-					skill: d?.skillStrength ?? 0,
-					...(d?.tasty && { tasty: d.tasty }),
-				};
-			}),
-		[box, details],
-	);
+	const members: EnergyMember[] = useMemo(() => {
+		const toMember = (id: string, d: YieldDetail | undefined): EnergyMember => {
+			const m: EnergyMember = {
+				id,
+				yield: d?.total ?? {},
+				berry: d?.berryStrength ?? 0,
+				skill: d?.skillStrength ?? 0,
+				...(d?.tasty && { tasty: d.tasty }),
+				...(d?.heal && { heal: d.heal }),
+			};
+			if (healedDetail) m.at = (heal) => toMember(id, healedDetail(id, heal));
+			return m;
+		};
+		return box.map((e) => toMember(e.id, details.get(e.id)));
+	}, [box, details, healedDetail]);
 	const problem: EnergyProblem = useMemo(
 		() => ({ recipe, dishStrength: dishStrength(recipe, settings.recipeLevel, settings.fieldBonus) }),
 		[recipe, settings.recipeLevel, settings.fieldBonus],
@@ -132,7 +137,11 @@ export default function EnergyView(props: {
 
 	const ings = Object.keys(recipe.ingredients) as IngredientName[];
 	const demand = dailyDemand(recipe);
-	const strengthOf = (id: string) => members.find((m) => m.id === id) as EnergyMember;
+	/** Team members as they perform on this team (healing applied); bench members on their best team. */
+	const strengthOf = (id: string) =>
+		best.members.find((m) => m.id === id) ??
+		withIt.get(id)?.members.find((m) => m.id === id) ??
+		(members.find((m) => m.id === id) as EnergyMember);
 
 	return (
 		<div className="energy-view">
@@ -156,6 +165,29 @@ export default function EnergyView(props: {
 							Dish: {formatStrength(problem.dishStrength)} per meal × {mealsPerDay} meals × cooked{" "}
 							<strong className={e.coverage < 1 - 1e-9 ? "warn" : "ok"}>{formatPercent(e.coverage)}</strong> of meals ×
 							Extra Tasty ×{e.tastyMultiplier.toFixed(3)} (weekly average)
+						</p>
+						<p className="muted small">
+							{healedDetail ? (
+								<>
+									Energy is simulated: it drains during the day.{" "}
+									{teamHealSources(best.members).length > 0 ? (
+										<>
+											This team's healers restore about{" "}
+											<strong>
+												{Math.round(
+													teamHealSources(best.members).reduce((a, h) => a + h.team * h.triggersPerDay, 0),
+												)}{" "}
+												energy per member per day
+											</strong>
+											, which is included below.
+										</>
+									) : (
+										"No healer on this team restores the whole team's energy."
+									)}
+								</>
+							) : (
+								"Energy is always full, so healers add nothing. Switch Energy to Simulated at the top to count them."
+							)}
 						</p>
 						{!best.exact && (
 							<p className="warn small">
@@ -184,6 +216,7 @@ export default function EnergyView(props: {
 											<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 												{labels.get(id)}
 												{m.tasty && <span className="tag">Extra Tasty</span>}
+{m.heal && <span className="tag">Healer</span>}
 											</td>
 											{ings.map((i) => (
 												<td key={i}>{(m.yield[i] ?? 0) > 0 ? formatAmount(m.yield[i] ?? 0) : "–"}</td>
@@ -275,6 +308,7 @@ export default function EnergyView(props: {
 												<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 													{labels.get(id)}
 													{m.tasty && <span className="tag">Extra Tasty</span>}
+{m.heal && <span className="tag">Healer</span>}
 													{isExcluded && <span className="tag">excluded</span>}
 												</td>
 												{ings.map((i) => (
@@ -480,10 +514,17 @@ function SwapCard(props: {
 
 	const result = useMemo(() => {
 		if (swapInId === undefined || partnerId === undefined) return undefined;
-		const swapIn = byId.get(swapInId) as EnergyMember;
-		const partner = byId.get(partnerId) as EnergyMember;
 		const slot = inTeam ? swapInId : partnerId;
-		const others = best.ids.filter((id) => id !== slot).map((id) => byId.get(id) as EnergyMember);
+		// The other members keep their output on the best team; the two sharing the slot are healed by
+		// the others' healers (and their own).
+		const others = best.members.filter((m) => m.id !== slot);
+		const othersHeal = teamHealSources(members.filter((m) => others.some((o) => o.id === m.id)));
+		const resolve = (id: string) => {
+			const m = byId.get(id) as EnergyMember;
+			return resolveMembers([m], [...othersHeal, ...teamHealSources([m])])[0];
+		};
+		const swapIn = resolve(swapInId);
+		const partner = resolve(partnerId);
 		return swapAnalysis(others, swapIn, partner, problem);
 	}, [swapInId, partnerId, members, problem, best.ids.join(",")]);
 

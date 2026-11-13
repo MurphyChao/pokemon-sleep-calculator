@@ -438,3 +438,7 @@ footer a {
 	gap: 6px 24px;
 	margin-bottom: 12px;
 }
+
+input.narrow {
+	width: 4.5em;
+}

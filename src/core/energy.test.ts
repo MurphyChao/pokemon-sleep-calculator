@@ -1,5 +1,5 @@
 import { type BoxEntry } from "./box";
-import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, swapAnalysis, teamEnergy } from "./energy";
+import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveTeam, swapAnalysis, teamEnergy } from "./energy";
 import { type Recipe, recipes } from "./recipes";
 import { dailyIngredientYieldDetail } from "./yield";
 
@@ -128,5 +128,50 @@ describe("swapAnalysis", () => {
 
 	test("no analysis without an Extra Tasty Pokémon", () => {
 		expect(swapAnalysis(others, sceptile, dedenne, problem)).toBeUndefined();
+	});
+});
+
+describe("healers (simulated energy)", () => {
+	const problem = { recipe: salad, dishStrength: dishStrength(salad, 30, 0) };
+	/** Synthetic member whose output grows with the healing it receives. */
+	const member = (id: string, berry: number, y: EnergyMember["yield"], heal?: EnergyMember["heal"]): EnergyMember => {
+		const base: EnergyMember = { id, yield: y, berry, skill: 0, ...(heal && { heal }) };
+		const at = (h: { count: number; energy: number } | undefined): EnergyMember => {
+			const f = 1 + (h ? (h.count * h.energy) / 200 : 0);
+			const scaled = Object.fromEntries(Object.entries(y).map(([k, v]) => [k, (v ?? 0) * f]));
+			return { ...base, berry: berry * f, yield: scaled, at };
+		};
+		return { ...base, at };
+	};
+
+	test("a weak healer makes the team when its healing is worth more than a stronger member", () => {
+		const others = [0, 1, 2, 3].map((i) => member(`o${i}`, 6000, { pumpkin: 10, potato: 15, corn: 9, mushroom: 14 }));
+		const healer = member("healer", 1000, {}, { team: 18, self: 0, triggersPerDay: 3 });
+		const strong = member("strong", 4000, {});
+		const best = bestEnergyTeam([...others, healer, strong], problem);
+		expect(best.ids).toContain("healer");
+		// The reported team is the healed one.
+		expect(best.members.find((m) => m.id === "o0")?.berry).toBeGreaterThan(6000);
+	});
+
+	test("matches brute force over all teams", () => {
+		const r = rng(11);
+		for (let trial = 0; trial < 15; trial++) {
+			const members = Array.from({ length: 8 }, (_, i) =>
+				member(
+					`m${i}`,
+					Math.round(r() * 8000),
+					r() < 0.6 ? { pumpkin: r() * 30, potato: r() * 40, corn: r() * 25, mushroom: r() * 35 } : {},
+					r() < 0.35 ? { team: r() < 0.5 ? 18 : 3, self: 0, triggersPerDay: 1 + r() * 3 } : undefined,
+				),
+			);
+			let brute = Number.NEGATIVE_INFINITY;
+			for (let mask = 0; mask < 1 << 8; mask++) {
+				const team = members.filter((_, i) => mask & (1 << i));
+				if (team.length !== 5) continue;
+				brute = Math.max(brute, teamEnergy(resolveTeam(team), problem).total);
+			}
+			expect(bestEnergyTeam(members, problem).energy.total).toBeCloseTo(brute, 6);
+		}
 	});
 });

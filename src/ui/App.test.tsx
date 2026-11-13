@@ -95,18 +95,52 @@ test("key level buttons set the level and the number box still accepts any level
 	expect(level.value).toBe("80");
 });
 
-test("inventory limit and camp ticket checkboxes are saved", () => {
+test("inventory limit, camp ticket and energy settings are saved", () => {
 	render(<App />);
 	const limit = screen.getByLabelText(/Inventory limit/) as HTMLInputElement;
 	const ticket = screen.getByLabelText(/Good Camp Ticket/) as HTMLInputElement;
+	const energy = screen.getByLabelText(/^Energy/) as HTMLSelectElement;
 	expect(limit.checked).toBe(true);
 	expect(ticket.checked).toBe(false);
+	expect(energy.value).toBe("full");
+	const sleep = screen.getByLabelText(/Sleep score/) as HTMLInputElement;
+	expect(sleep.value).toBe("0");
+	fireEvent.change(sleep, { target: { value: "85" } });
 	fireEvent.click(limit);
 	fireEvent.click(ticket);
+	fireEvent.change(energy, { target: { value: "simulated" } });
 	expect(JSON.parse(localStorage.getItem("pscalc.yieldOptions") ?? "{}")).toEqual({
 		inventoryLimit: false,
 		campTicket: true,
+		energy: "simulated",
+		sleepScore: 85,
 	});
+});
+
+test("Energy solver: with simulated energy, a healer's healing is counted for the whole team", () => {
+	const box = [
+		entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+		entry("meow", "Meowscarada", "AAA"),
+		entry("drag", "Dragonite", "ABB"),
+		entry("spirit", "Spiritomb", "AAA"),
+		entry("sylveon", "Sylveon", "AAA", 6),
+	];
+	localStorage.setItem("pscalc.box.v1", JSON.stringify(box));
+	localStorage.setItem("pscalc.yieldOptions", JSON.stringify({ inventoryLimit: true, campTicket: false, energy: "simulated", sleepScore: 100 }));
+	render(<App />);
+	fireEvent.click(screen.getByText("Energy solver"));
+	const team = section("Best team");
+	expect(team.textContent).toMatch(/healers restore about \d+ energy per member per day/);
+	expect(rowOf(team, "Sylveon").textContent).toContain("Healer");
+	const berries = (label: string) => {
+		const cells = [...rowOf(section("Best team"), label).querySelectorAll("td")];
+		return Number((cells[cells.length - 4].textContent ?? "").replace(/,/g, ""));
+	};
+	const healedGourgeist = berries("Gourgeist");
+	// Excluding Sylveon leaves the others unhealed: Gourgeist's berries drop.
+	fireEvent.click(within(rowOf(team, "Sylveon")).getByText("Exclude"));
+	expect(section("Best team").textContent).toContain("No healer on this team");
+	expect(berries("Gourgeist")).toBeLessThan(healedGourgeist);
 });
 
 test("Extra Tasty: a Tasty Chance Pokémon on the bench shows slot-equivalents for Mon–Sat and Sunday", () => {

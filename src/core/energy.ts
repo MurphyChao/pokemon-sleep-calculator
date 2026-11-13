@@ -14,7 +14,7 @@ import { ingredientStrength } from "../vendor/pokesleep-tool/util/PokemonRp";
 import { recipeLevelBonus } from "../vendor/pokesleep-tool/util/PokemonStrength";
 import { mealsPerDay, type Recipe } from "./recipes";
 import { candidateThresholds, extraTasty, type SwapPolicyResult, swapPolicy, type TastySource } from "./tasty";
-import type { IngredientYield } from "./yield";
+import { type Heal, type HealSource, healFor, type IngredientYield } from "./yield";
 
 export const maxRecipeLevel = Math.max(...Object.keys(recipeLevelBonus).map(Number));
 
@@ -27,6 +27,30 @@ export interface EnergyMember {
 	/** Strength skill output per day. */
 	skill: number;
 	tasty?: TastySource;
+	/** Set if the main skill restores energy. */
+	heal?: HealSource;
+	/**
+	 * With simulated energy: this member's output when it receives `heal` during the day.
+	 * Absent when energy is always full (healing changes nothing).
+	 */
+	at?: (heal: Heal | undefined) => EnergyMember;
+}
+
+const healsTeam = (m: EnergyMember) => !!m.at && !!m.heal && m.heal.team > 0;
+
+/** Members as they perform on a team whose team-wide healers are `healers` (plus their own self-healing). */
+export function resolveMembers(members: EnergyMember[], healers: HealSource[]): EnergyMember[] {
+	return members.map((m) => (m.at ? m.at(healFor(healers, m.heal)) : m));
+}
+
+/** Team-wide heal sources among `team`. */
+export function teamHealSources(team: EnergyMember[]): HealSource[] {
+	return team.filter(healsTeam).map((m) => m.heal as HealSource);
+}
+
+/** A team's members as they perform together, healed by the team's own healers. */
+export function resolveTeam(team: EnergyMember[]): EnergyMember[] {
+	return resolveMembers(team, teamHealSources(team));
 }
 
 /** Strength of one dish (not Extra Tasty), as the game computes it before rounding. */
@@ -93,6 +117,8 @@ export function teamEnergy(team: EnergyMember[], problem: EnergyProblem): TeamEn
 export interface BestTeam {
 	ids: string[];
 	energy: TeamEnergy;
+	/** The team's members as they perform together (healing applied). */
+	members: EnergyMember[];
 	/** false if the search space was too large and a local search was used instead. */
 	exact: boolean;
 }
@@ -132,9 +158,25 @@ function prune(cands: EnergyMember[], ings: IngredientName[], free: number): Ene
 	});
 }
 
+/** Above this many groups of healers, fall back to local search over everything. */
+const maxHealerGroups = 256;
+
+function subsets<T>(items: T[], maxSize: number): T[][] {
+	const out: T[][] = [[]];
+	for (const item of items) {
+		const n = out.length;
+		for (let i = 0; i < n; i++) if (out[i].length < maxSize) out.push([...out[i], item]);
+	}
+	return out;
+}
+
 /**
  * Best team of up to `size` members: `pinned` are always in, `excluded` never.
- * Exhaustive over the members that survive dominance pruning; local search if that is still too many.
+ *
+ * With simulated energy, healers that restore the whole team (Energy for Everyone, Energizing Cheer)
+ * change everyone's output, so the search runs once per set of such healers on the team, with every
+ * member's output computed for that healing. Within each set: exhaustive over the members that
+ * survive dominance pruning, or local search if that is still too many.
  */
 export function bestEnergyTeam(
 	members: EnergyMember[],
@@ -144,21 +186,49 @@ export function bestEnergyTeam(
 	size = 5,
 ): BestTeam {
 	const ings = Object.keys(problem.recipe.ingredients) as IngredientName[];
-	const fixed = members.filter((m) => pinned.includes(m.id)).slice(0, size);
-	const free = size - fixed.length;
-	const pool = prune(
-		members.filter((m) => !pinned.includes(m.id) && !excluded.includes(m.id)),
-		ings,
-		free,
+	const candidates = members.filter((m) => pinned.includes(m.id) || !excluded.includes(m.id));
+	const pinnedCount = Math.min(size, candidates.filter((m) => pinned.includes(m.id)).length);
+	const healers = candidates.filter(healsTeam);
+	const others = candidates.filter((m) => !healsTeam(m));
+	const pinnedHealers = healers.filter((m) => pinned.includes(m.id));
+	const groups = subsets(
+		healers.filter((m) => !pinned.includes(m.id)),
+		size - pinnedCount,
 	);
-	const k = Math.min(free, pool.length);
 
-	const evaluate = (team: EnergyMember[]) => teamEnergy(team, problem);
-	if (binom(pool.length, k) <= maxCombinations) {
-		const ids = exhaustive(fixed, pool, k, problem, ings);
-		return { ids, energy: evaluate(members.filter((m) => ids.includes(m.id))), exact: true };
+	if (groups.length > maxHealerGroups) {
+		const fixed = candidates.filter((m) => pinned.includes(m.id)).slice(0, size);
+		const pool = candidates.filter((m) => !pinned.includes(m.id));
+		const r = localSearch(fixed, pool, Math.min(size - fixed.length, pool.length), (team) =>
+			teamEnergy(resolveTeam(team), problem),
+		);
+		const team = resolveTeam(members.filter((m) => r.ids.includes(m.id)));
+		return { ...r, members: team, energy: teamEnergy(team, problem) };
 	}
-	return localSearch(fixed, pool, k, evaluate);
+
+	let best: BestTeam | undefined;
+	let allExact = true;
+	for (const group of groups) {
+		const onTeam = [...pinnedHealers, ...group];
+		const sources = onTeam.map((m) => m.heal as HealSource);
+		const healed = resolveMembers(onTeam, sources);
+		const rest = resolveMembers(others, sources);
+		const fixed = [...healed, ...rest.filter((m) => pinned.includes(m.id))].slice(0, size);
+		if (fixed.length < healed.length) continue;
+		const pool = rest.filter((m) => !pinned.includes(m.id));
+		const free = size - fixed.length;
+		const pruned = prune(pool, ings, free);
+		const k = Math.min(free, pruned.length);
+		const exact = binom(pruned.length, k) <= maxCombinations;
+		allExact &&= exact;
+		const ids = exact
+			? exhaustive(fixed, pruned, k, problem, ings)
+			: localSearch(fixed, pruned, k, (team) => teamEnergy(team, problem)).ids;
+		const team = [...fixed, ...pool].filter((m) => ids.includes(m.id));
+		const energy = teamEnergy(team, problem);
+		if (!best || energy.total > best.energy.total + 1e-9) best = { ids, energy, members: team, exact };
+	}
+	return { ...(best as BestTeam), exact: allExact };
 }
 
 /** Tries every k-subset of `pool`, accumulating sums incrementally (no allocation per team). */
@@ -270,7 +340,8 @@ function localSearch(
 			}
 		}
 	}
-	return { ids: [...fixed, ...chosen].map((m) => m.id), energy: current, exact: false };
+	const team = [...fixed, ...chosen];
+	return { ids: team.map((m) => m.id), energy: current, members: team, exact: false };
 }
 
 export interface SwapOption {

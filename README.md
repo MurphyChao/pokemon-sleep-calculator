@@ -33,7 +33,11 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
 
 ## Model assumptions
 
-Daily yields use pokesleep-tool's defaults: 100 sleep score, checking in every 3 hours while awake, no
-teammate bonuses (Helping Bonus, Energy for Everyone, …). Ingredients from main skills (Ingredient Magnet,
+Daily yields use pokesleep-tool's model with checking in every 3 hours while awake and no Helping Bonus.
+Energy is always full by default (fastest helping all day). The sleep score (default 0 = no sleep, 100 = 8.5 hours)
+sets how long the bag goes unemptied overnight and, with simulated energy, how much energy recovers. With **Energy: Simulated**, energy drains while
+awake and is restored by sleep and healers: each Pokémon heals itself on the Box tab and in
+the slot solver, and the energy solver counts each team's own healers (Energy for Everyone heals everyone,
+Energizing Cheer one random member, Charge Energy only itself). Ingredients from main skills (Ingredient Magnet,
 Ingredient Draw, Bulk Up) are counted as an expected average. The energy solver ignores ingredients the dish
 doesn't use, extra ingredients added to the pot, and meals the team can't gather the dish for.

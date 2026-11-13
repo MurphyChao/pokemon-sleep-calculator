@@ -22,9 +22,55 @@ export interface YieldOptions {
 	inventoryLimit: boolean;
 	/** Good Camp Ticket: help speed ×1.2 and inventory ×1.2. */
 	campTicket: boolean;
+	/**
+	 * "full": energy stays at 100 all day (fastest helping).
+	 * "simulated": energy drains while awake and is restored by sleep (100 sleep score) and by healers.
+	 */
+	energy: "full" | "simulated";
+	/**
+	 * Sleep score 0–100: 100 = 8.5 hours of sleep. Asleep, the bag isn't emptied and energy recovers
+	 * (more with a higher score). 0 = no sleep: every hour counts as awake, with no overnight recovery.
+	 */
+	sleepScore: number;
 }
 
-export const defaultYieldOptions: YieldOptions = { inventoryLimit: true, campTicket: false };
+export const defaultYieldOptions: YieldOptions = { inventoryLimit: true, campTicket: false, energy: "full", sleepScore: 0 };
+
+/** A main skill that restores energy, per trigger. */
+export interface HealSource {
+	/** Expected energy every team member (including this one) gets per trigger. */
+	team: number;
+	/** Extra energy only this Pokémon gets per trigger. */
+	self: number;
+	triggersPerDay: number;
+}
+
+/** Energy restored during the day, in pokesleep-tool's terms: `count` evenly spaced restores of `energy` each. */
+export interface Heal {
+	count: number;
+	energy: number;
+}
+
+/**
+ * Healing a Pokémon receives from the team's healers (`team`, which may include itself) plus its own
+ * self-healing skill. Spread over a whole number of evenly spaced restores, as pokesleep-tool models it.
+ */
+export function healFor(team: HealSource[], own?: HealSource): Heal | undefined {
+	let triggers = 0;
+	let energy = 0;
+	for (const h of team) {
+		if (h.team <= 0) continue;
+		triggers += h.triggersPerDay;
+		energy += h.triggersPerDay * h.team;
+	}
+	if (own && own.self > 0) {
+		triggers += own.triggersPerDay;
+		energy += own.triggersPerDay * own.self;
+	}
+	if (energy <= 0) return undefined;
+	const count = Math.max(1, Math.round(triggers));
+	return { count, energy: energy / count };
+}
 
 /** Settings that change strength (energy) but not ingredient yields. */
 export interface StrengthOptions {
@@ -45,6 +91,8 @@ export interface YieldDetail {
 	total: IngredientYield;
 	/** Set if the main skill raises the Extra Tasty chance. */
 	tasty?: TastySource;
+	/** Set if the main skill restores energy. */
+	heal?: HealSource;
 	/** Strength per day from berries. */
 	berryStrength: number;
 	/** Strength per day from the main skill, excluding skills that give ingredients (those go into the dish). */
@@ -109,20 +157,40 @@ function tastySource(iv: PokemonIv, result: StrengthResult): TastySource | undef
 	return undefined;
 }
 
+/** Energy restored by the main skill. Energizing Cheer heals one random member, so 1/5 each on average. */
+function healSource(iv: PokemonIv, result: StrengthResult): HealSource | undefined {
+	const triggersPerDay = result.skillCount;
+	const value = result.skillValuePerTrigger;
+	const skill = iv.versatileSkill;
+	if (skill.startsWith("Energy for Everyone S")) return { team: value, self: 0, triggersPerDay };
+	if (skill.startsWith("Energizing Cheer S")) return { team: value / 5, self: 0, triggersPerDay };
+	if (skill.startsWith("Charge Energy S")) {
+		// pokesleep-tool's value already includes this Pokémon's nature; restores apply it again.
+		return { team: 0, self: value / iv.nature.energyRecoveryFactor, triggersPerDay };
+	}
+	return undefined;
+}
+
 /**
- * Expected ingredients per day, using pokesleep-tool's model with its default
- * assumptions (100 sleep score, no teammate bonuses) plus the given options.
+ * Expected ingredients and strength per day, using pokesleep-tool's model (no Helping Bonus)
+ * plus the given options. `heal` is the energy restored by healers during
+ * the day; it only matters with simulated energy.
  */
 export function dailyIngredientYieldDetail(
 	entry: BoxEntry,
 	options: YieldOptions = defaultYieldOptions,
 	strength: StrengthOptions = defaultStrengthOptions,
+	heal?: Heal,
 ): YieldDetail {
 	const iv = toPokemonIv(entry);
 	const favorites = strength.favorites;
 	const param = createStrengthParameter({
 		period: 24,
 		isGoodCampTicketSet: options.campTicket,
+		isEnergyAlwaysFull: options.energy !== "simulated",
+		sleepScore: Math.min(100, Math.max(0, options.sleepScore ?? defaultYieldOptions.sleepScore)),
+		e4eCount: heal?.count ?? 0,
+		e4eEnergy: heal?.energy ?? 0,
 		addHelpingBonusEffect: false,
 		fieldBonus: strength.fieldBonus,
 		// Field 0 (Greengrass Isle) lets the favorite berries be chosen freely.
@@ -147,9 +215,25 @@ export function dailyIngredientYieldDetail(
 		skill,
 		total,
 		tasty: tastySource(iv, result),
+		heal: healSource(iv, result),
 		berryStrength: result.berryTotalStrength,
 		skillStrength: isCookingSkill(iv.versatileSkill) ? 0 : result.skillStrength + result.skillStrength2,
 	};
+}
+
+/**
+ * Yields of a Pokémon on its own: with simulated energy, healed only by its own skill.
+ * Healers' trigger counts are taken without healing, which slightly undercounts them.
+ */
+export function soloYieldDetail(
+	entry: BoxEntry,
+	options: YieldOptions = defaultYieldOptions,
+	strength: StrengthOptions = defaultStrengthOptions,
+): YieldDetail {
+	const d = dailyIngredientYieldDetail(entry, options, strength);
+	if (options.energy !== "simulated" || !d.heal) return d;
+	const heal = healFor([d.heal], d.heal);
+	return heal ? { ...dailyIngredientYieldDetail(entry, options, strength, heal), heal: d.heal } : d;
 }
 
 export function dailyIngredientYield(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): IngredientYield {
