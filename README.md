@@ -31,7 +31,8 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
   To update: `git clone https://github.com/nitoyon/pokesleep-tool.git .upstream/pokesleep-tool && npm run sync-upstream`.
 - **Traditional Chinese names** (Pokémon, skills, subskills, natures, berry types, ingredients, islands): from
   pokesleep-tool's `zh-TW` translations, also copied into `src/vendor/pokesleep-tool/i18n`. The UI text is in
-  `src/ui/i18n.tsx`; recipe names are English only.
+  `src/ui/i18n.tsx`. Traditional Chinese recipe names (`src/data/recipes.zh-TW.json`) are from the
+  [52poke wiki](https://wiki.52poke.com/zh-hant/料理（Pokémon_Sleep）), matched by official English name.
 - **Recipes:** `src/data/recipes.json`, generated from [SleepAPI](https://github.com/SleepAPI/SleepAPI) (Apache-2.0)
   by `node scripts/import-recipes.mjs`. Recipes using newer ingredients (e.g. Snackable Nuts) may be missing.
 

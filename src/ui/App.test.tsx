@@ -286,6 +286,10 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	fireEvent.click(screen.getByText("能量最佳化"));
 	expect(section("最佳隊伍").textContent).toMatch(/每日 [\d,]+ 能量/);
 	expect(section("料理").textContent).toContain("所需鍋子容量");
+	// Recipe names in Chinese too (the default dish is "Scald" Chunky Salad).
+	expect((within(section("料理")).getByLabelText(/食譜/) as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+		"大塊滿滿熱水沙拉 (95)",
+	);
 
 	fireEvent.change(screen.getByLabelText(/語言/), { target: { value: "en" } });
 	expect(screen.getByText("Energy solver")).toBeTruthy();

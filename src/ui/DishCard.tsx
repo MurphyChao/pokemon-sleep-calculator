@@ -1,6 +1,6 @@
 import { dailyDemand, mealsPerDay, potSizeNeeded, type Recipe, type RecipeType, recipes } from "../core/recipes";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
-import { type Key, t } from "./i18n";
+import { type Key, recipeLabel, t } from "./i18n";
 import { ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 
@@ -58,7 +58,7 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					<select value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
 						{typeRecipes.map((r) => (
 							<option key={r.id} value={r.id}>
-								{r.name} ({potSizeNeeded(r)})
+								{recipeLabel(r)} ({potSizeNeeded(r)})
 							</option>
 						))}
 					</select>
