@@ -1,5 +1,5 @@
 import { type BoxEntry } from "./box";
-import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveTeam, swapAnalysis, teamEnergy, weightedEnergy } from "./energy";
+import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveMembers, resolveTeam, swapAnalysis, teamEnergy, weightedEnergy, weightedHealSources } from "./energy";
 import { type Recipe, recipes } from "./recipes";
 import { dailyIngredientYieldDetail } from "./yield";
 
@@ -209,4 +209,49 @@ describe("healers (simulated energy)", () => {
 			expect(bestEnergyTeam(members, problem).energy.total).toBeGreaterThanOrEqual(brute - 1e-6);
 		}
 	});
+});
+
+test("the best team is never beaten by 'best 4-slot team without A and B, plus B full time' (many special members)", () => {
+	const problem = { recipe: salad, dishStrength: dishStrength(salad, 60, 0) };
+	const r = rng(23);
+	for (let trial = 0; trial < 12; trial++) {
+		const members: EnergyMember[] = Array.from({ length: 12 }, (_, i) => {
+			const y: EnergyMember["yield"] = {};
+			for (const ing of ["pumpkin", "potato", "corn", "mushroom"] as const) if (r() < 0.35) y[ing] = r() * 90;
+			const base: EnergyMember = {
+				id: `m${i}`,
+				yield: y,
+				berry: r() * 9000,
+				skill: r() < 0.3 ? r() * 20000 : 0,
+				// Five Extra Tasty Pokémon or healers: leaving one out changes how finely the rest are searched.
+				...(i < 3 && { tasty: { perTrigger: 6 + Math.round(r() * 4), triggersPerDay: 2 + r() * 3 } }),
+				...(i >= 3 && i < 5 && { heal: { team: 12 + r() * 6, self: 0, triggersPerDay: 1 + r() * 4 } }),
+			};
+			const at = (h: { count: number; energy: number } | undefined): EnergyMember => {
+				const f = 1 + (h ? (h.count * h.energy) / 300 : 0);
+				return {
+					...base,
+					berry: base.berry * f,
+					skill: base.skill * f,
+					yield: Object.fromEntries(Object.entries(y).map(([k, v]) => [k, (v ?? 0) * f])),
+					at,
+				};
+			};
+			return { ...base, at };
+		});
+		const best = bestEnergyTeam(members, problem);
+		const raw = (id: string) => members.find((m) => m.id === id) as EnergyMember;
+		for (let ai = 0; ai < 5; ai++) {
+			for (const bi of [6, 9]) {
+				const rest = bestEnergyTeam(members, problem, [], [members[ai].id, members[bi].id], 4);
+				const team = [
+					...rest.entries.map((x) => ({ member: raw(x.member.id), share: x.share })),
+					{ member: members[bi], share: 1 },
+				];
+				const heals = weightedHealSources(team);
+				const resolved = team.map((x) => ({ member: resolveMembers([x.member], heals)[0], share: x.share }));
+				expect(weightedEnergy(resolved, problem).total).toBeLessThanOrEqual(best.energy.total + 1e-6);
+			}
+		}
+	}
 });

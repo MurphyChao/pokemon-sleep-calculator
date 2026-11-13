@@ -50,6 +50,13 @@ export function teamHealSources(team: EnergyMember[]): HealSource[] {
 	return team.filter(healsTeam).map((m) => m.heal as HealSource);
 }
 
+/** Team-wide heal sources of a team whose members are on it part of the time (triggers scaled by share). */
+export function weightedHealSources(team: { member: EnergyMember; share: number }[]): HealSource[] {
+	return team
+		.filter((e) => healsTeam(e.member) && e.share > 0)
+		.map((e) => ({ ...(e.member.heal as HealSource), triggersPerDay: (e.member.heal as HealSource).triggersPerDay * e.share }));
+}
+
 /** A team's members as they perform together, healed by the team's own healers. */
 export function resolveTeam(team: EnergyMember[]): EnergyMember[] {
 	return resolveMembers(team, teamHealSources(team));
@@ -151,9 +158,13 @@ export interface BestTeam {
 
 /** Shares tried for Extra Tasty Pokémon and healers, whose effect isn't linear in their share. */
 const specialLevels = [0, 0.5, 1];
-/** Above this many combinations of those levels, only 0 and 1 are tried. */
-const maxSpecialCombos = 81;
+/** Shares tried when refining the best combination one member at a time. */
+const refineLevels = [0, 0.25, 0.5, 0.75, 1];
+/** Above this many combinations of those levels, only 0 and 1 are tried (then refined). */
+const maxSpecialCombos = 243;
 const eps = 1e-7;
+/** Shares below this are dropped (they'd show as 0.00 and change nothing visible). */
+const minShare = 0.005;
 
 /**
  * Drops members whose share can always move to others without losing strength: at least `free`
@@ -180,13 +191,15 @@ function prune(pool: EnergyMember[], ings: [IngredientName, number][], free: num
 	});
 }
 
-function levelCombos(count: number, levels: number[], budget: number): number[][] {
+/** Level combinations within the budget, with at most `maxOn` members above 0. */
+function levelCombos(count: number, levels: number[], budget: number, maxOn = count): number[][] {
 	let out: number[][] = [[]];
 	for (let i = 0; i < count; i++) {
 		const next: number[][] = [];
 		for (const combo of out) {
 			const used = combo.reduce((a, b) => a + b, 0);
-			for (const l of levels) if (used + l <= budget + eps) next.push([...combo, l]);
+			const on = combo.filter((l) => l > 0).length;
+			for (const l of levels) if (used + l <= budget + eps && (l === 0 || on < maxOn)) next.push([...combo, l]);
 		}
 		out = next;
 	}
@@ -198,8 +211,9 @@ function levelCombos(count: number, levels: number[], budget: number): number[][
  *
  * Linear program over each member's share (0–1) of a slot: maximize berries + skills + dish, where the
  * dish is cooked for the share of meals the scarcest ingredient allows. Extra Tasty Pokémon and (with
- * simulated energy) team healers aren't linear in their share, so they are tried at 0, ½ and full time,
- * with every other member's output recomputed for that healing; the LP fills the remaining slots.
+ * simulated energy) team healers aren't linear in their share, so they are tried at 0, ½ and full time
+ * (only 0 and full with more than 5 of them), with every other member's output recomputed for that
+ * healing and the LP filling the remaining slots; the best combination is then refined in quarter steps.
  */
 export function bestEnergyTeam(
 	members: EnergyMember[],
@@ -219,8 +233,17 @@ export function bestEnergyTeam(
 	const levels = specialLevels.length ** special.length <= maxSpecialCombos ? specialLevels : [0, 1];
 	const combos = levelCombos(special.length, levels, budget);
 
-	let best: { energy: TeamEnergy; entries: TeamEntry[] } | undefined;
-	for (const combo of combos) {
+	type Candidate = { energy: TeamEnergy; entries: TeamEntry[]; combo: number[] };
+	const seen = new Map<string, Candidate>();
+	const evaluate = (combo: number[]): Candidate => {
+		const key = combo.join(",");
+		const hit = seen.get(key);
+		if (hit) return hit;
+		const c = evaluateCombo(combo);
+		seen.set(key, c);
+		return c;
+	};
+	const evaluateCombo = (combo: number[]): Candidate => {
 		const fixedRaw: { member: EnergyMember; share: number }[] = [
 			...pinnedMembers.map((member) => ({ member, share: 1 })),
 			...special.map((member, i) => ({ member, share: combo[i] })).filter((e) => e.share > 0),
@@ -234,9 +257,32 @@ export function bestEnergyTeam(
 		);
 		const dishPerDay = mealsPerDay * problem.dishStrength * tastyMultiplier;
 		const shares = solveShares(fixed, pool, free, dishPerDay, ings);
-		const entries = [...fixed, ...pool.map((member, i) => ({ member, share: shares[i] })).filter((e) => e.share > eps)];
-		const energy = weightedEnergy(entries, problem);
-		if (!best || energy.total > best.energy.total + 1e-6) best = { energy, entries };
+		const entries = [...fixed, ...pool.map((member, i) => ({ member, share: shares[i] })).filter((e) => e.share > minShare)];
+		return { energy: weightedEnergy(entries, problem), entries, combo };
+	};
+
+	let best: Candidate | undefined;
+	for (const combo of combos) {
+		const c = evaluate(combo);
+		if (!best || c.energy.total > best.energy.total + 1e-6) best = c;
+	}
+	// Refine: move one special member's share at a time to another quarter step while that improves.
+	for (let improved = special.length > 0; improved; ) {
+		improved = false;
+		const current = best as Candidate;
+		for (let i = 0; i < special.length; i++) {
+			for (const level of refineLevels) {
+				if (Math.abs(level - current.combo[i]) < eps) continue;
+				const combo = [...current.combo];
+				combo[i] = level;
+				if (combo.reduce((a, b) => a + b, 0) > budget + eps) continue;
+				const c = evaluate(combo);
+				if (c.energy.total > (best as Candidate).energy.total + 1e-6) {
+					best = c;
+					improved = true;
+				}
+			}
+		}
 	}
 	const result = best as { energy: TeamEnergy; entries: TeamEntry[] };
 	const entries = [...result.entries].sort(

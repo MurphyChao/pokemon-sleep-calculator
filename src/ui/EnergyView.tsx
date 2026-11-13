@@ -9,6 +9,7 @@ import {
 	maxRecipeLevel,
 	resolveMembers,
 	teamHealSources,
+	weightedHealSources,
 	type SwapOption,
 	swapAnalysis,
 } from "../core/energy";
@@ -528,10 +529,14 @@ function SwapCard(props: {
 		);
 		const others = rest.entries;
 		const slotSize = Math.min(1, teamSlots - rest.slots);
-		const othersHeal = teamHealSources(members.filter((m) => others.some((o) => o.member.id === m.id)));
+		// Healers among the others heal for the share of the time they're on the team; a healer sharing the
+		// slot heals for its time in the slot (approximated by the slot size).
+		const othersHeal = weightedHealSources(
+			others.map((o) => ({ member: byId.get(o.member.id) as EnergyMember, share: o.share })),
+		);
 		const resolve = (id: string) => {
 			const m = byId.get(id) as EnergyMember;
-			return resolveMembers([m], [...othersHeal, ...teamHealSources([m])])[0];
+			return resolveMembers([m], [...othersHeal, ...weightedHealSources([{ member: m, share: slotSize }])])[0];
 		};
 		const analysis = swapAnalysis(others, resolve(inId), resolve(partnerId), problem, slotSize);
 		return analysis && { ...analysis, slotSize, rest };
