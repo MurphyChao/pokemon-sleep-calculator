@@ -20,8 +20,8 @@ import { useStoredState } from "./storage";
 type Tab = "box" | "slots" | "energy";
 
 const tabs: { tab: Tab; label: string }[] = [
-	{ tab: "slots", label: "Slot solver" },
 	{ tab: "energy", label: "Energy solver" },
+	{ tab: "slots", label: "Slot solver" },
 ];
 
 export default function App() {
