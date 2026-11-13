@@ -1,6 +1,7 @@
 /**
- * Energy (strength) solver: the team of up to 5 that earns the most strength per day while
- * cooking one target dish at every meal.
+ * Energy (strength) solver: the team that earns the most strength per day while cooking one target
+ * dish at every meal, within 5 team slots. As in the slot solver, a Pokémon can use part of a slot:
+ * it is on the team that share of the time (swapped with others), so more than 5 Pokémon can take part.
  *
  * Daily strength = berries + strength skills + dishes, where
  * - dishes = 3 meals × coverage × dish strength × the average Extra Tasty multiplier,
@@ -13,6 +14,7 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { ingredientStrength } from "../vendor/pokesleep-tool/util/PokemonRp";
 import { recipeLevelBonus } from "../vendor/pokesleep-tool/util/PokemonStrength";
 import { mealsPerDay, type Recipe } from "./recipes";
+import { simplexMax } from "./slots";
 import { candidateThresholds, extraTasty, type SwapPolicyResult, swapPolicy, type TastySource } from "./tasty";
 import { type Heal, type HealSource, healFor, type IngredientYield } from "./yield";
 
@@ -96,252 +98,191 @@ function weekMultiplier(sources: TastySource[]): number {
 	return v;
 }
 
-export function teamEnergy(team: EnergyMember[], problem: EnergyProblem): TeamEnergy {
-	const { recipe } = problem;
+/** A team member and the share of the time it is on the team (its slot used, 0–1). */
+export interface TeamEntry {
+	member: EnergyMember;
+	share: number;
+}
+
+/** A skill source active only `share` of the time: its triggers scale down accordingly. */
+function scaled<T extends { triggersPerDay: number }>(source: T, share: number): T {
+	return { ...source, triggersPerDay: source.triggersPerDay * share };
+}
+
+/** Strength per day of a team whose members are on it for the given shares of the time. */
+export function weightedEnergy(team: TeamEntry[], problem: EnergyProblem): TeamEnergy {
 	let berry = 0;
 	let skill = 0;
-	for (const m of team) {
-		berry += m.berry;
-		skill += m.skill;
+	for (const { member, share } of team) {
+		berry += share * member.berry;
+		skill += share * member.skill;
 	}
 	let coverage = 1;
-	for (const [ing, n] of Object.entries(recipe.ingredients) as [IngredientName, number][]) {
-		const supply = team.reduce((a, m) => a + (m.yield[ing] ?? 0), 0);
+	for (const [ing, n] of Object.entries(problem.recipe.ingredients) as [IngredientName, number][]) {
+		const supply = team.reduce((a, { member, share }) => a + share * (member.yield[ing] ?? 0), 0);
 		coverage = Math.min(coverage, supply / (n * mealsPerDay));
 	}
-	const tastyMultiplier = weekMultiplier(team.flatMap((m) => (m.tasty ? [m.tasty] : [])));
+	const tastyMultiplier = weekMultiplier(
+		team.flatMap(({ member, share }) => (member.tasty && share > 0 ? [scaled(member.tasty, share)] : [])),
+	);
 	const dish = mealsPerDay * coverage * problem.dishStrength * tastyMultiplier;
 	return { berry, skill, coverage, tastyMultiplier, dish, total: berry + skill + dish };
 }
 
+/** Strength per day of a team whose members are all on it full time. */
+export function teamEnergy(team: EnergyMember[], problem: EnergyProblem): TeamEnergy {
+	return weightedEnergy(
+		team.map((member) => ({ member, share: 1 })),
+		problem,
+	);
+}
+
 export interface BestTeam {
+	/** Members with a share above 0, pinned first, then by share. */
 	ids: string[];
+	/** Share of the time each member is on the team (slot used, 0–1). */
+	usage: Map<string, number>;
+	/** Slots used in total (at most the slot limit). */
+	slots: number;
 	energy: TeamEnergy;
-	/** The team's members as they perform together (healing applied). */
-	members: EnergyMember[];
-	/** false if the search space was too large and a local search was used instead. */
-	exact: boolean;
+	/** The team's members as they perform together (healing applied), with their shares. */
+	entries: TeamEntry[];
 }
 
-/** Above this many combinations, fall back to local search. */
-const maxCombinations = 1_500_000;
-
-function binom(n: number, k: number): number {
-	if (k < 0 || k > n) return 0;
-	let r = 1;
-	for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1);
-	return r;
-}
+/** Shares tried for Extra Tasty Pokémon and healers, whose effect isn't linear in their share. */
+const specialLevels = [0, 0.5, 1];
+/** Above this many combinations of those levels, only 0 and 1 are tried. */
+const maxSpecialCombos = 81;
+const eps = 1e-7;
 
 /**
- * Indices of members that can't be in any best team: some `free` other members are at least as good
- * in every respect (berries + skills, each recipe ingredient, Extra Tasty), so one of them is always
- * available to swap in without losing strength.
+ * Drops members whose share can always move to others without losing strength: at least `free`
+ * other members are at least as good in berries + skills and every recipe ingredient, so together
+ * they always have room (shares ≤ 1, at most `free` slots in total) to take over its share.
  */
-function prune(cands: EnergyMember[], ings: IngredientName[], free: number): EnergyMember[] {
+function prune(pool: EnergyMember[], ings: [IngredientName, number][], free: number): EnergyMember[] {
+	const need = Math.ceil(free - eps);
 	const score = (m: EnergyMember) => m.berry + m.skill;
 	const geq = (a: EnergyMember, b: EnergyMember) => {
 		if (score(a) < score(b)) return false;
-		for (const i of ings) if ((a.yield[i] ?? 0) < (b.yield[i] ?? 0)) return false;
-		if (!b.tasty) return true;
-		return !!a.tasty && a.tasty.perTrigger >= b.tasty.perTrigger && a.tasty.triggersPerDay >= b.tasty.triggersPerDay;
+		for (const [i] of ings) if ((a.yield[i] ?? 0) < (b.yield[i] ?? 0)) return false;
+		return true;
 	};
-	return cands.filter((b, bi) => {
+	return pool.filter((b, bi) => {
 		let dominators = 0;
-		for (let ai = 0; ai < cands.length && dominators < free; ai++) {
+		for (let ai = 0; ai < pool.length && dominators < need; ai++) {
 			if (ai === bi) continue;
-			const a = cands[ai];
+			const a = pool[ai];
 			// Ties are broken by position so that identical members don't eliminate each other.
 			if (geq(a, b) && (!geq(b, a) || ai < bi)) dominators++;
 		}
-		return dominators < free;
+		return dominators < need;
 	});
 }
 
-/** Above this many groups of healers, fall back to local search over everything. */
-const maxHealerGroups = 256;
-
-function subsets<T>(items: T[], maxSize: number): T[][] {
-	const out: T[][] = [[]];
-	for (const item of items) {
-		const n = out.length;
-		for (let i = 0; i < n; i++) if (out[i].length < maxSize) out.push([...out[i], item]);
+function levelCombos(count: number, levels: number[], budget: number): number[][] {
+	let out: number[][] = [[]];
+	for (let i = 0; i < count; i++) {
+		const next: number[][] = [];
+		for (const combo of out) {
+			const used = combo.reduce((a, b) => a + b, 0);
+			for (const l of levels) if (used + l <= budget + eps) next.push([...combo, l]);
+		}
+		out = next;
 	}
 	return out;
 }
 
 /**
- * Best team of up to `size` members: `pinned` are always in, `excluded` never.
+ * Best use of `slots` team slots: `pinned` members always take a full slot, `excluded` never play.
  *
- * With simulated energy, healers that restore the whole team (Energy for Everyone, Energizing Cheer)
- * change everyone's output, so the search runs once per set of such healers on the team, with every
- * member's output computed for that healing. Within each set: exhaustive over the members that
- * survive dominance pruning, or local search if that is still too many.
+ * Linear program over each member's share (0–1) of a slot: maximize berries + skills + dish, where the
+ * dish is cooked for the share of meals the scarcest ingredient allows. Extra Tasty Pokémon and (with
+ * simulated energy) team healers aren't linear in their share, so they are tried at 0, ½ and full time,
+ * with every other member's output recomputed for that healing; the LP fills the remaining slots.
  */
 export function bestEnergyTeam(
 	members: EnergyMember[],
 	problem: EnergyProblem,
 	pinned: string[] = [],
 	excluded: string[] = [],
-	size = 5,
+	slots = 5,
 ): BestTeam {
-	const ings = Object.keys(problem.recipe.ingredients) as IngredientName[];
+	const ings = Object.entries(problem.recipe.ingredients) as [IngredientName, number][];
 	const candidates = members.filter((m) => pinned.includes(m.id) || !excluded.includes(m.id));
-	const pinnedCount = Math.min(size, candidates.filter((m) => pinned.includes(m.id)).length);
-	const healers = candidates.filter(healsTeam);
-	const others = candidates.filter((m) => !healsTeam(m));
-	const pinnedHealers = healers.filter((m) => pinned.includes(m.id));
-	const groups = subsets(
-		healers.filter((m) => !pinned.includes(m.id)),
-		size - pinnedCount,
-	);
+	const isSpecial = (m: EnergyMember) => !!m.tasty || healsTeam(m);
+	const pinnedMembers = candidates.filter((m) => pinned.includes(m.id)).slice(0, slots);
+	const pinnedIds = pinnedMembers.map((m) => m.id);
+	const special = candidates.filter((m) => isSpecial(m) && !pinnedIds.includes(m.id));
+	const regular = candidates.filter((m) => !isSpecial(m) && !pinnedIds.includes(m.id));
+	const budget = slots - pinnedMembers.length;
+	const levels = specialLevels.length ** special.length <= maxSpecialCombos ? specialLevels : [0, 1];
+	const combos = levelCombos(special.length, levels, budget);
 
-	if (groups.length > maxHealerGroups) {
-		const fixed = candidates.filter((m) => pinned.includes(m.id)).slice(0, size);
-		const pool = candidates.filter((m) => !pinned.includes(m.id));
-		const r = localSearch(fixed, pool, Math.min(size - fixed.length, pool.length), (team) =>
-			teamEnergy(resolveTeam(team), problem),
+	let best: { energy: TeamEnergy; entries: TeamEntry[] } | undefined;
+	for (const combo of combos) {
+		const fixedRaw: { member: EnergyMember; share: number }[] = [
+			...pinnedMembers.map((member) => ({ member, share: 1 })),
+			...special.map((member, i) => ({ member, share: combo[i] })).filter((e) => e.share > 0),
+		];
+		const heals = fixedRaw.filter((e) => healsTeam(e.member)).map((e) => scaled(e.member.heal as HealSource, e.share));
+		const fixed = fixedRaw.map((e) => ({ member: resolveMembers([e.member], heals)[0], share: e.share }));
+		const free = budget - combo.reduce((a, b) => a + b, 0);
+		const pool = prune(resolveMembers(regular, heals), ings, free);
+		const tastyMultiplier = weekMultiplier(
+			fixed.flatMap(({ member, share }) => (member.tasty ? [scaled(member.tasty, share)] : [])),
 		);
-		const team = resolveTeam(members.filter((m) => r.ids.includes(m.id)));
-		return { ...r, members: team, energy: teamEnergy(team, problem) };
+		const dishPerDay = mealsPerDay * problem.dishStrength * tastyMultiplier;
+		const shares = solveShares(fixed, pool, free, dishPerDay, ings);
+		const entries = [...fixed, ...pool.map((member, i) => ({ member, share: shares[i] })).filter((e) => e.share > eps)];
+		const energy = weightedEnergy(entries, problem);
+		if (!best || energy.total > best.energy.total + 1e-6) best = { energy, entries };
 	}
-
-	let best: BestTeam | undefined;
-	let allExact = true;
-	for (const group of groups) {
-		const onTeam = [...pinnedHealers, ...group];
-		const sources = onTeam.map((m) => m.heal as HealSource);
-		const healed = resolveMembers(onTeam, sources);
-		const rest = resolveMembers(others, sources);
-		const fixed = [...healed, ...rest.filter((m) => pinned.includes(m.id))].slice(0, size);
-		if (fixed.length < healed.length) continue;
-		const pool = rest.filter((m) => !pinned.includes(m.id));
-		const free = size - fixed.length;
-		const pruned = prune(pool, ings, free);
-		const k = Math.min(free, pruned.length);
-		const exact = binom(pruned.length, k) <= maxCombinations;
-		allExact &&= exact;
-		const ids = exact
-			? exhaustive(fixed, pruned, k, problem, ings)
-			: localSearch(fixed, pruned, k, (team) => teamEnergy(team, problem)).ids;
-		const team = [...fixed, ...pool].filter((m) => ids.includes(m.id));
-		const energy = teamEnergy(team, problem);
-		if (!best || energy.total > best.energy.total + 1e-9) best = { ids, energy, members: team, exact };
-	}
-	return { ...(best as BestTeam), exact: allExact };
+	const result = best as { energy: TeamEnergy; entries: TeamEntry[] };
+	const entries = [...result.entries].sort(
+		(a, b) =>
+			Number(pinnedIds.includes(b.member.id)) - Number(pinnedIds.includes(a.member.id)) || b.share - a.share,
+	);
+	return {
+		ids: entries.map((e) => e.member.id),
+		usage: new Map(entries.map((e) => [e.member.id, e.share])),
+		slots: entries.reduce((a, e) => a + e.share, 0),
+		energy: result.energy,
+		entries,
+	};
 }
 
-/** Tries every k-subset of `pool`, accumulating sums incrementally (no allocation per team). */
-function exhaustive(
-	fixed: EnergyMember[],
+/**
+ * LP: shares x (0–1) of `pool` members within `free` slots, maximizing Σ x·(berry + skill) + dishPerDay·c,
+ * where c ≤ 1 and c·demand_j ≤ fixed supply_j + Σ x·yield_j for every recipe ingredient.
+ */
+function solveShares(
+	fixed: TeamEntry[],
 	pool: EnergyMember[],
-	k: number,
-	problem: EnergyProblem,
-	ings: IngredientName[],
-): string[] {
-	const m = ings.length;
-	const demand = ings.map((i) => (problem.recipe.ingredients[i] ?? 0) * mealsPerDay);
-	const dishPerDay = mealsPerDay * problem.dishStrength;
-	const all = [...fixed, ...pool];
-	const scalar = all.map((x) => x.berry + x.skill);
-	const supply = all.map((x) => ings.map((i) => x.yield[i] ?? 0));
-	// Extra Tasty multiplier for each subset of the members that have a source, keyed by bitmask.
-	const tastyIdx = all.map(() => -1);
-	const sources: TastySource[] = [];
-	all.forEach((x, i) => {
-		if (x.tasty && sources.length < 24) {
-			tastyIdx[i] = sources.length;
-			sources.push(x.tasty);
-		}
+	free: number,
+	dishPerDay: number,
+	ings: [IngredientName, number][],
+): number[] {
+	const n = pool.length;
+	if (n === 0 || free <= eps) return pool.map(() => 0);
+	// Variables: x_0..x_{n-1}, c.
+	const c = [...pool.map((m) => m.berry + m.skill), dishPerDay];
+	const A: number[][] = [];
+	const b: number[] = [];
+	for (const [ing, need] of ings) {
+		A.push([...pool.map((m) => -(m.yield[ing] ?? 0)), need * mealsPerDay]);
+		b.push(fixed.reduce((a, e) => a + e.share * (e.member.yield[ing] ?? 0), 0));
+	}
+	A.push([...pool.map(() => 0), 1]);
+	b.push(1);
+	A.push([...pool.map(() => 1), 0]);
+	b.push(free);
+	pool.forEach((_, i) => {
+		A.push([...pool.map((__, j) => (j === i ? 1 : 0)), 0]);
+		b.push(1);
 	});
-	const tastyByMask = new Map<number, number>();
-	const tastyOf = (mask: number) => {
-		let v = tastyByMask.get(mask);
-		if (v === undefined) {
-			v = weekMultiplier(sources.filter((_, i) => mask & (1 << i)));
-			tastyByMask.set(mask, v);
-		}
-		return v;
-	};
-
-	const sums = new Float64Array(m * (k + 1));
-	let base = 0;
-	let baseMask = 0;
-	for (let f = 0; f < fixed.length; f++) {
-		base += scalar[f];
-		for (let j = 0; j < m; j++) sums[j] += supply[f][j];
-		if (tastyIdx[f] >= 0) baseMask |= 1 << tastyIdx[f];
-	}
-	const offset = fixed.length;
-	const chosen = new Int32Array(k);
-	let bestTotal = Number.NEGATIVE_INFINITY;
-	let bestChosen: number[] = [];
-
-	const rec = (depth: number, start: number, score: number, mask: number) => {
-		if (depth === k) {
-			let coverage = 1;
-			for (let j = 0; j < m; j++) {
-				const c = sums[depth * m + j] / demand[j];
-				if (c < coverage) coverage = c;
-			}
-			const total = score + dishPerDay * coverage * tastyOf(mask);
-			if (total > bestTotal + 1e-9) {
-				bestTotal = total;
-				bestChosen = Array.from(chosen);
-			}
-			return;
-		}
-		for (let i = start; i <= pool.length - (k - depth); i++) {
-			const a = offset + i;
-			for (let j = 0; j < m; j++) sums[(depth + 1) * m + j] = sums[depth * m + j] + supply[a][j];
-			chosen[depth] = i;
-			rec(depth + 1, i + 1, score + scalar[a], tastyIdx[a] >= 0 ? mask | (1 << tastyIdx[a]) : mask);
-		}
-	};
-	rec(0, 0, base, baseMask);
-	return [...fixed.map((x) => x.id), ...bestChosen.map((i) => pool[i].id)];
-}
-
-/** Greedy start, then single swaps until no swap improves. */
-function localSearch(
-	fixed: EnergyMember[],
-	pool: EnergyMember[],
-	k: number,
-	evaluate: (team: EnergyMember[]) => TeamEnergy,
-): BestTeam {
-	const chosen: EnergyMember[] = [];
-	while (chosen.length < k) {
-		let pick: EnergyMember | undefined;
-		let pickTotal = Number.NEGATIVE_INFINITY;
-		for (const m of pool) {
-			if (chosen.includes(m)) continue;
-			const t = evaluate([...fixed, ...chosen, m]).total;
-			if (t > pickTotal) {
-				pick = m;
-				pickTotal = t;
-			}
-		}
-		chosen.push(pick as EnergyMember);
-	}
-	let current = evaluate([...fixed, ...chosen]);
-	for (let improved = true; improved; ) {
-		improved = false;
-		for (let i = 0; i < chosen.length; i++) {
-			for (const m of pool) {
-				if (chosen.includes(m)) continue;
-				const trial = [...chosen];
-				trial[i] = m;
-				const e = evaluate([...fixed, ...trial]);
-				if (e.total > current.total + 1e-9) {
-					chosen.splice(0, chosen.length, ...trial);
-					current = e;
-					improved = true;
-				}
-			}
-		}
-	}
-	const team = [...fixed, ...chosen];
-	return { ids: team.map((m) => m.id), energy: current, members: team, exact: false };
+	const { solution } = simplexMax(c, A, b, n + 1);
+	return solution.slice(0, n).map((x) => Math.min(1, Math.max(0, x)));
 }
 
 export interface SwapOption {
@@ -357,24 +298,30 @@ export interface SwapAnalysis {
 }
 
 /**
- * `swapIn` (an Extra Tasty Pokémon) and `partner` share one slot next to `others`, swapped after each
- * meal by a bonus threshold (see swapPolicy). Time on the team scales each one's berries, skill and
- * ingredients; ingredients are stockpiled, so coverage uses the time-averaged supply.
+ * `swapIn` (an Extra Tasty Pokémon) and `partner` share one slot of size `slotSize` (0–1) next to
+ * `others`, swapped after each meal by a bonus threshold (see swapPolicy). Time on the team scales
+ * each one's berries, skill, ingredients and skill triggers; ingredients are stockpiled, so coverage
+ * uses the time-averaged supply.
  */
 export function swapAnalysis(
-	others: EnergyMember[],
+	others: TeamEntry[],
 	swapIn: EnergyMember,
 	partner: EnergyMember,
 	problem: EnergyProblem,
+	slotSize = 1,
 ): SwapAnalysis | undefined {
-	if (!swapIn.tasty) return undefined;
-	const fixedSources = others.flatMap((m) => (m.tasty ? [m.tasty] : []));
-	const all = [...fixedSources, swapIn.tasty, ...(partner.tasty ? [partner.tasty] : [])];
+	if (!swapIn.tasty || slotSize <= eps) return undefined;
+	const fixedSources = others.flatMap(({ member, share }) => (member.tasty ? [scaled(member.tasty, share)] : []));
+	const inSource = scaled(swapIn.tasty, slotSize);
+	const partnerSource = partner.tasty ? scaled(partner.tasty, slotSize) : undefined;
+	const all = [...fixedSources, inSource, ...(partnerSource ? [partnerSource] : [])];
 	const ings = Object.entries(problem.recipe.ingredients) as [IngredientName, number][];
 	const options = candidateThresholds(all).map((threshold) => {
-		const policy = swapPolicy(fixedSources, swapIn.tasty as TastySource, partner.tasty, threshold);
+		const policy = swapPolicy(fixedSources, inSource, partnerSource, threshold);
 		const s = policy.share;
-		const mix = (f: (m: EnergyMember) => number) => others.reduce((a, m) => a + f(m), 0) + s * f(swapIn) + (1 - s) * f(partner);
+		const mix = (f: (m: EnergyMember) => number) =>
+			others.reduce((a, { member, share }) => a + share * f(member), 0) +
+			slotSize * (s * f(swapIn) + (1 - s) * f(partner));
 		let coverage = 1;
 		for (const [ing, n] of ings) coverage = Math.min(coverage, mix((m) => m.yield[ing] ?? 0) / (n * mealsPerDay));
 		const berry = mix((m) => m.berry);

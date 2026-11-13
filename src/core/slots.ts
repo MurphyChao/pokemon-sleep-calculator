@@ -90,7 +90,7 @@ export function minSlots(members: Member[], demand: Demand, pinnedIds: string[] 
 
 /**
  * Maximizes cᵀz subject to Az ≤ b, z ≥ 0, with b ≥ 0 (origin feasible).
- * Returns the optimal value and the dual value of each constraint row.
+ * Returns the optimal value, the optimal z, and the dual value of each constraint row.
  * Uses Bland's rule to avoid cycling. Throws if unbounded.
  */
 export function simplexMax(
@@ -98,7 +98,7 @@ export function simplexMax(
 	A: number[][],
 	b: number[],
 	nVars: number,
-): { value: number; rowDuals: number[] } {
+): { value: number; rowDuals: number[]; solution: number[] } {
 	const rows = A.length;
 	const cols = nVars + rows + 1; // variables, slacks, rhs
 	const T: number[][] = A.map((row, r) => {
@@ -121,7 +121,11 @@ export function simplexMax(
 			}
 		}
 		if (enter === -1) {
-			return { value: obj[cols - 1], rowDuals: A.map((_, r) => obj[nVars + r]) };
+			const solution = new Array(nVars).fill(0);
+			basis.forEach((j, r) => {
+				if (j < nVars) solution[j] = T[r][cols - 1];
+			});
+			return { value: obj[cols - 1], rowDuals: A.map((_, r) => obj[nVars + r]), solution };
 		}
 		let leave = -1;
 		let best = Number.POSITIVE_INFINITY;

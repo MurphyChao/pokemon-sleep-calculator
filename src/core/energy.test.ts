@@ -1,5 +1,5 @@
 import { type BoxEntry } from "./box";
-import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveTeam, swapAnalysis, teamEnergy } from "./energy";
+import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveTeam, swapAnalysis, teamEnergy, weightedEnergy } from "./energy";
 import { type Recipe, recipes } from "./recipes";
 import { dailyIngredientYieldDetail } from "./yield";
 
@@ -49,12 +49,13 @@ function bruteForce(members: EnergyMember[], problem: EnergyProblem, pinned: str
 	return best;
 }
 
-test("pruned exhaustive search matches brute force on random boxes", () => {
+test("fractional search beats or matches every 5-member team, within 5 slots, and no random sharing beats it", () => {
 	const r = rng(7);
 	const problem = { recipe: salad, dishStrength: dishStrength(salad, 20, 0) };
 	const ings = ["pumpkin", "potato", "corn", "mushroom", "apple"] as const;
 	for (let trial = 0; trial < 30; trial++) {
 		const n = 6 + Math.floor(r() * 7);
+		const withTasty = trial % 2 === 0;
 		const members: EnergyMember[] = Array.from({ length: n }, (_, i) => {
 			const y: EnergyMember["yield"] = {};
 			for (const ing of ings) if (r() < 0.4) y[ing] = Math.round(r() * 60);
@@ -63,17 +64,50 @@ test("pruned exhaustive search matches brute force on random boxes", () => {
 				yield: y,
 				berry: Math.round(r() * 8000),
 				skill: r() < 0.3 ? Math.round(r() * 5000) : 0,
-				...(r() < 0.2 && { tasty: { perTrigger: 4 + Math.round(r() * 6), triggersPerDay: r() * 6 } }),
+				...(withTasty && r() < 0.2 && { tasty: { perTrigger: 4 + Math.round(r() * 6), triggersPerDay: r() * 6 } }),
 			};
 		});
-		// Some exact duplicates, to exercise tie-breaking in the pruning.
-		members.push({ ...members[0], id: "dup" });
 		const pinned = trial % 3 === 0 ? ["m1"] : [];
 		const got = bestEnergyTeam(members, problem, pinned);
-		expect(got.exact).toBe(true);
-		expect(got.energy.total).toBeCloseTo(bruteForce(members, problem, pinned), 6);
-		for (const id of pinned) expect(got.ids).toContain(id);
+		expect(got.energy.total).toBeGreaterThanOrEqual(bruteForce(members, problem, pinned) - 1e-6);
+		expect(got.slots).toBeLessThanOrEqual(5 + 1e-9);
+		for (const share of got.usage.values()) {
+			expect(share).toBeGreaterThan(0);
+			expect(share).toBeLessThanOrEqual(1 + 1e-9);
+		}
+		for (const id of pinned) expect(got.usage.get(id)).toBe(1);
+		expect(got.energy.total).toBeCloseTo(weightedEnergy(got.entries, problem).total, 6);
+		if (!withTasty && pinned.length === 0) {
+			// The LP is optimal: random ways of sharing 5 slots never do better.
+			for (let k = 0; k < 200; k++) {
+				const raw = members.map(() => (r() < 0.5 ? 0 : r()));
+				const total = raw.reduce((x, y) => x + y, 0) || 1;
+				const shares = raw.map((x) => Math.min(1, (x * 5) / Math.max(5, total)));
+				const e = weightedEnergy(
+					members.map((member, i) => ({ member, share: shares[i] })),
+					problem,
+				);
+				expect(e.total).toBeLessThanOrEqual(got.energy.total + 1e-6);
+			}
+		}
 	}
+});
+
+test("uses half slots when two gatherers are each only half needed: 6 Pokémon in 5 slots", () => {
+	const problem = { recipe: { ...salad, ingredients: { pumpkin: 10, potato: 10 } }, dishStrength: 100000 };
+	const m = (id: string, berry: number, y: EnergyMember["yield"]): EnergyMember => ({ id, yield: y, berry, skill: 0 });
+	const members = [
+		m("pumpkin", 0, { pumpkin: 60 }),
+		m("potato", 0, { potato: 60 }),
+		...[0, 1, 2, 3, 4].map((i) => m(`berry${i}`, 1000, {})),
+	];
+	const best = bestEnergyTeam(members, problem);
+	expect(best.usage.get("pumpkin")).toBeCloseTo(0.5);
+	expect(best.usage.get("potato")).toBeCloseTo(0.5);
+	expect(best.slots).toBeCloseTo(5);
+	expect(best.ids).toHaveLength(6);
+	expect(best.energy.coverage).toBeCloseTo(1);
+	expect(best.energy.berry).toBeCloseTo(4000);
 });
 
 test("excluded members are never picked; small boxes use everyone", () => {
@@ -102,7 +136,8 @@ test("favorite berries double berry strength; ingredient skills add no skill str
 describe("swapAnalysis", () => {
 	const problem = { recipe: salad, dishStrength: dishStrength(salad, 50, 0) };
 	const supply = (f: number) => ({ pumpkin: 60 * f, potato: 90 * f, corn: 54 * f, mushroom: 81 * f });
-	const others: EnergyMember[] = [0, 1, 2, 3].map((i) => ({ id: `o${i}`, yield: supply(0.14), berry: 5000, skill: 0 }));
+	const otherMembers: EnergyMember[] = [0, 1, 2, 3].map((i) => ({ id: `o${i}`, yield: supply(0.14), berry: 5000, skill: 0 }));
+	const others = otherMembers.map((member) => ({ member, share: 1 }));
 	const dedenne: EnergyMember = { id: "d", yield: {}, berry: 6852, skill: 0, tasty: { perTrigger: 10, triggersPerDay: 3.23 } };
 	const sceptile: EnergyMember = { id: "s", yield: {}, berry: 9580, skill: 17728 };
 
@@ -113,8 +148,8 @@ describe("swapAnalysis", () => {
 		const always = a.options[a.options.length - 1];
 		expect(never.policy.share).toBe(0);
 		expect(always.policy.share).toBeCloseTo(1);
-		expect(never.energy.total).toBeCloseTo(teamEnergy([...others, sceptile], problem).total, 3);
-		expect(always.energy.total).toBeCloseTo(teamEnergy([...others, dedenne], problem).total, 3);
+		expect(never.energy.total).toBeCloseTo(teamEnergy([...otherMembers, sceptile], problem).total, 3);
+		expect(always.energy.total).toBeCloseTo(teamEnergy([...otherMembers, dedenne], problem).total, 3);
 	});
 
 	test("swapping by bonus beats both fixed choices when they are close", () => {
@@ -151,10 +186,10 @@ describe("healers (simulated energy)", () => {
 		const best = bestEnergyTeam([...others, healer, strong], problem);
 		expect(best.ids).toContain("healer");
 		// The reported team is the healed one.
-		expect(best.members.find((m) => m.id === "o0")?.berry).toBeGreaterThan(6000);
+		expect(best.entries.find((e) => e.member.id === "o0")?.member.berry).toBeGreaterThan(6000);
 	});
 
-	test("matches brute force over all teams", () => {
+	test("beats or matches every 5-member team", () => {
 		const r = rng(11);
 		for (let trial = 0; trial < 15; trial++) {
 			const members = Array.from({ length: 8 }, (_, i) =>
@@ -171,7 +206,7 @@ describe("healers (simulated energy)", () => {
 				if (team.length !== 5) continue;
 				brute = Math.max(brute, teamEnergy(resolveTeam(team), problem).total);
 			}
-			expect(bestEnergyTeam(members, problem).energy.total).toBeCloseTo(brute, 6);
+			expect(bestEnergyTeam(members, problem).energy.total).toBeGreaterThanOrEqual(brute - 1e-6);
 		}
 	});
 });

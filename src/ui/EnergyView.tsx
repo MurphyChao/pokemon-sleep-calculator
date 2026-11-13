@@ -26,6 +26,9 @@ export interface EnergySettings extends StrengthOptions {
 
 export const defaultEnergySettings: EnergySettings = { favorites: "none", fieldBonus: 0, recipeLevel: 1 };
 
+/** Team slots shared by all Pokémon. */
+const teamSlots = 5;
+
 /** Common recipe levels, for one-click entry. */
 const keyRecipeLevels = [30, 40, 50, 60, 70];
 
@@ -139,9 +142,14 @@ export default function EnergyView(props: {
 	const demand = dailyDemand(recipe);
 	/** Team members as they perform on this team (healing applied); bench members on their best team. */
 	const strengthOf = (id: string) =>
-		best.members.find((m) => m.id === id) ??
-		withIt.get(id)?.members.find((m) => m.id === id) ??
+		best.entries.find((x) => x.member.id === id)?.member ??
+		withIt.get(id)?.entries.find((x) => x.member.id === id)?.member ??
 		(members.find((m) => m.id === id) as EnergyMember);
+	const bestMembers = best.entries.map((x) => x.member);
+	const teamHealing = best.entries.reduce(
+		(a, x) => a + (teamHealSources([x.member])[0] ? (x.member.heal?.team ?? 0) * (x.member.heal?.triggersPerDay ?? 0) * x.share : 0),
+		0,
+	);
 
 	return (
 		<div className="energy-view">
@@ -158,7 +166,13 @@ export default function EnergyView(props: {
 							<strong className="big">{formatStrength(e.total)} strength / day</strong>
 							<span className="muted">
 								{" "}
-								· berries {formatStrength(e.berry)} · skills {formatStrength(e.skill)} · dishes {formatStrength(e.dish)}
+								· {best.slots.toFixed(2)} / {teamSlots} slots · {best.ids.length} Pokémon
+							</span>
+						</p>
+						<p className="muted">
+							<span>
+								{" "}
+								Berries {formatStrength(e.berry)} · skills {formatStrength(e.skill)} · dishes {formatStrength(e.dish)}
 							</span>
 						</p>
 						<p className="muted">
@@ -170,15 +184,10 @@ export default function EnergyView(props: {
 							{healedDetail ? (
 								<>
 									Energy is simulated: it drains during the day.{" "}
-									{teamHealSources(best.members).length > 0 ? (
+									{teamHealSources(bestMembers).length > 0 ? (
 										<>
 											This team's healers restore about{" "}
-											<strong>
-												{Math.round(
-													teamHealSources(best.members).reduce((a, h) => a + h.team * h.triggersPerDay, 0),
-												)}{" "}
-												energy per member per day
-											</strong>
+											<strong>{Math.round(teamHealing)} energy per member per day</strong>
 											, which is included below.
 										</>
 									) : (
@@ -189,11 +198,6 @@ export default function EnergyView(props: {
 								"Energy is always full, so healers add nothing. Switch Energy to Simulated at the top to count them."
 							)}
 						</p>
-						{!best.exact && (
-							<p className="warn small">
-								Your box is too large to try every team; this is the best found by local search.
-							</p>
-						)}
 						<table>
 							<thead>
 								<tr>
@@ -203,6 +207,7 @@ export default function EnergyView(props: {
 									))}
 									<th>Berries</th>
 									<th>Skill</th>
+									<th>Slot used</th>
 									<th>Without it</th>
 									<th />
 								</tr>
@@ -223,6 +228,7 @@ export default function EnergyView(props: {
 											))}
 											<td>{formatStrength(m.berry)}</td>
 											<td>{m.skill > 0 ? formatStrength(m.skill) : "–"}</td>
+											<td>{(best.usage.get(id) ?? 0).toFixed(2)}</td>
 											<td>{w && <Diff value={w.energy.total - e.total} />}</td>
 											<td className="row-actions">
 												<label className="check small">
@@ -239,7 +245,7 @@ export default function EnergyView(props: {
 								<tr className="total">
 									<td>Total / needed</td>
 									{ings.map((i) => {
-										const supply = best.ids.reduce((a, id) => a + (strengthOf(id).yield[i] ?? 0), 0);
+										const supply = best.entries.reduce((a, x) => a + x.share * (x.member.yield[i] ?? 0), 0);
 										const cov = supply / (demand[i] as number);
 										return (
 											<td key={i}>
@@ -255,14 +261,21 @@ export default function EnergyView(props: {
 									})}
 									<td>{formatStrength(e.berry)}</td>
 									<td>{formatStrength(e.skill)}</td>
+									<td>
+										{best.slots.toFixed(2)} / {teamSlots}
+									</td>
 									<td colSpan={2} />
 								</tr>
 							</tbody>
 						</table>
 						<p className="muted small">
-							The team is re-optimised whenever something changes: <strong>Pin</strong> keeps a Pokémon on it,{" "}
-							<strong>Exclude</strong> keeps it off. <strong>Without it</strong>: strength per day of the best team
-							without this Pokémon, minus this team's.
+							<strong>Slot used</strong>: the share of the time a Pokémon is on the team, as in the slot solver. Shares
+							add up to at most {teamSlots} slots, so more than {teamSlots} Pokémon can take part by swapping, e.g. two
+							gatherers at 0.50 each when the dish only needs half of each one's ingredients. Berries, skill and
+							ingredients columns are per full day on the team; totals are weighted by slot used. Extra Tasty Pokémon
+							and healers are tried at 0, ½ or a full slot. The team is re-optimised whenever something changes:{" "}
+							<strong>Pin</strong> gives a Pokémon a full slot, <strong>Exclude</strong> keeps it off.{" "}
+							<strong>Without it</strong>: strength per day of the best team without this Pokémon, minus this team's.
 						</p>
 					</section>
 
@@ -270,8 +283,8 @@ export default function EnergyView(props: {
 						members={members}
 						problem={problem}
 						best={best}
-						without={without}
 						withIt={withIt}
+						pinned={pinned}
 						excluded={excluded}
 						labels={labels}
 					/>
@@ -279,8 +292,8 @@ export default function EnergyView(props: {
 					<section className="card">
 						<h2>Bench</h2>
 						<p className="muted small">
-							<strong>Best team with it</strong>: strength per day of the best team that includes this Pokémon, minus the
-							best team's. Sorted by this.
+							<strong>Best team with it</strong>: strength per day of the best team that gives this Pokémon a full slot,
+							minus the best team's. Sorted by this.
 						</p>
 						{bench.length === 0 ? (
 							<p className="muted">Every Pokémon in your box is on the team.</p>
@@ -482,12 +495,12 @@ function SwapCard(props: {
 	members: EnergyMember[];
 	problem: EnergyProblem;
 	best: BestTeam;
-	without: Map<string, BestTeam>;
 	withIt: Map<string, BestTeam>;
+	pinned: string[];
 	excluded: string[];
 	labels: Map<string, string>;
 }) {
-	const { members, problem, best, without, withIt, excluded, labels } = props;
+	const { members, problem, best, withIt, pinned, excluded, labels } = props;
 	const [chosenIn, setChosenIn] = useState<string | null>(null);
 	const [chosenPartner, setChosenPartner] = useState<string | null>(null);
 	const byId = new Map(members.map((m) => [m.id, m]));
@@ -499,34 +512,52 @@ function SwapCard(props: {
 		best.ids.find((id) => tastyIds.includes(id)) ??
 		[...tastyIds].sort((a, b) => (withIt.get(b)?.energy.total ?? 0) - (withIt.get(a)?.energy.total ?? 0))[0];
 	const swapInId = chosenIn !== null && tastyIds.includes(chosenIn) ? chosenIn : defaultIn;
-	const inTeam = swapInId !== undefined && best.ids.includes(swapInId);
-	const partnerChoices = members
-		.map((m) => m.id)
-		.filter((id) => id !== swapInId && !excluded.includes(id) && (inTeam ? !best.ids.includes(id) : best.ids.includes(id)));
-	const defaultPartner =
-		swapInId === undefined
-			? undefined
-			: inTeam
-				? without.get(swapInId)?.ids.find((id) => !best.ids.includes(id))
-				: best.ids.find((id) => !withIt.get(swapInId)?.ids.includes(id));
-	const partnerId =
-		chosenPartner !== null && partnerChoices.includes(chosenPartner) ? chosenPartner : (defaultPartner ?? partnerChoices[0]);
+	const partnerChoices = members.map((m) => m.id).filter((id) => id !== swapInId && !excluded.includes(id));
 
-	const result = useMemo(() => {
-		if (swapInId === undefined || partnerId === undefined) return undefined;
-		const slot = inTeam ? swapInId : partnerId;
-		// The other members keep their output on the best team; the two sharing the slot are healed by
-		// the others' healers (and their own).
-		const others = best.members.filter((m) => m.id !== slot);
-		const othersHeal = teamHealSources(members.filter((m) => others.some((o) => o.id === m.id)));
+	/**
+	 * The pair shares exactly one slot; the other slots go to the best team without the two of them.
+	 * Those members keep their shares and output; the pair is healed by their healers (and its own).
+	 */
+	const analyse = (inId: string, partnerId: string) => {
+		const rest = bestEnergyTeam(
+			members,
+			problem,
+			pinned.filter((id) => id !== inId && id !== partnerId),
+			[...excluded, inId, partnerId],
+			teamSlots - 1,
+		);
+		const others = rest.entries;
+		const slotSize = Math.min(1, teamSlots - rest.slots);
+		const othersHeal = teamHealSources(members.filter((m) => others.some((o) => o.member.id === m.id)));
 		const resolve = (id: string) => {
 			const m = byId.get(id) as EnergyMember;
 			return resolveMembers([m], [...othersHeal, ...teamHealSources([m])])[0];
 		};
-		const swapIn = resolve(swapInId);
-		const partner = resolve(partnerId);
-		return swapAnalysis(others, swapIn, partner, problem);
-	}, [swapInId, partnerId, members, problem, best.ids.join(",")]);
+		const analysis = swapAnalysis(others, resolve(inId), resolve(partnerId), problem, slotSize);
+		return analysis && { ...analysis, slotSize, rest };
+	};
+
+	const result = useMemo(() => {
+		if (swapInId === undefined) return undefined;
+		if (chosenPartner !== null && partnerChoices.includes(chosenPartner)) {
+			return { partnerId: chosenPartner, analysis: analyse(swapInId, chosenPartner) };
+		}
+		// Default partner: the best of the team's members and the top of the bench.
+		const benchTop = [...partnerChoices]
+			.filter((id) => !best.ids.includes(id))
+			.sort((a, b) => (withIt.get(b)?.energy.total ?? 0) - (withIt.get(a)?.energy.total ?? 0))
+			.slice(0, 3);
+		const candidates = [...best.ids.filter((id) => partnerChoices.includes(id)), ...benchTop];
+		let pick: { partnerId: string; analysis: ReturnType<typeof analyse> } | undefined;
+		for (const id of candidates) {
+			const analysis = analyse(swapInId, id);
+			if (!pick || (analysis?.best.energy.total ?? 0) > (pick.analysis?.best.energy.total ?? 0)) {
+				pick = { partnerId: id, analysis };
+			}
+		}
+		return pick;
+	}, [swapInId, chosenPartner, members, problem, best, pinned.join(","), excluded.join(",")]);
+	const partnerId = result?.partnerId;
 
 	if (tastyIds.length === 0) {
 		return (
@@ -542,15 +573,16 @@ function SwapCard(props: {
 	const label = (id: string | undefined) => (id ? (labels.get(id) ?? id) : "?");
 	const inName = label(swapInId);
 	const partnerName = label(partnerId);
-	const last = result ? result.options.length - 1 : 0;
-	const isLast = (o: SwapOption) => result !== undefined && o === result.options[last];
-	const fixedBest = best.energy.total;
+	const analysis = result?.analysis;
+	const last = analysis ? analysis.options.length - 1 : 0;
+	const isLast = (o: SwapOption) => analysis !== undefined && o === analysis.options[last];
+	const bestTotal = best.energy.total;
 
 	return (
 		<section className="card">
 			<h2>Swap partner</h2>
 			<p className="muted small">
-				Two Pokémon share one slot and are swapped after every meal, depending on the Extra Tasty chance shown on the
+				Two Pokémon share one slot, and the other {teamSlots - 1} slots go to the best team without them. The two are swapped after every meal, depending on the Extra Tasty chance shown on the
 				cooking screen: the Extra Tasty Pokémon while the chance is low, the partner once it's high. The bonus from skills
 				carries over until an Extra Tasty dish resets it, so once it's high, more skill triggers are mostly wasted.
 				Assumes three equal 8-hour windows, swapping at night too, items collected before each swap, and no other effect
@@ -569,7 +601,7 @@ function SwapCard(props: {
 					</select>
 				</label>
 				<label>
-					Partner ({inTeam ? "from the bench" : "from the team"})
+					Partner
 					<select value={partnerId ?? ""} onChange={(e) => setChosenPartner(e.target.value)}>
 						{partnerChoices.map((id) => (
 							<option key={id} value={id}>
@@ -579,19 +611,22 @@ function SwapCard(props: {
 					</select>
 				</label>
 			</div>
-			{result === undefined ? (
+			{analysis === undefined ? (
 				<p className="muted">Pick a partner.</p>
 			) : (
 				<>
 					<p>
-						<strong>{ruleText(result.best, inName, partnerName, isLast(result.best))}</strong>
-						{result.best.policy.threshold !== 0 && !isLast(result.best) && <>, otherwise {partnerName}</>}
+						<strong>{ruleText(analysis.best, inName, partnerName, isLast(analysis.best))}</strong>
+						{analysis.best.policy.threshold !== 0 && !isLast(analysis.best) && <>, otherwise {partnerName}</>}
 					</p>
 					<p className="muted">
-						{formatStrength(result.best.energy.total)} strength / day ·{" "}
-						<Diff value={result.best.energy.total - fixedBest} /> vs. the best fixed team · {inName} on the team{" "}
-						{formatPercent(result.best.policy.share)} of the time · Extra Tasty Mon–Sat{" "}
-						{formatPercent(result.best.policy.weekdayChance)}, Sunday {formatPercent(result.best.policy.sundayChance)}
+						{formatStrength(analysis.best.energy.total)} strength / day ·{" "}
+						<Diff value={analysis.best.energy.total - bestTotal} /> vs. the best team · {inName} on the team{" "}
+						{formatPercent(analysis.best.policy.share)} of the time · Extra Tasty Mon–Sat{" "}
+						{formatPercent(analysis.best.policy.weekdayChance)}, Sunday {formatPercent(analysis.best.policy.sundayChance)}
+						{analysis.slotSize < 0.995 && (
+							<> · the two share {analysis.slotSize.toFixed(2)} of a slot</>
+						)}
 					</p>
 					<details>
 						<summary>All thresholds</summary>
@@ -603,12 +638,12 @@ function SwapCard(props: {
 									<th>Extra Tasty (Mon–Sat / Sun)</th>
 									<th>Cooked</th>
 									<th>Strength / day</th>
-									<th>vs. best fixed team</th>
+									<th>vs. best team</th>
 								</tr>
 							</thead>
 							<tbody>
-								{result.options.map((o) => (
-									<tr key={o.policy.threshold} className={o === result.best ? "highlight" : ""}>
+								{analysis.options.map((o) => (
+									<tr key={o.policy.threshold} className={o === analysis.best ? "highlight" : ""}>
 										<td>{ruleText(o, inName, partnerName, isLast(o))}</td>
 										<td>{formatPercent(o.policy.share)}</td>
 										<td>
@@ -617,7 +652,7 @@ function SwapCard(props: {
 										<td>{formatPercent(o.energy.coverage)}</td>
 										<td>{formatStrength(o.energy.total)}</td>
 										<td>
-											<Diff value={o.energy.total - fixedBest} />
+											<Diff value={o.energy.total - bestTotal} />
 										</td>
 									</tr>
 								))}

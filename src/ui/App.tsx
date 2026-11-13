@@ -178,7 +178,7 @@ export default function App() {
 				the team's healers (Energy for Everyone heals everyone, Energizing Cheer one random member, Charge Energy itself). No
 				Helping Bonus. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet,
 				Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that
-				copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver counts berries, strength
+				copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver shares 5 slots like the slot solver (a Pokémon on the team part of the time uses part of a slot) and counts berries, strength
 				skills (Charge Strength, Berry Burst, Extra Helpful, Helper Boost and similar, as estimated by pokesleep-tool) and the
 				target dish only: ingredients the dish doesn't use, extra ingredients in the pot and Helping Bonus add nothing, and a
 				meal without enough ingredients for the dish counts as 0.

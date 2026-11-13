@@ -134,7 +134,7 @@ test("Energy solver: with simulated energy, a healer's healing is counted for th
 	expect(rowOf(team, "Sylveon").textContent).toContain("Healer");
 	const berries = (label: string) => {
 		const cells = [...rowOf(section("Best team"), label).querySelectorAll("td")];
-		return Number((cells[cells.length - 4].textContent ?? "").replace(/,/g, ""));
+		return Number((cells[cells.length - 5].textContent ?? "").replace(/,/g, ""));
 	};
 	const healedGourgeist = berries("Gourgeist");
 	// Excluding Sylveon leaves the others unhealed: Gourgeist's berries drop.
@@ -173,7 +173,7 @@ test("pot size check shows Mon–Sat and doubled Sunday pot", () => {
 	expect(text).toContain("fits on Sunday");
 });
 
-test("Energy solver: picks a 5-member team for the shared dish and re-optimises on Exclude", () => {
+test("Energy solver: uses at most 5 slots for the shared dish and re-optimises on Exclude", () => {
 	localStorage.setItem(
 		"pscalc.box.v1",
 		JSON.stringify([
@@ -197,8 +197,14 @@ test("Energy solver: picks a 5-member team for the shared dish and re-optimises 
 	const team = section("Best team");
 	expect(team.textContent).toMatch(/[\d,]+ strength \/ day/);
 	const rows = () => [...section("Best team").querySelectorAll("tbody tr:not(.total)")];
-	expect(rows()).toHaveLength(5);
-	expect(section("Bench").querySelectorAll("tbody tr")).toHaveLength(5);
+	const slotsUsed = rows().reduce((a, r) => {
+		const cells = r.querySelectorAll("td");
+		return a + Number(cells[cells.length - 3].textContent);
+	}, 0);
+	expect(slotsUsed).toBeLessThanOrEqual(5.02);
+	expect(slotsUsed).toBeGreaterThan(4.9);
+	expect(team.textContent).toMatch(/\d\.\d\d \/ 5 slots · \d+ Pokémon/);
+	expect(rows().length + section("Bench").querySelectorAll("tbody tr").length).toBe(10);
 	const total = () => Number((section("Best team").textContent?.match(/([\d,]+) strength \/ day/)?.[1] ?? "").replace(/,/g, ""));
 	const before = total();
 
@@ -245,8 +251,10 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	fireEvent.click(screen.getByText("Energy solver"));
 	const card = section("Swap partner");
 	expect((within(card).getByLabelText("Extra Tasty Pokémon") as HTMLSelectElement).value).toBe("dedenne");
-	expect((within(card).getByLabelText(/Partner/) as HTMLSelectElement).value).toBe("sceptile");
-	expect(card.textContent).toMatch(/Dedenne[^,]* while chance ≤ 20% \(Sun 40%\), otherwise Sceptile/);
-	expect(card.textContent).toMatch(/\+[\d,]+ vs\. the best fixed team/);
-	expect(card.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
+	// The default partner is the one giving the best result; pick Sceptile to compare with the berry Pokémon.
+	fireEvent.change(within(card).getByLabelText(/Partner/), { target: { value: "sceptile" } });
+	const card2 = section("Swap partner");
+	expect(card2.textContent).toMatch(/Dedenne[^,]* while chance ≤ \d+% \(Sun \d+%\), otherwise Sceptile|Always/);
+	expect(card2.textContent).toMatch(/[+−±][\d,]+ vs\. the best team/);
+	expect(card2.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
 });
