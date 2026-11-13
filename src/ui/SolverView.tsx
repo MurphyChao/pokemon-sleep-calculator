@@ -15,6 +15,7 @@ import {
 import { extraTasty, type TastySlotValue, type TastySource, tastySlotValue } from "../core/tasty";
 import type { IngredientYield } from "../core/yield";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
+import { Rich, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 
@@ -108,51 +109,57 @@ export default function SolverView(props: {
 		<>
 			{box.length === 0 ? (
 				<section className="card">
-					<p className="muted">Add Pokémon on the Box tab first.</p>
+					<p className="muted">{t("addOnBoxFirst")}</p>
 				</section>
 			) : (
 				<>
 					{Object.keys(target.shortfall).length > 0 && (
 						<section className="card">
-							<p className="warn">Your whole box can't gather enough for {mealsPerDay} meals a day:</p>
+							<p className="warn">{t("shortfall", { n: mealsPerDay })}</p>
 							<ul>
 								{(Object.entries(target.shortfall) as [IngredientName, number][]).map(([i, n]) => (
 									<li key={i}>
-										{ingredientLabel(i)}: {formatAmount((demand[i] ?? 0) - n)} / {demand[i]} per day
+										{t("shortfallLine", {
+											ing: ingredientLabel(i),
+											have: formatAmount((demand[i] ?? 0) - n),
+											need: demand[i] ?? 0,
+										})}
 									</li>
 								))}
 							</ul>
-							<p className="muted small">
-								Slots below are calculated for what your box can gather. Add more Pokémon that gather these to cover the
-								rest.
-							</p>
+							<p className="muted small">{t("shortfallNote")}</p>
 						</section>
 					)}
 
 					<section className="card headline">
 						<div className="card-title">
-							<h2>Current team</h2>
+							<h2>{t("currentTeam")}</h2>
 							<button type="button" className="secondary" onClick={autoFill} disabled={storedTeam === undefined}>
-								Auto-fill best team
+								{t("autoFill")}
 							</button>
 						</div>
 						<p>
 							{Number.isFinite(result.slots) ? (
 								<>
-									<strong className="big">{result.slots.toFixed(2)} slots needed</strong>
-									<span className="muted"> · {team.length} Pokémon</span>
+									<strong className="big">{t("slotsNeeded", { n: result.slots.toFixed(2) })}</strong>
+									<span className="muted"> · {t("nPokemon", { n: team.length })}</span>
 								</>
 							) : (
-								<strong className="big warn">This team can't cover the dish</strong>
+								<strong className="big warn">{t("cantCover")}</strong>
 							)}
 						</p>
 						<p className="muted">
-							Extra Tasty chance: Mon–Sat <strong>{formatPercent(tastyNow.weekdayChance)}</strong> (×
-							{tastyNow.weekdayMultiplier.toFixed(2)} dish strength) · Sunday{" "}
-							<strong>{formatPercent(tastyNow.sundayChance)}</strong> (×{tastyNow.sundayMultiplier.toFixed(2)})
+							<Rich
+								text={t("tastyChanceLine", {
+									wd: formatPercent(tastyNow.weekdayChance),
+									wm: tastyNow.weekdayMultiplier.toFixed(2),
+									sd: formatPercent(tastyNow.sundayChance),
+									sm: tastyNow.sundayMultiplier.toFixed(2),
+								})}
+							/>
 						</p>
 						{team.length > teamSize && (
-							<p className="warn">More than {teamSize} Pokémon: this dish can't be fully covered with one team.</p>
+							<p className="warn">{t("moreThanTeam", { n: teamSize })}</p>
 						)}
 						<TeamTable
 							ids={team}
@@ -167,22 +174,14 @@ export default function SolverView(props: {
 							onMove={moveToBench}
 						/>
 						<p className="muted small">
-							"Slots needed" counts each Pokémon by the share of its output the dish needs. A Pokémon at 80% means 20% of
-							its ingredients are extra. Pinned Pokémon always count as a full slot.{" "}
-							<strong>Extra Tasty</strong>: for Pokémon whose skill raises the Extra Tasty chance (Tasty Chance S, Bulk Up,
-							Mystical Fire), the extra dish strength they bring, in slots: 0.50 means as much dish strength as half a slot
-							of ingredients. Shown for Mon–Sat (×2 dishes) and Sunday (×3 dishes).
+							<Rich text={t("slotHelp")} />
 						</p>
 					</section>
 
 					<section className="card">
-						<h2>Bench</h2>
+						<h2>{t("bench")}</h2>
 						<p className="muted small">
-							<strong>Saves (current team)</strong>: slots saved by adding it to the team above; the list is sorted by this.{" "}
-							<strong>Saves (vs. best without it)</strong>: best team from your whole box without it, minus the best team
-							with it. This one doesn't depend on how the current team is arranged.{" "}
-							<strong>Extra Tasty</strong>: the extra dish strength it would add, in slots (Mon–Sat / Sunday). The list is
-							sorted by slots saved plus the weekly Extra Tasty value.
+							<Rich text={t("benchHelp")} />
 						</p>
 						<BenchTable
 							scores={bench.scores}
@@ -234,12 +233,12 @@ function TeamTable(props: {
 		<table>
 			<thead>
 				<tr>
-					<th>Pokémon</th>
+					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
 						<th key={i}>{ingredientLabel(i)}</th>
 					))}
-					<th>Slot used</th>
-					<th>Extra Tasty (Mon–Sat / Sun)</th>
+					<th>{t("colSlotUsed")}</th>
+					<th>{t("colExtraTasty")}</th>
 					<th />
 				</tr>
 			</thead>
@@ -250,22 +249,22 @@ function TeamTable(props: {
 						<tr key={id}>
 							<td title={entryTooltip(byId.get(id) as BoxEntry)}>{labels.get(id)}</td>
 							<YieldCells id={id} ings={ings} yields={yields} />
-							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">0 (not needed)</span>}</td>
+							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">{t("notNeeded")}</span>}</td>
 							<TastyCell value={tastyValue.get(id)} />
 							<td className="row-actions">
 								<label className="check small">
 									<input type="checkbox" checked={pinned.includes(id)} onChange={() => onPin(id)} />
-									Pin
+									{t("pin")}
 								</label>
 								<button type="button" className="secondary" onClick={() => onMove(id)}>
-									To bench
+									{t("toBench")}
 								</button>
 							</td>
 						</tr>
 					);
 				})}
 				<tr className="total">
-					<td>Total / needed</td>
+					<td>{t("totalNeeded")}</td>
 					{ings.map((i) => {
 						const cov = (supply[i] ?? 0) / (demand[i] as number);
 						return (
@@ -285,16 +284,16 @@ function TeamTable(props: {
 }
 
 function reductionLabel(s: BenchScore): React.ReactNode {
-	if (s.reduction === Number.POSITIVE_INFINITY) return <span className="ok">Makes it possible</span>;
+	if (s.reduction === Number.POSITIVE_INFINITY) return <span className="ok">{t("makesPossible")}</span>;
 	if (s.reduction === null) {
-		return s.coverageGain > 1e-7 ? `+${formatPercent(s.coverageGain)} coverage` : <span className="muted">–</span>;
+		return s.coverageGain > 1e-7 ? t("coverageGain", { n: formatPercent(s.coverageGain) }) : <span className="muted">–</span>;
 	}
 	return s.reduction > 1e-7 ? <span className="ok">−{s.reduction.toFixed(2)}</span> : <span className="muted">0</span>;
 }
 
 function vsBestLabel(n: number | undefined): React.ReactNode {
 	if (n === undefined) return null;
-	if (n === Number.POSITIVE_INFINITY) return <span className="ok">Essential</span>;
+	if (n === Number.POSITIVE_INFINITY) return <span className="ok">{t("essential")}</span>;
 	return n > 1e-7 ? <span className="ok">−{n.toFixed(2)}</span> : <span className="muted">0</span>;
 }
 
@@ -310,19 +309,19 @@ function BenchTable(props: {
 }) {
 	const { scores, tastyValue, vsBest, demand, byId, labels, yields, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
-	if (scores.length === 0) return <p className="muted">Every Pokémon in your box is on the team.</p>;
+	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
 		<table>
 			<thead>
 				<tr>
-					<th>Pokémon</th>
+					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
 						<th key={i}>{ingredientLabel(i)}</th>
 					))}
-					<th>Saves (current team)</th>
-					<th>Saves (vs. best without it)</th>
-					<th>Extra Tasty (Mon–Sat / Sun)</th>
-					<th>Replaces</th>
+					<th>{t("savesCurrent")}</th>
+					<th>{t("savesVsBest")}</th>
+					<th>{t("colExtraTasty")}</th>
+					<th>{t("replaces")}</th>
 					<th />
 				</tr>
 			</thead>
@@ -337,7 +336,7 @@ function BenchTable(props: {
 						<td>{s.replaces.map((id) => labels.get(id)).join(", ")}</td>
 						<td>
 							<button type="button" className="secondary" onClick={() => onMove(s.id)}>
-								To team
+								{t("toTeam")}
 							</button>
 						</td>
 					</tr>
@@ -352,7 +351,7 @@ function TastyCell(props: { value: TastySlotValue | undefined }) {
 	const v = props.value;
 	if (!v) return <td className="muted">–</td>;
 	return (
-		<td title={`Weekly average: ${v.week.toFixed(2)} slots`}>
+		<td title={t("weeklyAverageSlots", { n: v.week.toFixed(2) })}>
 			<span className="ok">+{v.weekday.toFixed(2)}</span> / <span className="ok">+{v.sunday.toFixed(2)}</span>
 		</td>
 	);

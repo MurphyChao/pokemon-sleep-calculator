@@ -1,19 +1,18 @@
-import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
-import en from "../vendor/pokesleep-tool/i18n/en/data.json";
 import { type BoxEntry, subSkillLevels } from "../core/box";
+import { getLang, natureLabel, pokemonLabel, subSkillLabel } from "./i18n";
 
-const ingredientNames = (en as { ingredients: Record<string, string> }).ingredients;
-
-export function ingredientLabel(name: IngredientName): string {
-	return ingredientNames[name] ?? name;
-}
+export { ingredientLabel } from "./i18n";
 
 function baseLabel(entry: BoxEntry): string {
-	return `${entry.pokemonName} Lv${entry.level} ${entry.ingredient}`;
+	return `${pokemonLabel(entry.pokemonName)} Lv${entry.level} ${entry.ingredient}`;
 }
 
-/** Short form of a subskill, e.g. "Helping Speed M" → "HSM", "Skill Level Up S" → "SLUS". */
+/**
+ * Short form of a subskill: English initials, e.g. "Helping Speed M" → "HSM", "Skill Level Up S" → "SLUS";
+ * in Chinese the (already short) translated name.
+ */
 export function subSkillAbbrev(name: string): string {
+	if (getLang() !== "en") return subSkillLabel(name);
 	return name
 		.split(" ")
 		.map((w) => w[0])
@@ -34,9 +33,9 @@ export function subSkillSummary(entry: BoxEntry): string {
 export function entryTooltip(entry: BoxEntry): string {
 	const subs = subSkillLevels
 		.filter((lv) => entry.subSkills[lv])
-		.map((lv) => `${lv.replace("lv", "Lv")} ${entry.subSkills[lv]}`)
+		.map((lv) => `${lv.replace("lv", "Lv")} ${subSkillLabel(entry.subSkills[lv] as string)}`)
 		.join(", ");
-	return `${baseLabel(entry)} · ${entry.nature}${subs ? ` · ${subs}` : ""}`;
+	return `${baseLabel(entry)} · ${natureLabel(entry.nature)}${subs ? ` · ${subs}` : ""}`;
 }
 
 /**
@@ -61,7 +60,7 @@ export function buildEntryLabels(box: BoxEntry[]): Map<string, string> {
 		}
 		const detailed = group.map((e) => {
 			const subs = subSkillSummary(e);
-			return `${base} · ${e.nature}${subs ? ` · ${subs}` : ""}`;
+			return `${base} · ${natureLabel(e.nature)}${subs ? ` · ${subs}` : ""}`;
 		});
 		detailed.forEach((label, i) => {
 			const same = detailed.filter((x) => x === label).length;

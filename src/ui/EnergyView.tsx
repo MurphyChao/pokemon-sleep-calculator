@@ -18,6 +18,7 @@ import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
 import type { Heal, StrengthOptions, YieldDetail } from "../core/yield";
 import { getFavoriteBerries } from "../vendor/pokesleep-tool/data/fields";
 import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/pokesleep-tool/data/pokemons";
+import { islandLabel, Rich, t, typeLabel } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 
@@ -34,16 +35,7 @@ const teamSlots = 5;
 const keyRecipeLevels = [30, 40, 50, 60, 70];
 
 /** Islands with fixed favorite berries (pokesleep-tool field indices 1–6). */
-const islands = [
-	"Cyan Beach",
-	"Taupe Hollow",
-	"Snowdrop Tundra",
-	"Lapis Lakeside",
-	"Old Gold Power Plant",
-	"Amber Canyon",
-].map((name, i) => ({ name, types: getFavoriteBerries(i + 1) }));
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const islands = [1, 2, 3, 4, 5, 6].map((index) => ({ index, types: getFavoriteBerries(index) }));
 export const formatStrength = (n: number) => Math.round(n).toLocaleString("en-US");
 
 function favoritesKey(f: StrengthOptions["favorites"]): string {
@@ -157,59 +149,53 @@ export default function EnergyView(props: {
 			<EnergySettingsCard settings={settings} setSettings={setSettings} />
 			{box.length === 0 ? (
 				<section className="card">
-					<p className="muted">Add Pokémon on the Box tab first.</p>
+					<p className="muted">{t("addOnBoxFirst")}</p>
 				</section>
 			) : (
 				<>
 					<section className="card headline">
-						<h2>Best team</h2>
+						<h2>{t("bestTeam")}</h2>
 						<p>
-							<strong className="big">{formatStrength(e.total)} strength / day</strong>
+							<strong className="big">{t("strengthPerDay", { n: formatStrength(e.total) })}</strong>
 							<span className="muted">
 								{" "}
-								· {best.slots.toFixed(2)} / {teamSlots} slots · {best.ids.length} Pokémon
+								· {t("slotsOf", { used: best.slots.toFixed(2), total: teamSlots })} ·{" "}
+								{t("nPokemon", { n: best.ids.length })}
 							</span>
 						</p>
 						<p className="muted">
-							<span>
-								{" "}
-								Berries {formatStrength(e.berry)} · skills {formatStrength(e.skill)} · dishes {formatStrength(e.dish)}
-							</span>
+							{t("breakdown", { b: formatStrength(e.berry), s: formatStrength(e.skill), d: formatStrength(e.dish) })}
 						</p>
 						<p className="muted">
-							Dish: {formatStrength(problem.dishStrength)} per meal × {mealsPerDay} meals × cooked{" "}
-							<strong className={e.coverage < 1 - 1e-9 ? "warn" : "ok"}>{formatPercent(e.coverage)}</strong> of meals ×
-							Extra Tasty ×{e.tastyMultiplier.toFixed(3)} (weekly average)
+							{t("dishLineStart", { per: formatStrength(problem.dishStrength), meals: mealsPerDay })}{" "}
+							<strong className={e.coverage < 1 - 1e-9 ? "warn" : "ok"}>{formatPercent(e.coverage)}</strong>{" "}
+							{t("dishLineEnd", { mult: e.tastyMultiplier.toFixed(3) })}
 						</p>
 						<p className="muted small">
 							{healedDetail ? (
 								<>
-									Energy is simulated: it drains during the day.{" "}
+									{t("energyIsSimulated")}{" "}
 									{teamHealSources(bestMembers).length > 0 ? (
-										<>
-											This team's healers restore about{" "}
-											<strong>{Math.round(teamHealing)} energy per member per day</strong>
-											, which is included below.
-										</>
+										<Rich text={t("healersRestore", { n: Math.round(teamHealing) })} />
 									) : (
-										"No healer on this team restores the whole team's energy."
+										t("noTeamHealer")
 									)}
 								</>
 							) : (
-								"Energy is always full, so healers add nothing. Switch Energy to Simulated at the top to count them."
+								t("energyFullNote")
 							)}
 						</p>
 						<table>
 							<thead>
 								<tr>
-									<th>Pokémon</th>
+									<th>{t("pokemon")}</th>
 									{ings.map((i) => (
 										<th key={i}>{ingredientLabel(i)}</th>
 									))}
-									<th>Berries</th>
-									<th>Skill</th>
-									<th>Slot used</th>
-									<th>Without it</th>
+									<th>{t("colBerries")}</th>
+									<th>{t("colSkill")}</th>
+									<th>{t("colSlotUsed")}</th>
+									<th>{t("colWithoutIt")}</th>
 									<th />
 								</tr>
 							</thead>
@@ -221,8 +207,8 @@ export default function EnergyView(props: {
 										<tr key={id}>
 											<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 												{labels.get(id)}
-												{m.tasty && <span className="tag">Extra Tasty</span>}
-{m.heal && <span className="tag">Healer</span>}
+												{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
+{m.heal && <span className="tag">{t("tagHealer")}</span>}
 											</td>
 											{ings.map((i) => (
 												<td key={i}>{(m.yield[i] ?? 0) > 0 ? formatAmount(m.yield[i] ?? 0) : "–"}</td>
@@ -234,17 +220,17 @@ export default function EnergyView(props: {
 											<td className="row-actions">
 												<label className="check small">
 													<input type="checkbox" checked={pinned.includes(id)} onChange={() => togglePin(id)} />
-													Pin
+													{t("pin")}
 												</label>
 												<button type="button" className="secondary" onClick={() => exclude(id)}>
-													Exclude
+													{t("exclude")}
 												</button>
 											</td>
 										</tr>
 									);
 								})}
 								<tr className="total">
-									<td>Total / needed</td>
+									<td>{t("totalNeeded")}</td>
 									{ings.map((i) => {
 										const supply = best.entries.reduce((a, x) => a + x.share * (x.member.yield[i] ?? 0), 0);
 										const cov = supply / (demand[i] as number);
@@ -270,13 +256,7 @@ export default function EnergyView(props: {
 							</tbody>
 						</table>
 						<p className="muted small">
-							<strong>Slot used</strong>: the share of the time a Pokémon is on the team, as in the slot solver. Shares
-							add up to at most {teamSlots} slots, so more than {teamSlots} Pokémon can take part by swapping, e.g. two
-							gatherers at 0.50 each when the dish only needs half of each one's ingredients. Berries, skill and
-							ingredients columns are per full day on the team; totals are weighted by slot used. Extra Tasty Pokémon
-							and healers are tried at 0, ½ or a full slot. The team is re-optimised whenever something changes:{" "}
-							<strong>Pin</strong> gives a Pokémon a full slot, <strong>Exclude</strong> keeps it off.{" "}
-							<strong>Without it</strong>: strength per day of the best team without this Pokémon, minus this team's.
+							<Rich text={t("energyTeamHelp", { n: teamSlots })} />
 						</p>
 					</section>
 
@@ -291,24 +271,23 @@ export default function EnergyView(props: {
 					/>
 
 					<section className="card">
-						<h2>Bench</h2>
+						<h2>{t("bench")}</h2>
 						<p className="muted small">
-							<strong>Best team with it</strong>: strength per day of the best team that gives this Pokémon a full slot,
-							minus the best team's. Sorted by this.
+							<Rich text={t("energyBenchHelp")} />
 						</p>
 						{bench.length === 0 ? (
-							<p className="muted">Every Pokémon in your box is on the team.</p>
+							<p className="muted">{t("allOnTeam")}</p>
 						) : (
 							<table>
 								<thead>
 									<tr>
-										<th>Pokémon</th>
+										<th>{t("pokemon")}</th>
 										{ings.map((i) => (
 											<th key={i}>{ingredientLabel(i)}</th>
 										))}
-										<th>Berries</th>
-										<th>Skill</th>
-										<th>Best team with it</th>
+										<th>{t("colBerries")}</th>
+										<th>{t("colSkill")}</th>
+										<th>{t("colBestWithIt")}</th>
 										<th />
 									</tr>
 								</thead>
@@ -321,9 +300,9 @@ export default function EnergyView(props: {
 											<tr key={id} className={isExcluded ? "muted" : ""}>
 												<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 													{labels.get(id)}
-													{m.tasty && <span className="tag">Extra Tasty</span>}
-{m.heal && <span className="tag">Healer</span>}
-													{isExcluded && <span className="tag">excluded</span>}
+													{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
+{m.heal && <span className="tag">{t("tagHealer")}</span>}
+													{isExcluded && <span className="tag">{t("tagExcluded")}</span>}
 												</td>
 												{ings.map((i) => (
 													<td key={i}>{(m.yield[i] ?? 0) > 0 ? formatAmount(m.yield[i] ?? 0) : "–"}</td>
@@ -333,11 +312,11 @@ export default function EnergyView(props: {
 												<td>{w && <Diff value={w.energy.total - e.total} />}</td>
 												<td className="row-actions">
 													<button type="button" className="secondary" onClick={() => forceIn(id)}>
-														Force in
+														{t("forceIn")}
 													</button>
 													{isExcluded && (
 														<button type="button" className="secondary" onClick={() => allow(id)}>
-															Allow
+															{t("allow")}
 														</button>
 													)}
 												</td>
@@ -368,10 +347,10 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 	const custom: PokemonType[] = Array.isArray(settings.favorites) ? settings.favorites : ["normal", "fire", "water"];
 	return (
 		<section className="card">
-			<h2>Island</h2>
+			<h2>{t("island")}</h2>
 			<div className="form-grid">
 				<label>
-					Favorite berries (×2)
+					{t("favoriteBerries")}
 					<select
 						value={key}
 						onChange={(ev) => {
@@ -385,18 +364,18 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 							setSettings({ ...settings, favorites });
 						}}
 					>
-						<option value="none">None</option>
-						<option value="custom">Greengrass Isle (choose 3)</option>
+						<option value="none">{t("none")}</option>
+						<option value="custom">{t("greengrassChoose")}</option>
 						{islands.map((x, i) => (
-							<option key={x.name} value={`island${i}`}>
-								{x.name} ({x.types.map(capitalize).join(", ")})
+							<option key={x.index} value={`island${i}`}>
+								{islandLabel(x.index)} ({x.types.map(typeLabel).join(", ")})
 							</option>
 						))}
-						<option value="all">All berries</option>
+						<option value="all">{t("allBerries")}</option>
 					</select>
 				</label>
 				<label>
-					Island bonus (%)
+					{t("islandBonus")}
 					<input
 						type="number"
 						min={0}
@@ -405,12 +384,12 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 					/>
 				</label>
 				<div className="field">
-					<label htmlFor="recipe-level">Recipe level</label>
+					<label htmlFor="recipe-level">{t("recipeLevel")}</label>
 					<div className="stepper">
 						<button
 							type="button"
 							className="secondary"
-							aria-label="Recipe level down"
+							aria-label={t("recipeLevelDown")}
 							disabled={settings.recipeLevel <= 1}
 							onClick={() => setRecipeLevel(settings.recipeLevel - 1)}
 						>
@@ -427,7 +406,7 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 						<button
 							type="button"
 							className="secondary"
-							aria-label="Recipe level up"
+							aria-label={t("recipeLevelUp")}
 							disabled={settings.recipeLevel >= maxRecipeLevel}
 							onClick={() => setRecipeLevel(settings.recipeLevel + 1)}
 						>
@@ -453,7 +432,7 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 				<div className="form-grid">
 					{[0, 1, 2].map((slot) => (
 						<label key={slot}>
-							Berry {slot + 1}
+							{t("berryN", { n: slot + 1 })}
 							<select
 								value={custom[slot]}
 								onChange={(ev) => {
@@ -462,9 +441,9 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 									setSettings({ ...settings, favorites: next });
 								}}
 							>
-								{PokemonTypes.map((t) => (
-									<option key={t} value={t} disabled={custom.includes(t) && custom[slot] !== t}>
-										{capitalize(t)}
+								{PokemonTypes.map((type) => (
+									<option key={type} value={type} disabled={custom.includes(type) && custom[slot] !== type}>
+										{typeLabel(type)}
 									</option>
 								))}
 							</select>
@@ -482,10 +461,14 @@ function chanceLimit(threshold: number, base: number): string {
 }
 
 function ruleText(o: SwapOption, swapIn: string, partner: string, last: boolean): string {
-	const t = o.policy.threshold;
-	if (t === 0) return `Always ${partner}`;
-	if (last) return `Always ${swapIn}`;
-	return `${swapIn} while chance ≤ ${chanceLimit(t, weekdayBaseChance)} (Sun ${chanceLimit(t, sundayBaseChance)})`;
+	const threshold = o.policy.threshold;
+	if (threshold === 0) return t("ruleAlways", { name: partner });
+	if (last) return t("ruleAlways", { name: swapIn });
+	return t("ruleWhile", {
+		name: swapIn,
+		wd: chanceLimit(threshold, weekdayBaseChance),
+		sd: chanceLimit(threshold, sundayBaseChance),
+	});
 }
 
 /**
@@ -567,11 +550,8 @@ function SwapCard(props: {
 	if (tastyIds.length === 0) {
 		return (
 			<section className="card">
-				<h2>Swap partner</h2>
-				<p className="muted">
-					No Pokémon in your box raises the Extra Tasty chance (Tasty Chance S, Bulk Up, Mystical Fire), so there is
-					nothing to swap by Extra Tasty bonus.
-				</p>
+				<h2>{t("swapPartner")}</h2>
+				<p className="muted">{t("swapNoTasty")}</p>
 			</section>
 		);
 	}
@@ -585,28 +565,22 @@ function SwapCard(props: {
 
 	return (
 		<section className="card">
-			<h2>Swap partner</h2>
-			<p className="muted small">
-				Two Pokémon share one slot, and the other {teamSlots - 1} slots go to the best team without them. The two are swapped after every meal, depending on the Extra Tasty chance shown on the
-				cooking screen: the Extra Tasty Pokémon while the chance is low, the partner once it's high. The bonus from skills
-				carries over until an Extra Tasty dish resets it, so once it's high, more skill triggers are mostly wasted.
-				Assumes three equal 8-hour windows, swapping at night too, items collected before each swap, and no other effect
-				of swapping (energy, skill chance progress).
-			</p>
+			<h2>{t("swapPartner")}</h2>
+			<p className="muted small">{t("swapHelp", { n: teamSlots - 1 })}</p>
 			<div className="form-grid">
 				<label>
-					Extra Tasty Pokémon
+					{t("extraTastyPokemon")}
 					<select value={swapInId} onChange={(e) => setChosenIn(e.target.value)}>
 						{tastyIds.map((id) => (
 							<option key={id} value={id}>
 								{label(id)}
-								{best.ids.includes(id) ? " (on team)" : ""}
+								{best.ids.includes(id) ? t("onTeamSuffix") : ""}
 							</option>
 						))}
 					</select>
 				</label>
 				<label>
-					Partner
+					{t("partner")}
 					<select value={partnerId ?? ""} onChange={(e) => setChosenPartner(e.target.value)}>
 						{partnerChoices.map((id) => (
 							<option key={id} value={id}>
@@ -617,33 +591,34 @@ function SwapCard(props: {
 				</label>
 			</div>
 			{analysis === undefined ? (
-				<p className="muted">Pick a partner.</p>
+				<p className="muted">{t("pickPartner")}</p>
 			) : (
 				<>
 					<p>
 						<strong>{ruleText(analysis.best, inName, partnerName, isLast(analysis.best))}</strong>
-						{analysis.best.policy.threshold !== 0 && !isLast(analysis.best) && <>, otherwise {partnerName}</>}
+						{analysis.best.policy.threshold !== 0 && !isLast(analysis.best) && t("ruleOtherwise", { name: partnerName })}
 					</p>
 					<p className="muted">
-						{formatStrength(analysis.best.energy.total)} strength / day ·{" "}
-						<Diff value={analysis.best.energy.total - bestTotal} /> vs. the best team · {inName} on the team{" "}
-						{formatPercent(analysis.best.policy.share)} of the time · Extra Tasty Mon–Sat{" "}
-						{formatPercent(analysis.best.policy.weekdayChance)}, Sunday {formatPercent(analysis.best.policy.sundayChance)}
-						{analysis.slotSize < 0.995 && (
-							<> · the two share {analysis.slotSize.toFixed(2)} of a slot</>
-						)}
+						{t("strengthPerDay", { n: formatStrength(analysis.best.energy.total) })} ·{" "}
+						<Diff value={analysis.best.energy.total - bestTotal} /> {t("vsBestTeam")} ·{" "}
+						{t("onTeamShare", { name: inName, n: formatPercent(analysis.best.policy.share) })} ·{" "}
+						{t("swapTasty", {
+							wd: formatPercent(analysis.best.policy.weekdayChance),
+							sd: formatPercent(analysis.best.policy.sundayChance),
+						})}
+						{analysis.slotSize < 0.995 && <> · {t("shareSlot", { n: analysis.slotSize.toFixed(2) })}</>}
 					</p>
 					<details>
-						<summary>All thresholds</summary>
+						<summary>{t("allThresholds")}</summary>
 						<table>
 							<thead>
 								<tr>
-									<th>Rule</th>
-									<th>{inName} on team</th>
-									<th>Extra Tasty (Mon–Sat / Sun)</th>
-									<th>Cooked</th>
-									<th>Strength / day</th>
-									<th>vs. best team</th>
+									<th>{t("colRule")}</th>
+									<th>{t("colOnTeam", { name: inName })}</th>
+									<th>{t("colExtraTasty")}</th>
+									<th>{t("colCooked")}</th>
+									<th>{t("colStrengthPerDay")}</th>
+									<th>{t("colVsBest")}</th>
 								</tr>
 							</thead>
 							<tbody>

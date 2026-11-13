@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import Nature, { type NatureEffect } from "../vendor/pokesleep-tool/util/Nature";
+import { type Key, natureLabel, t } from "./i18n";
 
 type Stat = Exclude<NatureEffect, "No effect">;
 
-const stats: { stat: Stat; label: string }[] = [
-	{ stat: "Speed of help", label: "Help speed" },
-	{ stat: "Energy recovery", label: "Energy" },
-	{ stat: "Ingredient finding", label: "Ingredients" },
-	{ stat: "Main skill chance", label: "Skill" },
-	{ stat: "EXP gains", label: "EXP" },
+const stats: { stat: Stat; label: Key }[] = [
+	{ stat: "Speed of help", label: "statHelpSpeed" },
+	{ stat: "Energy recovery", label: "statEnergy" },
+	{ stat: "Ingredient finding", label: "statIngredients" },
+	{ stat: "Main skill chance", label: "statSkill" },
+	{ stat: "EXP gains", label: "statExp" },
 ];
 
 /** Nature name for every (up, down) pair. Neutral natures all behave the same; Serious stands in for them. */
@@ -19,8 +20,11 @@ for (const n of Nature.allNatures) {
 const neutralNature = "Serious";
 
 function describe(nature: Nature): string {
-	if (nature.isNeautral) return "no effect";
-	const label = (e: NatureEffect) => stats.find((s) => s.stat === e)?.label ?? e;
+	if (nature.isNeautral) return t("noEffect");
+	const label = (e: NatureEffect) => {
+		const key = stats.find((s) => s.stat === e)?.label;
+		return key ? t(key) : e;
+	};
 	return `▲ ${label(nature.upEffect)}, ▼ ${label(nature.downEffect)}`;
 }
 
@@ -66,11 +70,11 @@ export default function NaturePicker(props: { value: string; onChange: (nature: 
 								key={stat}
 								className={`nature-button ${row} ${selected ? "selected" : ""}`}
 								aria-pressed={selected}
-								aria-label={`${row === "up" ? "Increase" : "Decrease"} ${label}`}
+								aria-label={t(row === "up" ? "increaseStat" : "decreaseStat", { stat: t(label) })}
 								disabled={other === stat}
 								onClick={() => (row === "up" ? pick(selected ? null : stat, down) : pick(up, selected ? null : stat))}
 							>
-								{label}
+								{t(label)}
 							</button>
 						);
 					})}
@@ -86,13 +90,13 @@ export default function NaturePicker(props: { value: string; onChange: (nature: 
 						onChange(neutralNature);
 					}}
 				>
-					Neutral
+					{t("neutral")}
 				</button>
 				{pending ? (
-					<span className="warn">Pick a {up === null ? "▲" : "▼"} stat (still {current.name})</span>
+					<span className="warn">{t("pickStat", { arrow: up === null ? "▲" : "▼", name: natureLabel(current.name) })}</span>
 				) : (
 					<span>
-						<strong>{current.name}</strong> <span className="muted">({describe(current)})</span>
+						<strong>{natureLabel(current.name)}</strong> <span className="muted">({describe(current)})</span>
 					</span>
 				)}
 			</div>

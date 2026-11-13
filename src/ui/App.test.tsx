@@ -258,3 +258,36 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	expect(card2.textContent).toMatch(/[+−±][\d,]+ vs\. the best team/);
 	expect(card2.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
 });
+
+test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon name, and switching back", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([{ ...entry("sandslash", "Sandslash", "ABC", 6), nature: "Adamant", subSkills: { lv10: "Helping Speed M" } }]),
+	);
+	render(<App />);
+	fireEvent.change(screen.getByLabelText(/Language/), { target: { value: "zh-TW" } });
+	expect(localStorage.getItem("pscalc.lang")).toBe('"zh-TW"');
+	expect(screen.getByText("能量最佳化")).toBeTruthy();
+	expect(screen.getByText("名額最佳化")).toBeTruthy();
+
+	// Box table: Pokémon and nature names come from pokesleep-tool's translations.
+	const boxTable = section("你的寶可夢盒");
+	expect(boxTable.textContent).toContain("穿山王");
+	expect(boxTable.textContent).toContain("固執");
+	expect(boxTable.textContent).toContain("幫忙速度M");
+
+	// Typing a Chinese name selects the Pokémon.
+	fireEvent.change(screen.getByPlaceholderText("輸入以搜尋"), { target: { value: "咚咚鼠" } });
+	fireEvent.click(screen.getByText("加入寶可夢盒"));
+	const saved = JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]") as BoxEntry[];
+	expect(saved.map((e) => e.pokemonName)).toEqual(["Sandslash", "Dedenne"]);
+
+	// Energy solver: ingredient names and labels in Chinese.
+	fireEvent.click(screen.getByText("能量最佳化"));
+	expect(section("最佳隊伍").textContent).toMatch(/每日 [\d,]+ 能量/);
+	expect(section("料理").textContent).toContain("所需鍋子容量");
+
+	fireEvent.change(screen.getByLabelText(/語言/), { target: { value: "en" } });
+	expect(screen.getByText("Energy solver")).toBeTruthy();
+	expect(section("Best team").textContent).toMatch(/[\d,]+ strength \/ day/);
+});

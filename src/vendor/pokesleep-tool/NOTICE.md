@@ -12,6 +12,10 @@ Files:
 - src/data/pokemon.json
 - src/data/pokemons.ts
 - src/i18n/en/data.json
+- src/i18n/zh-TW/common.json
+- src/i18n/zh-TW/data.json
+- src/i18n/zh-TW/pokemons.json
+- src/i18n/zh-TW/skills.json
 - src/util/Berry.ts
 - src/util/Energy.ts
 - src/util/HelpCount.ts

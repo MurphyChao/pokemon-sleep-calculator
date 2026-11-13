@@ -4,6 +4,7 @@ import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
+import { natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel, subSkillSummary } from "./names";
 import NaturePicker from "./NaturePicker";
 import SubSkillPicker from "./SubSkillPicker";
@@ -52,6 +53,12 @@ export default function BoxView(props: {
 }) {
 	const { box, setBox, details } = props;
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
+	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
+	const [nameInput, setNameInput] = useState("");
+	const startDraft = (entry: BoxEntry) => {
+		setDraft(entry);
+		setNameInput(entry.pokemonName ? pokemonLabel(entry.pokemonName) : "");
+	};
 	const isEditing = draft.id !== "";
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const validName = pokemonNames.includes(draft.pokemonName);
@@ -66,38 +73,42 @@ export default function BoxView(props: {
 		} else {
 			setBox([...box, { ...draft, skillLevel, id: crypto.randomUUID() }]);
 		}
-		setDraft(emptyDraft());
+		startDraft(emptyDraft());
 	};
 
 	return (
 		<div className="box-view">
 			<section className="card">
-				<h2>{isEditing ? "Edit Pokémon" : "Add Pokémon"}</h2>
+				<h2>{isEditing ? t("editPokemon") : t("addPokemon")}</h2>
 				<div className="form-grid">
 					<label>
-						Pokémon
+						{t("pokemon")}
 						<input
 							list="pokemon-names"
-							value={draft.pokemonName}
-							onChange={(e) => setDraft({ ...draft, pokemonName: e.target.value, skillLevel: undefined })}
-							placeholder="Type to search"
+							value={nameInput}
+							onChange={(e) => {
+								setNameInput(e.target.value);
+								const name = pokemonFromLabel(e.target.value, pokemonNames) ?? e.target.value;
+								setDraft({ ...draft, pokemonName: name, skillLevel: undefined });
+							}}
+							placeholder={t("typeToSearch")}
 						/>
 						<datalist id="pokemon-names">
 							{pokemonNames.map((n) => (
-								<option key={n} value={n} />
+								<option key={n} value={pokemonLabel(n)} />
 							))}
 						</datalist>
 					</label>
 					<label>
-						Nickname (optional)
+						{t("nicknameOptional")}
 						<input
 							value={draft.nickname ?? ""}
-							placeholder="e.g. Sandslash HSM"
+							placeholder={t("nicknamePlaceholder")}
 							onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
 						/>
 					</label>
 					<div className="field">
-						<label htmlFor="level-input">Level</label>
+						<label htmlFor="level-input">{t("level")}</label>
 						<input
 							id="level-input"
 							type="number"
@@ -123,7 +134,7 @@ export default function BoxView(props: {
 						</div>
 					</div>
 					<label>
-						Ingredients (Lv1 / Lv30 / Lv60)
+						{t("ingredientsCombo")}
 						<select
 							value={draft.ingredient}
 							onChange={(e) => setDraft({ ...draft, ingredient: e.target.value as IngredientType })}
@@ -136,7 +147,7 @@ export default function BoxView(props: {
 						</select>
 					</label>
 					<label>
-						Main skill{draftPokemon ? ` (${draftPokemon.skill})` : ""} level
+						{draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")}
 						<select
 							value={skillLevel}
 							disabled={!validName}
@@ -151,40 +162,40 @@ export default function BoxView(props: {
 					</label>
 				</div>
 				<div className="subskill-field">
-					<span className="field-label">Nature (pick one ▲ and one ▼)</span>
+					<span className="field-label">{t("natureField")}</span>
 					<NaturePicker value={draft.nature} onChange={(nature) => setDraft({ ...draft, nature })} />
 				</div>
 				<div className="subskill-field">
-					<span className="field-label">Subskills (click in order: Lv10 → 25 → 50 → 70 → 80)</span>
+					<span className="field-label">{t("subskillsField")}</span>
 					<SubSkillPicker value={draft.subSkills} onChange={(subSkills) => setDraft({ ...draft, subSkills })} />
 				</div>
 				<div className="actions">
 					<button type="button" onClick={save} disabled={!validName}>
-						{isEditing ? "Save changes" : "Add to box"}
+						{isEditing ? t("saveChanges") : t("addToBox")}
 					</button>
 					{isEditing && (
-						<button type="button" className="secondary" onClick={() => setDraft(emptyDraft())}>
-							Cancel
+						<button type="button" className="secondary" onClick={() => startDraft(emptyDraft())}>
+							{t("cancel")}
 						</button>
 					)}
 				</div>
 			</section>
 
 			<section className="card">
-				<h2>Your box</h2>
+				<h2>{t("yourBox")}</h2>
 				{box.length === 0 ? (
-					<p className="muted">No Pokémon yet. Add the ones you might put on your team.</p>
+					<p className="muted">{t("emptyBox")}</p>
 				) : (
 					<table>
 						<thead>
 							<tr>
-								<th>Pokémon</th>
-								<th>Lv</th>
-								<th>Ingredients</th>
-								<th>Skill Lv</th>
-								<th>Nature</th>
-								<th>Subskills</th>
-								<th>Ingredients / day</th>
+								<th>{t("pokemon")}</th>
+								<th>{t("colLv")}</th>
+								<th>{t("colIngredients")}</th>
+								<th>{t("colSkillLv")}</th>
+								<th>{t("colNature")}</th>
+								<th>{t("colSubskills")}</th>
+								<th>{t("colIngPerDay")}</th>
 								<th />
 							</tr>
 						</thead>
@@ -195,34 +206,34 @@ export default function BoxView(props: {
 										{e.nickname?.trim() ? (
 											<>
 												{e.nickname.trim()}
-												<div className="muted small">{e.pokemonName}</div>
+												<div className="muted small">{pokemonLabel(e.pokemonName)}</div>
 											</>
 										) : (
-											e.pokemonName
+											pokemonLabel(e.pokemonName)
 										)}
 										{duplicateNumber(labels.get(e.id)) && <span className="tag">{duplicateNumber(labels.get(e.id))}</span>}
 									</td>
 									<td>{e.level}</td>
 									<td>{e.ingredient}</td>
 									<td>{e.skillLevel ?? "–"}</td>
-									<td>{e.nature}</td>
+									<td>{natureLabel(e.nature)}</td>
 									<td title={entryTooltip(e)}>{subSkillSummary(e) || "–"}</td>
 									<td>
 										<YieldSummary detail={details.get(e.id)} />
 									</td>
 									<td className="row-actions">
-										<button type="button" className="secondary" onClick={() => setDraft(e)}>
-											Edit
+										<button type="button" className="secondary" onClick={() => startDraft(e)}>
+											{t("edit")}
 										</button>
 										<button
 											type="button"
 											className="danger"
 											onClick={() => {
 												setBox(box.filter((x) => x.id !== e.id));
-												if (draft.id === e.id) setDraft(emptyDraft());
+												if (draft.id === e.id) startDraft(emptyDraft());
 											}}
 										>
-											Delete
+											{t("delete")}
 										</button>
 									</td>
 								</tr>
@@ -249,7 +260,7 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 				return (
 					<div key={ing}>
 						{ingredientLabel(ing)} {formatAmount(n + fromSkill)}
-						{fromSkill > 0 && <span className="muted"> (incl. {formatAmount(fromSkill)} from skill)</span>}
+						{fromSkill > 0 && <span className="muted"> {t("inclFromSkill", { n: formatAmount(fromSkill) })}</span>}
 					</div>
 				);
 			})}
@@ -258,13 +269,11 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 						.filter(([ing]) => !(ing in detail.help))
 						.map(([ing, n]) => (
 							<div key={ing}>
-								{ingredientLabel(ing)} {formatAmount(n)} <span className="muted">(from skill)</span>
+								{ingredientLabel(ing)} {formatAmount(n)} <span className="muted">{t("fromSkill")}</span>
 							</div>
 						))
 				: skillTotal > 0 && (
-						<div className="muted">
-							Skill: {formatAmount(skillTotal)} random ingredients/day, split over {skillKinds} kinds
-						</div>
+						<div className="muted">{t("skillRandom", { n: formatAmount(skillTotal), k: skillKinds })}</div>
 					)}
 		</>
 	);

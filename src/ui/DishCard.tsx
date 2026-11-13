@@ -1,12 +1,13 @@
 import { dailyDemand, mealsPerDay, potSizeNeeded, type Recipe, type RecipeType, recipes } from "../core/recipes";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
+import { type Key, t } from "./i18n";
 import { ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 
-const recipeTypes: { type: RecipeType; label: string }[] = [
-	{ type: "curry", label: "Curry & Stew" },
-	{ type: "salad", label: "Salad" },
-	{ type: "dessert", label: "Dessert & Drink" },
+const recipeTypes: { type: RecipeType; label: Key }[] = [
+	{ type: "curry", label: "curry" },
+	{ type: "salad", label: "salad" },
+	{ type: "dessert", label: "dessert" },
 ];
 
 export interface DishState {
@@ -33,10 +34,10 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 	const typeRecipes = recipes.filter((r) => r.type === recipeType);
 	return (
 		<section className="card">
-			<h2>Dish</h2>
+			<h2>{t("dish")}</h2>
 			<div className="form-grid">
 				<label>
-					Type
+					{t("dishType")}
 					<select
 						value={recipeType}
 						onChange={(e) => {
@@ -45,15 +46,15 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 							setRecipeId(recipes.find((r) => r.type === type)?.id ?? "");
 						}}
 					>
-						{recipeTypes.map((t) => (
-							<option key={t.type} value={t.type}>
-								{t.label}
+						{recipeTypes.map((x) => (
+							<option key={x.type} value={x.type}>
+								{t(x.label)}
 							</option>
 						))}
 					</select>
 				</label>
 				<label>
-					Recipe
+					{t("recipe")}
 					<select value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
 						{typeRecipes.map((r) => (
 							<option key={r.id} value={r.id}>
@@ -63,12 +64,12 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					</select>
 				</label>
 				<label>
-					Your pot size
+					{t("yourPotSize")}
 					<input
 						type="number"
 						min={0}
 						value={potSize || ""}
-						placeholder="optional"
+						placeholder={t("optional")}
 						onChange={(e) => setPotSize(Math.max(0, Number(e.target.value) || 0))}
 					/>
 				</label>
@@ -92,17 +93,18 @@ function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boo
 	return (
 		<div className="recipe-summary">
 			<p>
-				Recipe bonus {recipe.bonus}% · Pot size needed: <strong>{needed}</strong>
+				{t("recipeBonus", { n: recipe.bonus })} · {t("potNeeded")} <strong>{needed}</strong>
 				{potSize > 0 && (
 					<>
 						{" "}
-						· Your pot{campTicket ? " (with Camp Ticket)" : ""}: Mon–Sat{" "}
-						<span className={weekdayPot < needed ? "warn" : "ok"}>{weekdayPot}</span>, Sunday{" "}
+						· {t("yourPot")}
+						{campTicket ? t("withCampTicket") : ""}: {t("monSat")}{" "}
+						<span className={weekdayPot < needed ? "warn" : "ok"}>{weekdayPot}</span>, {t("sunday")}{" "}
 						<span className={sundayPot < needed ? "warn" : "ok"}>{sundayPot}</span>
 						{weekdayPot < needed && (
 							<span className="warn">
 								{" "}
-								· too small {sundayPot >= needed ? "on Mon–Sat (fits on Sunday)" : "every day"}
+								· {sundayPot >= needed ? t("tooSmallWeekday") : t("tooSmallEveryDay")}
 							</span>
 						)}
 					</>
@@ -111,9 +113,9 @@ function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boo
 			<table>
 				<thead>
 					<tr>
-						<th>Ingredient</th>
-						<th>Per meal</th>
-						<th>Per day ({mealsPerDay} meals)</th>
+						<th>{t("colIngredient")}</th>
+						<th>{t("perMeal")}</th>
+						<th>{t("perDayMeals", { n: mealsPerDay })}</th>
 					</tr>
 				</thead>
 				<tbody>

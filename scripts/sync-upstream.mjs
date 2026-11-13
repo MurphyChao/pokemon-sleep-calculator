@@ -7,8 +7,15 @@ import { dirname, join, normalize } from "node:path";
 const upstream = ".upstream/pokesleep-tool";
 const dest = "src/vendor/pokesleep-tool";
 const entries = ["src/util/PokemonStrength.ts", "src/util/PokemonIv.ts", "src/util/PokemonRp.ts"];
-// English display names for ingredients, natures, etc.
-const extraFiles = ["src/i18n/en/data.json"];
+// Display names for ingredients, natures, etc. (English), and Traditional Chinese names for Pokémon,
+// skills, subskills, natures, berry types, ingredients and islands.
+const extraFiles = [
+	"src/i18n/en/data.json",
+	"src/i18n/zh-TW/data.json",
+	"src/i18n/zh-TW/pokemons.json",
+	"src/i18n/zh-TW/skills.json",
+	"src/i18n/zh-TW/common.json",
+];
 
 const seen = new Set(extraFiles);
 const stack = [...entries];

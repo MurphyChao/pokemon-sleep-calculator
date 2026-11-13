@@ -14,18 +14,23 @@ import BoxView from "./BoxView";
 import type { TastySource } from "../core/tasty";
 import DishCard, { useDish } from "./DishCard";
 import EnergyView, { defaultEnergySettings, type EnergySettings } from "./EnergyView";
+import { type Key, type Lang, languages, setLang, t } from "./i18n";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 
 type Tab = "box" | "slots" | "energy";
 
-const tabs: { tab: Tab; label: string }[] = [
-	{ tab: "energy", label: "Energy solver" },
-	{ tab: "slots", label: "Slot solver" },
+const tabs: { tab: Tab; label: Key }[] = [
+	{ tab: "energy", label: "tabEnergy" },
+	{ tab: "slots", label: "tabSlots" },
 ];
 
 export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
+	const [storedLang, setStoredLang] = useStoredState<Lang>("pscalc.lang", "en");
+	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
+	// Text helpers read the language from a module-level value; the page below is re-mounted when it changes.
+	setLang(lang);
 	const [box, setBox] = useStoredState<BoxEntry[]>("pscalc.box.v1", []);
 	const [storedOptions, setOptions] = useStoredState<YieldOptions>("pscalc.yieldOptions", defaultYieldOptions);
 	const options = { ...defaultYieldOptions, ...storedOptions };
@@ -78,24 +83,34 @@ export default function App() {
 	);
 
 	return (
-		<div className="app">
+		<div className="app" key={lang} lang={lang}>
 			<header>
-				<h1>Dish Team Calculator</h1>
-				<p className="subtitle">
-					How many team slots do your Pokémon need to supply a dish's ingredients for 3 meals a day?
-				</p>
+				<div className="title-row">
+					<h1>{t("appTitle")}</h1>
+					<label className="language">
+						<span className="muted small">{t("language")}</span>
+						<select value={lang} onChange={(e) => setStoredLang(e.target.value as Lang)}>
+							{languages.map((l) => (
+								<option key={l.lang} value={l.lang}>
+									{l.label}
+								</option>
+							))}
+						</select>
+					</label>
+				</div>
+				<p className="subtitle">{t("subtitle")}</p>
 				<nav>
 					<button type="button" className={tab === "box" ? "active" : ""} onClick={() => setTab("box")}>
-						Box ({box.length})
+						{t("tabBox", { n: box.length })}
 					</button>
-					{tabs.map((t) => (
+					{tabs.map((x) => (
 						<button
 							type="button"
-							key={t.tab}
-							className={tab === t.tab ? "active" : ""}
-							onClick={() => setTab(t.tab)}
+							key={x.tab}
+							className={tab === x.tab ? "active" : ""}
+							onClick={() => setTab(x.tab)}
 						>
-							{t.label}
+							{t(x.label)}
 						</button>
 					))}
 				</nav>
@@ -106,8 +121,8 @@ export default function App() {
 							checked={options.inventoryLimit}
 							onChange={(e) => setOptions({ ...options, inventoryLimit: e.target.checked })}
 						/>
-						Inventory limit
-						<span className="muted small">(off: bag never fills)</span>
+						{t("inventoryLimit")}
+						<span className="muted small">{t("inventoryLimitHint")}</span>
 					</label>
 					<label className="check">
 						<input
@@ -115,21 +130,21 @@ export default function App() {
 							checked={options.campTicket}
 							onChange={(e) => setOptions({ ...options, campTicket: e.target.checked })}
 						/>
-						Good Camp Ticket
-						<span className="muted small">(help speed and inventory ×1.2)</span>
+						{t("campTicket")}
+						<span className="muted small">{t("campTicketHint")}</span>
 					</label>
 					<label className="check">
-						Energy
+						{t("energy")}
 						<select
 							value={options.energy}
 							onChange={(e) => setOptions({ ...options, energy: e.target.value as YieldOptions["energy"] })}
 						>
-							<option value="full">Always full</option>
-							<option value="simulated">Simulated (drains; healers restore it)</option>
+							<option value="full">{t("energyFull")}</option>
+							<option value="simulated">{t("energySimulated")}</option>
 						</select>
 					</label>
 					<label className="check">
-						Sleep score
+						{t("sleepScore")}
 						<input
 							type="number"
 							min={0}
@@ -143,7 +158,7 @@ export default function App() {
 								})
 							}
 						/>
-						<span className="muted small">(100 = 8.5 h asleep; 0 = no sleep)</span>
+						<span className="muted small">{t("sleepScoreHint")}</span>
 					</label>
 				</div>
 			</header>
@@ -169,19 +184,9 @@ export default function App() {
 				)}
 			</main>
 			<footer>
-				Pokémon data and ingredient model from{" "}
-				<a href="https://github.com/nitoyon/pokesleep-tool">nitoyon/pokesleep-tool</a> (MIT). Recipes from{" "}
-				<a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0). The sleep score sets how long you sleep (100 = 8.5 hours, 0 = not at all): while asleep the bag isn't emptied, and with
-				simulated energy that's when energy recovers. Energy "Always full" keeps every Pokémon at
-				full help speed all day. "Simulated" uses pokesleep-tool's energy model (energy drains while awake and recovers during sleep);
-				on the Box tab and in the slot solver each Pokémon is healed only by its own skill, while the energy solver also counts
-				the team's healers (Energy for Everyone heals everyone, Energizing Cheer one random member, Charge Energy itself). No
-				Helping Bonus. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet,
-				Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that
-				copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver shares 5 slots like the slot solver (a Pokémon on the team part of the time uses part of a slot) and counts berries, strength
-				skills (Charge Strength, Berry Burst, Extra Helpful, Helper Boost and similar, as estimated by pokesleep-tool) and the
-				target dish only: ingredients the dish doesn't use, extra ingredients in the pot and Helping Bonus add nothing, and a
-				meal without enough ingredients for the dish counts as 0.
+				{t("footerData")} <a href="https://github.com/nitoyon/pokesleep-tool">nitoyon/pokesleep-tool</a> (MIT).{" "}
+				{t("footerRecipes")} <a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0).{" "}
+				{t("footerRecipeNames")} {t("footerAssumptions")}
 			</footer>
 		</div>
 	);
