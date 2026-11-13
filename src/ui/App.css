@@ -356,6 +356,21 @@ footer a {
 	font-size: 0.85rem;
 }
 
+.stepper {
+	display: flex;
+	gap: 4px;
+}
+
+.stepper input {
+	flex: 1;
+	min-width: 0;
+	text-align: center;
+}
+
+.stepper button {
+	padding: 2px 10px;
+}
+
 /* Nature picker */
 .nature-picker {
 	display: flex;

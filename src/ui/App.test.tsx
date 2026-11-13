@@ -30,7 +30,7 @@ const rowOf = (container: HTMLElement, label: string) => {
 function renderSolver(box: BoxEntry[]) {
 	localStorage.setItem("pscalc.box.v1", JSON.stringify(box));
 	render(<App />);
-	fireEvent.click(screen.getByText("Solver"));
+	fireEvent.click(screen.getByText("Slot solver"));
 }
 
 test("Scald Chunky Salad: auto team, bench ranking, and moving Sandslash onto the team", () => {
@@ -137,4 +137,82 @@ test("pot size check shows Mon–Sat and doubled Sunday pot", () => {
 	expect(text).toContain("Mon–Sat 69");
 	expect(text).toContain("Sunday 138");
 	expect(text).toContain("fits on Sunday");
+});
+
+test("Energy solver: picks a 5-member team for the shared dish and re-optimises on Exclude", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			entry("sandslash", "Sandslash", "ABC", 6),
+			entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+			entry("gourgeist2", "Gourgeist (Jumbo)", "AAA"),
+			entry("meow", "Meowscarada", "AAA"),
+			entry("meow2", "Meowscarada", "AAA"),
+			entry("drag", "Dragonite", "ABB"),
+			entry("spirit", "Spiritomb", "AAA"),
+			entry("amoon", "Amoonguss", "AAA"),
+			entry("quag", "Quagsire", "AAA"),
+			entry("raichu", "Raichu", "AAA", 6),
+		]),
+	);
+	localStorage.setItem("pscalc.energySettings", JSON.stringify({ favorites: "none", fieldBonus: 0, recipeLevel: 30 }));
+	render(<App />);
+	fireEvent.click(screen.getByText("Energy solver"));
+	expect(screen.getByText(/Pot size needed/).textContent).toContain("95"); // same dish as the slot solver
+
+	const team = section("Best team");
+	expect(team.textContent).toMatch(/[\d,]+ strength \/ day/);
+	const rows = () => [...section("Best team").querySelectorAll("tbody tr:not(.total)")];
+	expect(rows()).toHaveLength(5);
+	expect(section("Bench").querySelectorAll("tbody tr")).toHaveLength(5);
+	const total = () => Number((section("Best team").textContent?.match(/([\d,]+) strength \/ day/)?.[1] ?? "").replace(/,/g, ""));
+	const before = total();
+
+	// Excluding a member can only lower the total, and it moves to the bench.
+	const first = rows()[0].querySelector("td")?.textContent ?? "";
+	fireEvent.click(within(rows()[0] as HTMLElement).getByText("Exclude"));
+	expect(total()).toBeLessThanOrEqual(before);
+	expect(rowOf(section("Bench"), first).textContent).toContain("excluded");
+});
+
+test("Energy solver: recipe level buttons and arrows", () => {
+	localStorage.setItem("pscalc.box.v1", JSON.stringify([entry("spirit", "Spiritomb", "AAA")]));
+	render(<App />);
+	fireEvent.click(screen.getByText("Energy solver"));
+	const input = screen.getByLabelText("Recipe level") as HTMLInputElement;
+	expect(input.value).toBe("1");
+	fireEvent.click(screen.getByText("50"));
+	expect(input.value).toBe("50");
+	expect(screen.getByText("50").getAttribute("aria-pressed")).toBe("true");
+	fireEvent.click(screen.getByLabelText("Recipe level up"));
+	expect(input.value).toBe("51");
+	fireEvent.click(screen.getByLabelText("Recipe level down"));
+	fireEvent.click(screen.getByLabelText("Recipe level down"));
+	expect(input.value).toBe("49");
+	fireEvent.click(screen.getByText("70"));
+	expect((screen.getByLabelText("Recipe level up") as HTMLButtonElement).disabled).toBe(true);
+	expect(JSON.parse(localStorage.getItem("pscalc.energySettings") ?? "{}").recipeLevel).toBe(70);
+});
+
+test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Sceptile", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+			entry("meow", "Meowscarada", "AAA"),
+			entry("drag", "Dragonite", "ABB"),
+			entry("spirit", "Spiritomb", "AAA"),
+			entry("dedenne", "Dedenne", "AAA", 6),
+			entry("sceptile", "Sceptile", "AAA", 6),
+		]),
+	);
+	localStorage.setItem("pscalc.energySettings", JSON.stringify({ favorites: "none", fieldBonus: 0, recipeLevel: 50 }));
+	render(<App />);
+	fireEvent.click(screen.getByText("Energy solver"));
+	const card = section("Swap partner");
+	expect((within(card).getByLabelText("Extra Tasty Pokémon") as HTMLSelectElement).value).toBe("dedenne");
+	expect((within(card).getByLabelText(/Partner/) as HTMLSelectElement).value).toBe("sceptile");
+	expect(card.textContent).toMatch(/Dedenne[^,]* while chance ≤ 20% \(Sun 40%\), otherwise Sceptile/);
+	expect(card.textContent).toMatch(/\+[\d,]+ vs\. the best fixed team/);
+	expect(card.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
 });

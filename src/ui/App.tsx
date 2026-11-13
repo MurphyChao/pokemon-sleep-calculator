@@ -3,34 +3,45 @@ import type { BoxEntry } from "../core/box";
 import {
 	dailyIngredientYieldDetail,
 	defaultYieldOptions,
+	emptyYieldDetail,
 	type IngredientYield,
 	type YieldDetail,
 	type YieldOptions,
 } from "../core/yield";
 import BoxView from "./BoxView";
 import type { TastySource } from "../core/tasty";
+import DishCard, { useDish } from "./DishCard";
+import EnergyView, { defaultEnergySettings, type EnergySettings } from "./EnergyView";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 
-type Tab = "box" | "solver";
+type Tab = "box" | "slots" | "energy";
+
+const tabs: { tab: Tab; label: string }[] = [
+	{ tab: "slots", label: "Slot solver" },
+	{ tab: "energy", label: "Energy solver" },
+];
 
 export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
 	const [box, setBox] = useStoredState<BoxEntry[]>("pscalc.box.v1", []);
 	const [storedOptions, setOptions] = useStoredState<YieldOptions>("pscalc.yieldOptions", defaultYieldOptions);
 	const options = { ...defaultYieldOptions, ...storedOptions };
+	const [storedEnergy, setEnergy] = useStoredState<EnergySettings>("pscalc.energySettings", defaultEnergySettings);
+	const energy = { ...defaultEnergySettings, ...storedEnergy };
+	const dish = useDish();
 
 	const details = useMemo(() => {
 		const map = new Map<string, YieldDetail>();
 		for (const e of box) {
 			try {
-				map.set(e.id, dailyIngredientYieldDetail(e, options));
+				map.set(e.id, dailyIngredientYieldDetail(e, options, energy));
 			} catch {
-				map.set(e.id, { help: {}, skill: {}, total: {} });
+				map.set(e.id, emptyYieldDetail);
 			}
 		}
 		return map;
-	}, [box, options.inventoryLimit, options.campTicket]);
+	}, [box, options.inventoryLimit, options.campTicket, JSON.stringify(energy.favorites), energy.fieldBonus]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],
@@ -54,9 +65,16 @@ export default function App() {
 					<button type="button" className={tab === "box" ? "active" : ""} onClick={() => setTab("box")}>
 						Box ({box.length})
 					</button>
-					<button type="button" className={tab === "solver" ? "active" : ""} onClick={() => setTab("solver")}>
-						Solver
-					</button>
+					{tabs.map((t) => (
+						<button
+							type="button"
+							key={t.tab}
+							className={tab === t.tab ? "active" : ""}
+							onClick={() => setTab(t.tab)}
+						>
+							{t.label}
+						</button>
+					))}
 				</nav>
 				<div className="settings-bar">
 					<label className="check">
@@ -83,7 +101,20 @@ export default function App() {
 				{tab === "box" ? (
 					<BoxView box={box} setBox={setBox} details={details} />
 				) : (
-					<SolverView box={box} yields={yields} tasty={tasty} campTicket={options.campTicket} />
+					<div className="solver-view">
+						<DishCard dish={dish} campTicket={options.campTicket} />
+						{tab === "slots" ? (
+							<SolverView box={box} recipe={dish.recipe} yields={yields} tasty={tasty} />
+						) : (
+							<EnergyView
+								box={box}
+								recipe={dish.recipe}
+								details={details}
+								settings={energy}
+								setSettings={setEnergy}
+							/>
+						)}
+					</div>
 				)}
 			</main>
 			<footer>
@@ -92,7 +123,10 @@ export default function App() {
 				<a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0). Yields assume a 100 sleep score and no teammate
 				bonuses. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet,
 				Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that
-				copy other skills are not counted. Mythical Pokémon are not supported yet.
+				copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver counts berries, strength
+				skills (Charge Strength, Berry Burst, Extra Helpful, Helper Boost and similar, as estimated by pokesleep-tool) and the
+				target dish only: ingredients the dish doesn't use, extra ingredients in the pot and Helping Bonus add nothing, and a
+				meal without enough ingredients for the dish counts as 0.
 			</footer>
 		</div>
 	);

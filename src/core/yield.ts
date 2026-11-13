@@ -3,7 +3,12 @@ import { getIngredientDrawIngredients } from "../vendor/pokesleep-tool/util/Main
 import type PokemonIv from "../vendor/pokesleep-tool/util/PokemonIv";
 import PokemonStrength, { type StrengthResult } from "../vendor/pokesleep-tool/util/PokemonStrength";
 import { AlwaysTap } from "../vendor/pokesleep-tool/util/Energy";
-import { createStrengthParameter } from "../vendor/pokesleep-tool/util/StrengthParameter";
+import {
+	allFavoriteFieldIndex,
+	createStrengthParameter,
+	noFavoriteFieldIndex,
+} from "../vendor/pokesleep-tool/util/StrengthParameter";
+import type { PokemonType } from "../vendor/pokesleep-tool/data/pokemons";
 import { type BoxEntry, toPokemonIv } from "./box";
 import type { TastySource } from "./tasty";
 
@@ -21,6 +26,16 @@ export interface YieldOptions {
 
 export const defaultYieldOptions: YieldOptions = { inventoryLimit: true, campTicket: false };
 
+/** Settings that change strength (energy) but not ingredient yields. */
+export interface StrengthOptions {
+	/** Favorite berries (worth ×2): none, all, or three berry types. */
+	favorites: "none" | "all" | PokemonType[];
+	/** Island bonus in percent; multiplies berries, dishes and strength skills. */
+	fieldBonus: number;
+}
+
+export const defaultStrengthOptions: StrengthOptions = { favorites: "none", fieldBonus: 0 };
+
 export interface YieldDetail {
 	/** Ingredients from regular helps. */
 	help: IngredientYield;
@@ -30,6 +45,17 @@ export interface YieldDetail {
 	total: IngredientYield;
 	/** Set if the main skill raises the Extra Tasty chance. */
 	tasty?: TastySource;
+	/** Strength per day from berries. */
+	berryStrength: number;
+	/** Strength per day from the main skill, excluding skills that give ingredients (those go into the dish). */
+	skillStrength: number;
+}
+
+export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0 };
+
+/** Skills whose strength comes from ingredients or the pot; their value is counted through the dish instead. */
+function isCookingSkill(skill: string): boolean {
+	return skill.startsWith("Ingredient Magnet") || skill.startsWith("Ingredient Draw") || skill.startsWith("Cooking ");
 }
 
 /** Ingredients that Ingredient Magnet S can give (all known ingredients, as in pokesleep-tool). */
@@ -87,11 +113,21 @@ function tastySource(iv: PokemonIv, result: StrengthResult): TastySource | undef
  * Expected ingredients per day, using pokesleep-tool's model with its default
  * assumptions (100 sleep score, no teammate bonuses) plus the given options.
  */
-export function dailyIngredientYieldDetail(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): YieldDetail {
+export function dailyIngredientYieldDetail(
+	entry: BoxEntry,
+	options: YieldOptions = defaultYieldOptions,
+	strength: StrengthOptions = defaultStrengthOptions,
+): YieldDetail {
 	const iv = toPokemonIv(entry);
+	const favorites = strength.favorites;
 	const param = createStrengthParameter({
 		period: 24,
 		isGoodCampTicketSet: options.campTicket,
+		addHelpingBonusEffect: false,
+		fieldBonus: strength.fieldBonus,
+		// Field 0 (Greengrass Isle) lets the favorite berries be chosen freely.
+		fieldIndex: favorites === "none" ? noFavoriteFieldIndex : favorites === "all" ? allFavoriteFieldIndex : 0,
+		...(Array.isArray(favorites) && { favoriteType: favorites }),
 		...(!options.inventoryLimit && { tapFrequencyAwake: AlwaysTap, tapFrequencyAsleep: AlwaysTap }),
 	});
 	const result = new PokemonStrength(iv, param).calculate();
@@ -106,7 +142,14 @@ export function dailyIngredientYieldDetail(entry: BoxEntry, options: YieldOption
 	for (const [name, n] of Object.entries(skill) as [IngredientName, number][]) {
 		total[name] = (total[name] ?? 0) + n;
 	}
-	return { help, skill, total, tasty: tastySource(iv, result) };
+	return {
+		help,
+		skill,
+		total,
+		tasty: tastySource(iv, result),
+		berryStrength: result.berryTotalStrength,
+		skillStrength: isCookingSkill(iv.versatileSkill) ? 0 : result.skillStrength + result.skillStrength2,
+	};
 }
 
 export function dailyIngredientYield(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): IngredientYield {
