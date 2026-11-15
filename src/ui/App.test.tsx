@@ -53,7 +53,7 @@ test("Scald Chunky Salad: auto team, bench ranking, and moving Sandslash onto th
 
 	// Move Sandslash to the bench. The remaining team was built around it, so adding it back
 	// either makes the dish possible again or saves slots.
-	fireEvent.click(within(rowOf(team, "Sandslash")).getByText("To bench"));
+	fireEvent.click(within(rowOf(team, "Sandslash")).getByLabelText("To bench"));
 	const bench = section("Bench");
 	expect(rowOf(bench, "Sandslash").textContent).toMatch(/Makes it possible|−\d\.\d\d/);
 	// Independent of the current team: skill Lv6 Sandslash saves about 0.47 slots vs. the best team without it.
@@ -62,7 +62,7 @@ test("Scald Chunky Salad: auto team, bench ranking, and moving Sandslash onto th
 	expect(Number(cells[cells.length - 4].textContent?.replace("−", ""))).toBeCloseTo(0.47, 1);
 
 	// And back to the team.
-	fireEvent.click(within(rowOf(bench, "Sandslash")).getByText("To team"));
+	fireEvent.click(within(rowOf(bench, "Sandslash")).getByLabelText("To team"));
 	expect(rowOf(section("Current team"), "Sandslash")).toBeTruthy();
 });
 
@@ -160,7 +160,7 @@ test("Extra Tasty: a Tasty Chance Pokémon on the bench shows slot-equivalents f
 	expect(sunday).toBeGreaterThan(weekday);
 
 	// On the team it raises the team's Extra Tasty chance.
-	fireEvent.click(within(rowOf(section("Bench"), "Swampert")).getByText("To team"));
+	fireEvent.click(within(rowOf(section("Bench"), "Swampert")).getByLabelText("To team"));
 	expect(section("Current team").textContent).not.toMatch(/Mon–Sat 10% /);
 });
 

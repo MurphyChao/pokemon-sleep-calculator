@@ -80,6 +80,14 @@ nav button.active {
 	color: #fff;
 }
 
+button.icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 6px;
+	line-height: 0;
+}
+
 button.danger {
 	background: transparent;
 	border-color: var(--danger);

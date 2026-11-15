@@ -12,6 +12,7 @@ import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 import { PokemonIconCell } from "./PokemonIcon";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
+import { PencilIcon, TrashIcon } from "./icons";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -342,23 +343,27 @@ export default function BoxView(props: {
 									<td className="row-actions">
 										<button
 											type="button"
-											className="secondary"
+											className="secondary icon-button"
+											aria-label={t("edit")}
+											title={t("edit")}
 											onClick={() => {
 												setReviewingId(undefined);
 												startDraft(e);
 											}}
 										>
-											{t("edit")}
+											<PencilIcon />
 										</button>
 										<button
 											type="button"
-											className="danger"
+											className="danger icon-button"
+											aria-label={t("delete")}
+											title={t("delete")}
 											onClick={() => {
 												setBox(box.filter((x) => x.id !== e.id));
 												if (draft.id === e.id) startDraft(emptyDraft());
 											}}
 										>
-											{t("delete")}
+											<TrashIcon />
 										</button>
 									</td>
 								</tr>

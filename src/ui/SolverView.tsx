@@ -20,6 +20,7 @@ import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredient
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
 import { EntryName, IngredientIcon } from "./IngredientIcons";
+import { MinusIcon, PlusIcon } from "./icons";
 
 export const teamSize = 5;
 
@@ -269,8 +270,14 @@ function TeamTable(props: {
 									<input type="checkbox" checked={pinned.includes(id)} onChange={() => onPin(id)} />
 									{t("pin")}
 								</label>
-								<button type="button" className="secondary" onClick={() => onMove(id)}>
-									{t("toBench")}
+								<button
+									type="button"
+									className="secondary icon-button"
+									aria-label={t("toBench")}
+									title={t("toBench")}
+									onClick={() => onMove(id)}
+								>
+									<MinusIcon />
 								</button>
 							</td>
 						</tr>
@@ -356,8 +363,14 @@ function BenchTable(props: {
 						<TastyCell value={tastyValue.get(s.id)} />
 						<td>{s.replaces.map((id) => labels.get(id)).join(", ")}</td>
 						<td>
-							<button type="button" className="secondary" onClick={() => onMove(s.id)}>
-								{t("toTeam")}
+							<button
+								type="button"
+								className="secondary icon-button"
+								aria-label={t("toTeam")}
+								title={t("toTeam")}
+								onClick={() => onMove(s.id)}
+							>
+								<PlusIcon />
 							</button>
 						</td>
 					</tr>
