@@ -5,3 +5,4 @@ dist/
 # Local screenshots used to test the screenshot importer (not committed)
 screenshots/
 ingredients.png
+.env.local

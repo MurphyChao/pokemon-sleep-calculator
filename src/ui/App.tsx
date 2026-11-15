@@ -17,6 +17,7 @@ import EnergyView, { defaultEnergySettings, type EnergySettings } from "./Energy
 import { type Key, type Lang, languages, setLang, t } from "./i18n";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
+import SyncControl from "./SyncControl";
 
 type Tab = "box" | "slots" | "energy";
 
@@ -87,7 +88,9 @@ export default function App() {
 			<header>
 				<div className="title-row">
 					<h1>{t("appTitle")}</h1>
-					<label className="language">
+					<div className="header-tools">
+						<SyncControl />
+						<label className="language">
 						<span className="muted small">{t("language")}</span>
 						<select value={lang} onChange={(e) => setStoredLang(e.target.value as Lang)}>
 							{languages.map((l) => (
@@ -96,7 +99,8 @@ export default function App() {
 								</option>
 							))}
 						</select>
-					</label>
+						</label>
+					</div>
 				</div>
 				<p className="subtitle">{t("subtitle")}</p>
 				<nav>

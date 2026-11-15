@@ -85,6 +85,20 @@ const en = {
 	fromSkill: "(from skill)",
 	skillRandom: "Skill: {n} random ingredients/day, split over {k} kinds",
 
+	// Google sync
+	syncTurnOn: "Sync with Google Drive",
+	syncTurnOff: "Turn off sync",
+	syncNow: "Sync now",
+	syncSyncing: "Syncing…",
+	syncOn: "Sync on",
+	syncedAt: "Synced {time}",
+	syncSignIn: "Sign in again to sync",
+	syncHint: "Your box and settings are kept in a private app folder in your Google Drive, so every device you sign in on shares them.",
+	syncConflict: "This device and Google Drive both changed since the last sync. Which copy do you want to keep?",
+	syncKeepLocal: "Keep this device's data",
+	syncUseRemote: "Use the Google Drive copy",
+	syncUseRemoteAt: "Use the Google Drive copy (saved {time})",
+
 	// Screenshot import
 	importTitle: "Import from screenshots",
 	importHelp:
@@ -298,6 +312,19 @@ const zh: Record<Key, string> = {
 	inclFromSkill: "（含技能 {n}）",
 	fromSkill: "（來自技能）",
 	skillRandom: "技能：每日 {n} 個隨機食材，平均分到 {k} 種",
+
+	syncTurnOn: "與 Google 雲端硬碟同步",
+	syncTurnOff: "關閉同步",
+	syncNow: "立即同步",
+	syncSyncing: "同步中…",
+	syncOn: "同步已開啟",
+	syncedAt: "已同步 {time}",
+	syncSignIn: "請重新登入以同步",
+	syncHint: "寶可夢盒與設定會存放在你 Google 雲端硬碟的私人應用程式資料夾中，登入的每台裝置都會共用。",
+	syncConflict: "上次同步後，這台裝置與 Google 雲端硬碟的資料都有變更。要保留哪一份？",
+	syncKeepLocal: "保留這台裝置的資料",
+	syncUseRemote: "使用 Google 雲端硬碟的資料",
+	syncUseRemoteAt: "使用 Google 雲端硬碟的資料（{time} 儲存）",
 
 	importTitle: "從截圖匯入",
 	importHelp:

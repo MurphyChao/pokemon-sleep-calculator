@@ -456,6 +456,60 @@ input.narrow {
 	gap: 6px;
 }
 
+.header-tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px 16px;
+}
+
+/* Google sync */
+.sync {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.sync button.link {
+	background: none;
+	border: none;
+	padding: 0;
+	color: inherit;
+	opacity: 0.7;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.sync-error {
+	color: #c0392b;
+	max-width: 24em;
+}
+
+.sync-conflict {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 10;
+	width: 22em;
+	margin-top: 6px;
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	background: Canvas;
+	color: CanvasText;
+	border: 1px solid #e0a030;
+	border-radius: 8px;
+	box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+
+.sync-conflict p {
+	margin: 0 0 4px;
+}
+
 /* Screenshot import */
 .drop-zone {
 	display: flex;
