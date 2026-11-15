@@ -138,7 +138,7 @@ test("Energy solver: with simulated energy, a healer's healing is counted for th
 	};
 	const healedGourgeist = berries("Gourgeist");
 	// Excluding Sylveon leaves the others unhealed: Gourgeist's berries drop.
-	fireEvent.click(within(rowOf(team, "Sylveon")).getByText("Exclude"));
+	fireEvent.click(within(rowOf(team, "Sylveon")).getByLabelText("Exclude"));
 	expect(section("Best team").textContent).toContain("No healer on this team");
 	expect(berries("Gourgeist")).toBeLessThan(healedGourgeist);
 });
@@ -211,7 +211,7 @@ test("Energy solver: uses at most 5 slots for the shared dish and re-optimises o
 	// Excluding a member can only lower the total, and it moves to the bench.
 	const first = rows()[0].querySelector("td:not(.icon-cell)")?.textContent ?? "";
 	expect(first).not.toBe("");
-	fireEvent.click(within(rows()[0] as HTMLElement).getByText("Exclude"));
+	fireEvent.click(within(rows()[0] as HTMLElement).getByLabelText("Exclude"));
 	expect(total()).toBeLessThanOrEqual(before);
 	expect(rowOf(section("Bench"), first).textContent).toContain("excluded");
 });

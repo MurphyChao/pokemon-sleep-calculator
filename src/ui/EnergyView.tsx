@@ -23,6 +23,7 @@ import { buildEntryLabels, entryTooltip, formatAmount, formatPercent } from "./n
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
+import { BanIcon, PlusIcon, UndoIcon } from "./icons";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -232,8 +233,14 @@ export default function EnergyView(props: {
 													<input type="checkbox" checked={pinned.includes(id)} onChange={() => togglePin(id)} />
 													{t("pin")}
 												</label>
-												<button type="button" className="secondary" onClick={() => exclude(id)}>
-													{t("exclude")}
+												<button
+													type="button"
+													className="secondary icon-button"
+													aria-label={t("exclude")}
+													title={t("exclude")}
+													onClick={() => exclude(id)}
+												>
+													<BanIcon />
 												</button>
 											</td>
 										</tr>
@@ -328,12 +335,24 @@ export default function EnergyView(props: {
 												<td>{m.skill > 0 ? formatStrength(m.skill) : "–"}</td>
 												<td>{w && <Diff value={w.energy.total - e.total} />}</td>
 												<td className="row-actions">
-													<button type="button" className="secondary" onClick={() => forceIn(id)}>
-														{t("forceIn")}
+													<button
+														type="button"
+														className="secondary icon-button"
+														aria-label={t("forceIn")}
+														title={t("forceIn")}
+														onClick={() => forceIn(id)}
+													>
+														<PlusIcon />
 													</button>
 													{isExcluded && (
-														<button type="button" className="secondary" onClick={() => allow(id)}>
-															{t("allow")}
+														<button
+															type="button"
+															className="secondary icon-button"
+															aria-label={t("allow")}
+															title={t("allow")}
+															onClick={() => allow(id)}
+														>
+															<UndoIcon />
 														</button>
 													)}
 												</td>

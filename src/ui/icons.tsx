@@ -46,3 +46,23 @@ export function PlusIcon() {
 		</svg>
 	);
 }
+
+/** "Not allowed": a circle with a slash. */
+export function BanIcon() {
+	return (
+		<svg {...svgProps}>
+			<circle cx="12" cy="12" r="9" />
+			<path d="M5.6 5.6l12.8 12.8" />
+		</svg>
+	);
+}
+
+/** Undo: an arrow curving back. */
+export function UndoIcon() {
+	return (
+		<svg {...svgProps}>
+			<path d="M3 7v6h6" />
+			<path d="M3.5 13a9 9 0 1 0 2.2-8.3L3 7" />
+		</svg>
+	);
+}
