@@ -28,9 +28,10 @@ export interface BoxEntry {
 
 /**
  * The box as the solvers see it with "final evolution": every Pokémon that can still evolve becomes its
- * final form, following pokesleep-tool's "evolved" option: the first final form where the line
- * branches (Eevee, Ralts…), Toxel by nature, and the main skill level +1 per evolution (capped at the
- * new skill's maximum). Ingredients, nature and subskills stay. Returns the box itself when off.
+ * final form, with the main skill level +1 per evolution (capped at the new skill's maximum), as
+ * pokesleep-tool's "evolved" option does. Lines that branch (Eevee, Ralts, Slowpoke…) are left as they
+ * are, since which form the user would pick isn't known; Toxel evolves by nature. Ingredients, nature
+ * and subskills stay. Returns the box itself when off.
  */
 export function evolveToFinal(box: BoxEntry[], on: boolean | undefined): BoxEntry[] {
 	if (!on) return box;
@@ -38,7 +39,8 @@ export function evolveToFinal(box: BoxEntry[], on: boolean | undefined): BoxEntr
 		try {
 			const iv = toPokemonIv(e);
 			const finals = iv.decendants;
-			if (finals.length === 0 || finals.some((p) => p.id === iv.pokemon.id)) return e;
+			// Already final, doesn't evolve, or a branching line (decendants already narrows Toxel by nature).
+			if (finals.length !== 1 || finals[0].id === iv.pokemon.id) return e;
 			const final = finals[0];
 			const evolved = iv.clone({ pokemonName: final.name });
 			const skillLevel = Math.min(evolved.skillLevel, getMaxSkillLevel(final.skill));

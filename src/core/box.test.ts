@@ -29,10 +29,11 @@ describe("evolveToFinal", () => {
 		expect(evolved.skillLevel).toBeLessThan(99);
 	});
 
-	it("evolves Toxel by nature and branching lines to the first final form", () => {
+	it("evolves Toxel by nature but leaves branching lines alone", () => {
 		expect(evolveToFinal([e("Toxel", { nature: "Hardy" })], true)[0].pokemonName).toBe("Toxtricity (Amped)");
 		expect(evolveToFinal([e("Toxel", { nature: "Calm" })], true)[0].pokemonName).toBe("Toxtricity (Low Key)");
-		expect(evolveToFinal([e("Eevee")], true)[0].pokemonName).toBe("Vaporeon");
+		const branching = [e("Eevee"), e("Ralts"), e("Kirlia")];
+		expect(evolveToFinal(branching, true)).toEqual(branching);
 	});
 
 	it("combines with level scaling", () => {
