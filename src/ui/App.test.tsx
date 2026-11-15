@@ -479,3 +479,16 @@ test("final evolution: solvers evolve every Pokémon, the box keeps the real one
 	expect(JSON.parse(localStorage.getItem("pscalc.finalEvolution") ?? "false")).toBe(true);
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].pokemonName).toBe("Bulbasaur");
 });
+
+test("max Sub Skill Seeds: solvers use upgraded subskills, the box keeps the real ones", () => {
+	const meow = (id: string, lv10: SubSkillType) => ({ ...entry(id, "Meowscarada", "AAA"), subSkills: { lv10 } });
+	renderSolver([meow("m1", "Helping Speed S"), meow("m2", "Helping Bonus")]);
+	const icons = () => [...document.querySelectorAll("section.card tbody .subskill-icon")].map((i) => i.getAttribute("aria-label"));
+	expect(icons()).toContain("Helping Speed S");
+	fireEvent.click(screen.getByLabelText(/Max Sub Skill Seeds/));
+	expect(icons()).toContain("Helping Speed M");
+	expect(icons()).not.toContain("Helping Speed S");
+	const upgraded = document.querySelector('section.card tbody .subskill-icon[aria-label="Helping Speed M"]');
+	expect(upgraded?.getAttribute("title")).toBe("Lv10 Helping Speed M (Sub Skill Seed: was Helping Speed S)");
+	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].subSkills.lv10).toBe("Helping Speed S");
+});

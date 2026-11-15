@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { type BoxEntry, evolveToFinal, scaleLevels } from "../core/box";
+import { type BoxEntry, evolveToFinal, maxSubSkillSeeds, scaleLevels } from "../core/box";
 import {
 	dailyIngredientYieldDetail,
 	defaultYieldOptions,
@@ -46,9 +46,12 @@ export default function App() {
 	const [levelScale, setLevelScale] = useStoredState<number | null>("pscalc.levelScale", null);
 	/** Solvers only: evolve every Pokémon to its final form. */
 	const [finalEvolution, setFinalEvolution] = useStoredState("pscalc.finalEvolution", false);
+	/** Solvers only: upgrade unlocked subskills with Sub Skill Seeds as far as they go. */
+	const [subSkillSeeds, setSubSkillSeeds] = useStoredState("pscalc.maxSubSkillSeeds", false);
+	// Seeds come last: which subskill slots are unlocked depends on the (scaled) level.
 	const solverBox = useMemo(
-		() => scaleLevels(evolveToFinal(box, finalEvolution), levelScale),
-		[box, finalEvolution, levelScale],
+		() => maxSubSkillSeeds(scaleLevels(evolveToFinal(box, finalEvolution), levelScale), subSkillSeeds),
+		[box, finalEvolution, levelScale, subSkillSeeds],
 	);
 	/** The box the numbers below are computed for: as entered on the Box tab, level-scaled in the solvers. */
 	const mathBox = tab === "box" ? box : solverBox;
@@ -187,6 +190,17 @@ export default function App() {
 							/>
 							{t("finalEvolution")}
 							<span className="muted small">{t("finalEvolutionHint")}</span>
+						</label>
+					)}
+					{tab !== "box" && (
+						<label className="check">
+							<input
+								type="checkbox"
+								checked={subSkillSeeds}
+								onChange={(e) => setSubSkillSeeds(e.target.checked)}
+							/>
+							{t("maxSubSkillSeeds")}
+							<span className="muted small">{t("maxSubSkillSeedsHint")}</span>
 						</label>
 					)}
 					{tab !== "box" && (

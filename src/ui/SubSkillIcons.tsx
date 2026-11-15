@@ -1,6 +1,6 @@
 import { type BoxEntry, subSkillLevels } from "../core/box";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
-import { subSkillLabel } from "./i18n";
+import { subSkillLabel, t } from "./i18n";
 import { SubSkillGlyph } from "./SubSkillGlyph";
 
 /**
@@ -28,11 +28,13 @@ export function SubSkillIcons(props: { entry: BoxEntry }) {
 			{levels.map((lv) => {
 				const name = entry.subSkills[lv] as SubSkillType;
 				const unlocked = entry.level >= Number(lv.slice(2));
+				const from = entry.seededFrom?.[lv];
+				const title = `${lv.replace("lv", "Lv")} ${subSkillLabel(name)}`;
 				return (
 					<SubSkillIcon
 						key={lv}
 						name={name}
-						title={`${lv.replace("lv", "Lv")} ${subSkillLabel(name)}`}
+						title={from ? t("seededSubSkill", { name: title, from: subSkillLabel(from) }) : title}
 						className={unlocked ? undefined : "locked"}
 					/>
 				);

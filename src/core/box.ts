@@ -24,6 +24,42 @@ export interface BoxEntry {
 	scaledFrom?: number;
 	/** Set only on the solvers' evolved copies (never saved): the Pokémon before evolving. */
 	evolvedFrom?: string;
+	/** Set only on the solvers' copies with Sub Skill Seeds applied (never saved): the subskills before. */
+	seededFrom?: Partial<Record<SubSkillLevel, SubSkillType>>;
+}
+
+/** The next quality of a subskill (Helping Speed S → M, Inventory Up M → L), if there is one. */
+export function nextSubSkill(name: SubSkillType): SubSkillType | undefined {
+	const next = name.endsWith(" S") ? `${name.slice(0, -1)}M` : name.endsWith(" M") ? `${name.slice(0, -1)}L` : undefined;
+	return SubSkill.allSubSkillNames.find((n) => n === next);
+}
+
+/**
+ * The box as the solvers see it with Sub Skill Seeds used as far as they go: each unlocked subskill
+ * (slot level ≤ the Pokémon's level) is upgraded one quality at a time (S → M → L) while the upgraded
+ * subskill isn't already one of the Pokémon's subskills, since a Pokémon can't have the same subskill
+ * twice. Repeats until nothing changes, so Inventory Up S + M ends as M + L. Returns the box itself
+ * when off.
+ */
+export function maxSubSkillSeeds(box: BoxEntry[], on: boolean | undefined): BoxEntry[] {
+	if (!on) return box;
+	return box.map((e) => {
+		const subSkills = { ...e.subSkills };
+		const seededFrom: Partial<Record<SubSkillLevel, SubSkillType>> = {};
+		for (let changed = true; changed; ) {
+			changed = false;
+			for (const lv of subSkillLevels) {
+				const name = subSkills[lv];
+				if (!name || e.level < Number(lv.slice(2))) continue;
+				const next = nextSubSkill(name);
+				if (!next || subSkillLevels.some((l) => subSkills[l] === next)) continue;
+				seededFrom[lv] ??= name;
+				subSkills[lv] = next;
+				changed = true;
+			}
+		}
+		return Object.keys(seededFrom).length === 0 ? e : { ...e, subSkills, seededFrom };
+	});
 }
 
 /**
