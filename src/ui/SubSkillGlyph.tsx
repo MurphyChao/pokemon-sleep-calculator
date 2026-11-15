@@ -1,4 +1,5 @@
 import { useId } from "react";
+import type { NatureEffect } from "../vendor/pokesleep-tool/util/Nature";
 import SubSkill, { type SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 
 /**
@@ -177,6 +178,28 @@ export function SubSkillGlyph(props: { name: SubSkillType; className?: string })
 			<Symbol shape={shapes[props.name]} p={paint} />
 			<path d={mark} {...markStroke} style={halo} strokeWidth={4} />
 			<path d={mark} {...markStroke} stroke={paint} strokeWidth={markOf(props.name) === "+" ? 2 : 1.7} />
+		</svg>
+	);
+}
+
+export type NatureStat = Exclude<NatureEffect, "No effect">;
+
+const statShapes: Record<NatureStat, Shape> = {
+	"Speed of help": "speed",
+	"Energy recovery": "smile",
+	"Ingredient finding": "apple",
+	"Main skill chance": "bolt",
+	"EXP gains": "exp",
+};
+
+/**
+ * The symbol of a stat a nature raises or lowers, matching the subskill icons (speed chevrons, smile,
+ * apple, lightning, EXP), drawn in the current text colour without a corner mark. Decorative.
+ */
+export function StatGlyph(props: { stat: NatureStat; className?: string }) {
+	return (
+		<svg viewBox="0 3 20 20" className={props.className} aria-hidden="true" focusable="false">
+			<Symbol shape={statShapes[props.stat]} p="currentColor" />
 		</svg>
 	);
 }

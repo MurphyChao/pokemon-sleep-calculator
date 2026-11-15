@@ -12,6 +12,7 @@ import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 import { PokemonIconCell } from "./PokemonIcon";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
+import { NatureEffects } from "./NatureEffects";
 import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
 
@@ -336,7 +337,12 @@ export default function BoxView(props: {
 									</td>
 									<td>{e.level}</td>
 									<td>{e.skillLevel ?? "–"}</td>
-									<td>{natureLabel(e.nature)}</td>
+									<td>
+										{natureLabel(e.nature)}
+										<div>
+											<NatureEffects nature={e.nature} />
+										</div>
+									</td>
 									<td>
 										<SubSkillIcons entry={e} />
 									</td>

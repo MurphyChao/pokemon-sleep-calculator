@@ -363,3 +363,17 @@ test("solver labels tell identical Pokémon apart with subskill icons, not abbre
 		"Helping Speed M",
 	]);
 });
+
+test("box shows the stats a nature raises and lowers under its name", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([{ ...entry("a", "Pikachu", "AAA"), nature: "Gentle" }, entry("b", "Bulbasaur", "AAA")]),
+	);
+	render(<App />);
+	const rows = section("Your box").querySelectorAll("tbody tr");
+	const effects = rows[0].querySelector(".nature-effects");
+	expect(effects?.getAttribute("aria-label")).toBe("▲ Skill, ▼ Energy");
+	expect(effects?.querySelectorAll("svg.stat-icon")).toHaveLength(2);
+	// Neutral natures (Serious) have no effects to show.
+	expect(rows[1].querySelector(".nature-effects")).toBeNull();
+});

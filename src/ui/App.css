@@ -9,6 +9,8 @@
 	--warn: #e8590c;
 	--danger: #c92a2a;
 	--highlight: #fff4d6;
+	--nature-up: #e03131;
+	--nature-down: #1c7ed6;
 	font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 	color: var(--text);
 	background: var(--bg);
@@ -26,6 +28,8 @@
 		--warn: #ff922b;
 		--danger: #ff6b6b;
 		--highlight: #3a3220;
+		--nature-up: #ff6b6b;
+		--nature-down: #4dabf7;
 	}
 }
 
@@ -405,6 +409,43 @@ footer a {
 
 .nature-arrow.down {
 	color: #1c7ed6;
+}
+
+.nature-effects {
+	display: inline-flex;
+	gap: 8px;
+	margin-top: 2px;
+	font-size: 0.7rem;
+	line-height: 1;
+}
+
+.nature-effects > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 1px;
+}
+
+.nature-effects .up,
+.nature-picker .nature-button.up .stat-icon {
+	color: var(--nature-up);
+}
+
+.nature-effects .down,
+.nature-picker .nature-button.down .stat-icon {
+	color: var(--nature-down);
+}
+
+svg.stat-icon {
+	width: 18px;
+	height: 18px;
+	flex: none;
+}
+
+.nature-picker svg.stat-icon {
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
+	vertical-align: -3px;
 }
 
 .nature-picker button.nature-button {

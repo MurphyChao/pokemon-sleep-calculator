@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Nature, { type NatureEffect } from "../vendor/pokesleep-tool/util/Nature";
 import { type Key, natureLabel, t } from "./i18n";
+import { StatGlyph } from "./SubSkillGlyph";
 
 type Stat = Exclude<NatureEffect, "No effect">;
 
@@ -74,6 +75,7 @@ export default function NaturePicker(props: { value: string; onChange: (nature: 
 								disabled={other === stat}
 								onClick={() => (row === "up" ? pick(selected ? null : stat, down) : pick(up, selected ? null : stat))}
 							>
+								<StatGlyph stat={stat} className="stat-icon" />
 								{t(label)}
 							</button>
 						);
