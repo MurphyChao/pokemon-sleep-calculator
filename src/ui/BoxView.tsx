@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
@@ -7,6 +7,7 @@ import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/u
 import { natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel, subSkillSummary } from "./names";
 import NaturePicker from "./NaturePicker";
+import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
 import SubSkillPicker from "./SubSkillPicker";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
@@ -60,6 +61,20 @@ export default function BoxView(props: {
 		setNameInput(entry.pokemonName ? pokemonLabel(entry.pokemonName) : "");
 	};
 	const isEditing = draft.id !== "";
+	const [imports, setImports] = useState<ImportItem[]>([]);
+	/** Screenshot whose reading is in the form, waiting to be checked and added. */
+	const [reviewingId, setReviewingId] = useState<string | undefined>();
+	const reviewing = imports.find((i) => i.id === reviewingId);
+	const formRef = useRef<HTMLElement>(null);
+	const review = (item: ImportItem | undefined) => {
+		setReviewingId(item?.id);
+		if (item?.reading) {
+			startDraft({ ...item.reading.entry, id: "" });
+			formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+		} else {
+			startDraft(emptyDraft());
+		}
+	};
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
@@ -73,13 +88,44 @@ export default function BoxView(props: {
 		} else {
 			setBox([...box, { ...draft, skillLevel, id: crypto.randomUUID() }]);
 		}
-		startDraft(emptyDraft());
+		if (reviewing) {
+			// Done with this screenshot: drop it and move on to the next one that's been read.
+			URL.revokeObjectURL(reviewing.url);
+			const rest = imports.filter((i) => i.id !== reviewing.id);
+			setImports(rest);
+			review(rest.find((i) => i.status === "done"));
+		} else {
+			startDraft(emptyDraft());
+		}
 	};
 
 	return (
 		<div className="box-view">
-			<section className="card">
-				<h2>{isEditing ? t("editPokemon") : t("addPokemon")}</h2>
+			<ScreenshotImport
+				items={imports}
+				setItems={setImports}
+				reviewingId={reviewingId}
+				onReview={review}
+			/>
+			<section className="card" ref={formRef}>
+				<h2>{isEditing ? t("editPokemon") : reviewing ? t("reviewPokemon") : t("addPokemon")}</h2>
+				{reviewing?.reading && (
+					<div className="review-note">
+						<a href={reviewing.url} target="_blank" rel="noreferrer">
+							<img src={reviewing.url} alt={reviewing.fileName} />
+						</a>
+						<div>
+							<p>{t("reviewHelp")}</p>
+							{reviewing.reading.warnings.length > 0 && (
+								<ul className="warnings">
+									{reviewing.reading.warnings.map((w) => (
+										<li key={w}>{warningText(w, reviewing.reading as NonNullable<typeof reviewing.reading>)}</li>
+									))}
+								</ul>
+							)}
+						</div>
+					</div>
+				)}
 				<div className="form-grid">
 					<label>
 						{t("pokemon")}
@@ -173,8 +219,8 @@ export default function BoxView(props: {
 					<button type="button" onClick={save} disabled={!validName}>
 						{isEditing ? t("saveChanges") : t("addToBox")}
 					</button>
-					{isEditing && (
-						<button type="button" className="secondary" onClick={() => startDraft(emptyDraft())}>
+					{(isEditing || reviewing) && (
+						<button type="button" className="secondary" onClick={() => review(undefined)}>
 							{t("cancel")}
 						</button>
 					)}
@@ -222,7 +268,14 @@ export default function BoxView(props: {
 										<YieldSummary detail={details.get(e.id)} />
 									</td>
 									<td className="row-actions">
-										<button type="button" className="secondary" onClick={() => startDraft(e)}>
+										<button
+											type="button"
+											className="secondary"
+											onClick={() => {
+												setReviewingId(undefined);
+												startDraft(e);
+											}}
+										>
 											{t("edit")}
 										</button>
 										<button

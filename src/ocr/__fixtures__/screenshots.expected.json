@@ -1,0 +1,156 @@
+[
+	{
+		"file": "035526C8-1D61-44B8-9432-E0859A1937A2.png",
+		"lang": "zh-TW",
+		"pokemonName": "Cramorant",
+		"level": 22,
+		"skillLevel": 1,
+		"nature": "Sassy",
+		"subSkills": {
+			"lv10": "Helping Speed S",
+			"lv25": "Inventory Up S",
+			"lv50": "Dream Shard Bonus",
+			"lv70": "Skill Trigger S",
+			"lv80": "Ingredient Finder S"
+		},
+		"ingredient": "AAA"
+	},
+	{
+		"file": "0DAACA48-69A2-4693-823B-F7A475536593.png",
+		"lang": "zh-TW",
+		"pokemonName": "Trapinch",
+		"level": 13,
+		"skillLevel": 1,
+		"nature": "Quiet",
+		"subSkills": {
+			"lv10": "Inventory Up M",
+			"lv25": "Dream Shard Bonus",
+			"lv50": "Helping Speed M",
+			"lv70": "Inventory Up S",
+			"lv80": "Skill Level Up S"
+		},
+		"ingredient": "AAA"
+	},
+	{
+		"file": "47861E06-6774-410B-BFB8-6A5797BC064B.png",
+		"lang": "zh-TW",
+		"pokemonName": "Trapinch",
+		"level": 15,
+		"skillLevel": 1,
+		"nature": "Lonely",
+		"subSkills": {
+			"lv10": "Berry Finding S",
+			"lv25": "Inventory Up S",
+			"lv50": "Helping Speed S",
+			"lv70": "Helping Bonus",
+			"lv80": "Sleep EXP Bonus"
+		},
+		"ingredient": "ABB"
+	},
+	{
+		"file": "B67C9600-1440-4C95-A846-5133B2DAEC29.png",
+		"lang": "zh-TW",
+		"pokemonName": "Wooper",
+		"level": 28,
+		"skillLevel": 1,
+		"nature": "Docile",
+		"subSkills": {
+			"lv10": "Helping Speed M",
+			"lv25": "Ingredient Finder M",
+			"lv50": "Inventory Up S",
+			"lv70": "Skill Trigger S",
+			"lv80": "Sleep EXP Bonus"
+		},
+		"ingredient": "AAA",
+		"formsShareName": [
+			"Wooper",
+			"Wooper (Paldea)"
+		]
+	},
+	{
+		"file": "F174962E-0F18-4040-80D0-E1E9EF6BF800.png",
+		"lang": "zh-TW",
+		"pokemonName": "Dwebble",
+		"level": 15,
+		"skillLevel": 1,
+		"nature": "Sassy",
+		"subSkills": {
+			"lv10": "Energy Recovery Bonus",
+			"lv25": "Skill Trigger M",
+			"lv50": "Helping Speed S",
+			"lv70": "Dream Shard Bonus",
+			"lv80": "Ingredient Finder S"
+		},
+		"ingredient": "AAC"
+	},
+	{
+		"file": "FB07220F-5312-4AF8-8C6B-C8DA4C97885A.png",
+		"lang": "zh-TW",
+		"pokemonName": "Pumpkaboo (Small)",
+		"level": 14,
+		"skillLevel": 1,
+		"nature": "Timid",
+		"subSkills": {
+			"lv10": "Ingredient Finder S",
+			"lv25": "Inventory Up S",
+			"lv50": "Helping Speed M",
+			"lv70": "Inventory Up M",
+			"lv80": "Energy Recovery Bonus"
+		},
+		"ingredient": "AAA",
+		"formsShareName": [
+			"Pumpkaboo (Small)",
+			"Pumpkaboo (Medium)",
+			"Pumpkaboo (Large)",
+			"Pumpkaboo (Jumbo)"
+		]
+	},
+	{
+		"file": "Screenshot_20261113-111914.png",
+		"lang": "ja",
+		"pokemonName": "Shinx",
+		"level": 14,
+		"skillLevel": 1,
+		"nature": "Brave",
+		"subSkills": {
+			"lv10": "Research EXP Bonus",
+			"lv25": "Helping Speed M",
+			"lv50": "Helping Speed S",
+			"lv70": "Skill Trigger M",
+			"lv80": "Inventory Up S"
+		},
+		"ingredient": "ABB"
+	},
+	{
+		"file": "Screenshot_20261114-114711.png",
+		"lang": "ja",
+		"pokemonName": "Mawile",
+		"level": 24,
+		"skillLevel": 1,
+		"nature": "Impish",
+		"subSkills": {
+			"lv10": "Skill Trigger S",
+			"lv25": "Ingredient Finder M",
+			"lv50": "Inventory Up S",
+			"lv70": "Ingredient Finder S",
+			"lv80": "Helping Speed S"
+		},
+		"ingredient": "AAA"
+	},
+	{
+		"file": "Screenshot_20261114-114716.png",
+		"lang": "ja",
+		"pokemonName": "Shinx",
+		"level": 15,
+		"skillLevel": 1,
+		"nature": "Gentle",
+		"subSkills": {
+			"lv10": "Research EXP Bonus",
+			"lv25": "Skill Level Up S",
+			"lv50": "Ingredient Finder M",
+			"lv70": "Inventory Up S",
+			"lv80": "Skill Trigger M"
+		},
+		"ingredient": "ABB"
+	}
+]

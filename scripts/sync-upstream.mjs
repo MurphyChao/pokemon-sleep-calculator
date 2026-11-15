@@ -8,13 +8,16 @@ const upstream = ".upstream/pokesleep-tool";
 const dest = "src/vendor/pokesleep-tool";
 const entries = ["src/util/PokemonStrength.ts", "src/util/PokemonIv.ts", "src/util/PokemonRp.ts"];
 // Display names for ingredients, natures, etc. (English), and Traditional Chinese names for Pokémon,
-// skills, subskills, natures, berry types, ingredients and islands.
+// skills, subskills, natures, berry types, ingredients and islands. Japanese names are used to read
+// Japanese screenshots in the screenshot importer.
 const extraFiles = [
 	"src/i18n/en/data.json",
 	"src/i18n/zh-TW/data.json",
 	"src/i18n/zh-TW/pokemons.json",
 	"src/i18n/zh-TW/skills.json",
 	"src/i18n/zh-TW/common.json",
+	"src/i18n/ja/data.json",
+	"src/i18n/ja/pokemons.json",
 ];
 
 const seen = new Set(extraFiles);

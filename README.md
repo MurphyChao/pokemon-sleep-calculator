@@ -10,6 +10,19 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 - **Slot solver:** the smallest team whose ingredient output covers the dish, and how many slots a particular
   Pokémon (e.g. a multi-ingredient gatherer like Sandslash) saves compared with the best team without it.
 
+## Screenshot import
+
+The Box tab can read Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills
+and nature are visible), in Traditional Chinese, Japanese or English. Text is read with
+[Tesseract.js](https://github.com/naptha/tesseract.js) in the browser (engine and language data load from the
+jsDelivr CDN on first use; screenshots are never uploaded) and fuzzy-matched against the game's names.
+Ingredients are recognized by comparing the Lv30/Lv60 icons with `src/data/ingredient-icons`. Every reading is
+checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
+
+`src/ocr/screenshots.test.ts` checks the importer against real screenshots listed in
+`src/ocr/__fixtures__/screenshots.expected.json`. The screenshots aren't committed: put them in `screenshots/`
+to run it (it's skipped otherwise).
+
 ## Development
 
 ```sh
@@ -31,7 +44,8 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
   To update: `git clone https://github.com/nitoyon/pokesleep-tool.git .upstream/pokesleep-tool && npm run sync-upstream`.
 - **Traditional Chinese names** (Pokémon, skills, subskills, natures, berry types, ingredients, islands): from
   pokesleep-tool's `zh-TW` translations, also copied into `src/vendor/pokesleep-tool/i18n`. The UI text is in
-  `src/ui/i18n.tsx`. Traditional Chinese recipe names (`src/data/recipes.zh-TW.json`) are from the
+  `src/ui/i18n.tsx`. Japanese names (used only to read Japanese screenshots) come from the same place.
+  Traditional Chinese recipe names (`src/data/recipes.zh-TW.json`) are from the
   [52poke wiki](https://wiki.52poke.com/zh-hant/料理（Pokémon_Sleep）), matched by official English name.
 - **Recipes:** `src/data/recipes.json`, generated from [SleepAPI](https://github.com/SleepAPI/SleepAPI) (Apache-2.0)
   by `node scripts/import-recipes.mjs`. Recipes using newer ingredients (e.g. Snackable Nuts) may be missing.

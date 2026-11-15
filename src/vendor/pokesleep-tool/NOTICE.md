@@ -12,6 +12,8 @@ Files:
 - src/data/pokemon.json
 - src/data/pokemons.ts
 - src/i18n/en/data.json
+- src/i18n/ja/data.json
+- src/i18n/ja/pokemons.json
 - src/i18n/zh-TW/common.json
 - src/i18n/zh-TW/data.json
 - src/i18n/zh-TW/pokemons.json
