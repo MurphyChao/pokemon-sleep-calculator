@@ -1,10 +1,14 @@
 /**
- * Signing in to the user's own Google account (Google Identity Services token flow) and the Drive
- * file in that account that holds the synced data.
+ * Signing in to the user's own Google account and the Drive file in that account that holds the
+ * synced data.
+ *
+ * Sign-in uses Google's OAuth 2.0 flow for browser apps with a full-page redirect: the page goes to
+ * Google and comes back with an access token in the URL fragment. (Google Identity Services' popup
+ * flow was tried first, but in some browsers the popup closed after "Allow" without ever handing the
+ * token back to the page.)
  *
  * The data goes to Drive's hidden app-data folder: only this app can read it, and the app cannot
- * see any of the user's other files (scope drive.appdata). Google's script is only loaded once the
- * user turns sync on.
+ * see any of the user's other files (scope drive.appdata).
  */
 import type { RemoteFile, RemoteStore } from "./sync";
 
@@ -16,58 +20,6 @@ const driveScope = "https://www.googleapis.com/auth/drive.appdata";
 const scope = `openid email profile ${driveScope}`;
 const fileName = "pokemon-sleep-calculator.json";
 
-interface TokenResponse {
-	access_token?: string;
-	/** Space-separated scopes the user actually granted (they can untick some on the consent screen). */
-	scope?: string;
-	expires_in?: number;
-	error?: string;
-	error_description?: string;
-}
-interface GisError {
-	type: string;
-	message?: string;
-}
-interface TokenClient {
-	requestAccessToken(opts?: { prompt?: string }): void;
-}
-interface GoogleOAuth {
-	initTokenClient(config: {
-		client_id: string;
-		scope: string;
-		callback: (r: TokenResponse) => void;
-		error_callback: (e: GisError) => void;
-	}): TokenClient;
-	revoke(token: string, done?: () => void): void;
-}
-declare global {
-	interface Window {
-		google?: { accounts: { oauth2: GoogleOAuth } };
-	}
-}
-
-let gisScript: Promise<GoogleOAuth> | undefined;
-/** Set once Google's script has loaded, so a click can open the popup without waiting (popup blockers). */
-let gisLoaded: GoogleOAuth | undefined;
-function loadGis(): Promise<GoogleOAuth> {
-	gisScript ??= new Promise((resolve, reject) => {
-		const script = document.createElement("script");
-		script.src = "https://accounts.google.com/gsi/client";
-		script.async = true;
-		script.onload = () => {
-			gisLoaded = window.google?.accounts.oauth2;
-			if (gisLoaded) resolve(gisLoaded);
-			else reject(new Error("Google sign-in unavailable"));
-		};
-		script.onerror = () => {
-			gisScript = undefined;
-			reject(new Error("Could not load Google sign-in"));
-		};
-		document.head.appendChild(script);
-	});
-	return gisScript;
-}
-
 export interface AccessToken {
 	token: string;
 	expiresAt: number;
@@ -75,6 +27,8 @@ export interface AccessToken {
 
 // Kept for the browser session only, so a reload doesn't ask again; tokens last about an hour.
 const tokenKey = "pscalc-sync-token";
+/** The random state sent with a sign-in, to check that the redirect back answers it. */
+const stateKey = "pscalc-sync-state";
 
 export function cachedToken(): AccessToken | undefined {
 	try {
@@ -85,85 +39,71 @@ export function cachedToken(): AccessToken | undefined {
 	}
 }
 
-/** Loads Google's script ahead of a click (e.g. on hover), so the click opens the popup straight away. */
-export function preloadGoogle() {
-	if (googleClientId) loadGis().catch(() => {});
-}
-
-let tokenClient: TokenClient | undefined;
-let pending: { resolve: (t: AccessToken) => void; reject: (e: Error) => void } | undefined;
-let lateListener: ((t: AccessToken) => void) | undefined;
-
 /**
- * Called with a token that arrives after its sign-in was given up as cancelled. Google's script
- * watches whether the popup is closed, and Google's sign-in pages can make it look closed early
- * (Cross-Origin-Opener-Policy), so a "closed" report isn't final. Returns an unsubscribe function.
+ * The address Google sends the user back to: the app's own page (must be listed under "Authorized
+ * redirect URIs" in the OAuth client).
  */
-export function onLateSignIn(listener: (t: AccessToken) => void): () => void {
-	lateListener = listener;
-	return () => {
-		if (lateListener === listener) lateListener = undefined;
-	};
-}
-
-function handleToken(r: TokenResponse) {
-	const p = pending;
-	pending = undefined;
-	if (!r.access_token) return p?.reject(new Error(r.error_description || r.error || "Sign-in failed"));
-	if (!r.scope?.split(" ").includes(driveScope)) return p?.reject(new MissingDriveAccessError());
-	const token = { token: r.access_token, expiresAt: Date.now() + Number(r.expires_in ?? 3600) * 1000 };
-	sessionStorage.setItem(tokenKey, JSON.stringify(token));
-	if (p) p.resolve(token);
-	else lateListener?.(token);
-}
-
-function handleError(e: GisError) {
-	const p = pending;
-	pending = undefined;
-	p?.reject(
-		e.type === "popup_closed"
-			? new SignInCancelledError()
-			: e.type === "popup_failed_to_open"
-				? new PopupBlockedError()
-				: new Error(e.message || e.type),
-	);
+export function redirectUri(): string {
+	return new URL(import.meta.env.BASE_URL, window.location.href).href.replace(/[?#].*$/, "");
 }
 
 /**
- * Asks Google for an access token. Call from a click: it opens a popup (just a flash once the user
- * already agreed).
- * @param chooseAccount show the account chooser and consent screen even if already granted.
+ * Sends the page to Google's sign-in; it comes back to this page, where takeSignInResult() picks up
+ * the token. Everything the app saves is in localStorage, so only the open tab and forms are lost.
+ * @param chooseAccount show Google's account chooser even if already signed in to one account.
+ * @param loginHint the email of the account to renew the sign-in for.
  */
-export function signIn(chooseAccount = false): Promise<AccessToken> {
-	const clientId = googleClientId;
-	if (!clientId) return Promise.reject(new Error("Google sync is not configured"));
-	const start = (oauth: GoogleOAuth) =>
-		new Promise<AccessToken>((resolve, reject) => {
-			pending?.reject(new SignInCancelledError());
-			pending = { resolve, reject };
-			tokenClient ??= oauth.initTokenClient({
-				client_id: clientId,
-				scope,
-				callback: handleToken,
-				error_callback: handleError,
-			});
-			tokenClient.requestAccessToken({ prompt: chooseAccount ? "select_account consent" : "" });
+export function signIn(opts: { chooseAccount?: boolean; loginHint?: string } = {}) {
+	if (!googleClientId) throw new Error("Google sync is not configured");
+	const state = crypto.randomUUID();
+	sessionStorage.setItem(stateKey, state);
+	const params = new URLSearchParams({
+		client_id: googleClientId,
+		redirect_uri: redirectUri(),
+		response_type: "token",
+		scope,
+		include_granted_scopes: "true",
+		state,
+	});
+	if (opts.chooseAccount) params.set("prompt", "select_account");
+	if (opts.loginHint) params.set("login_hint", opts.loginHint);
+	window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+}
+
+export type SignInResult = { token: AccessToken } | { error: Error };
+
+let signInResult: SignInResult | undefined | null = null;
+
+/**
+ * If this page load is the redirect back from Google's sign-in: its token (saved for the session) or
+ * error. The URL fragment is cleared. Returns the same result on every call during this page load.
+ */
+export function takeSignInResult(): SignInResult | undefined {
+	if (signInResult !== null) return signInResult;
+	signInResult = undefined;
+	const hash = new URLSearchParams(window.location.hash.slice(1));
+	const state = hash.get("state");
+	if (!state || !(hash.has("access_token") || hash.has("error"))) return undefined;
+	window.history.replaceState(null, "", window.location.pathname + window.location.search);
+	const expected = sessionStorage.getItem(stateKey);
+	sessionStorage.removeItem(stateKey);
+	if (state !== expected) return (signInResult = { error: new Error("Sign-in response didn't match; please try again") });
+	const error = hash.get("error");
+	if (error) {
+		return (signInResult = {
+			error: error === "access_denied" ? new SignInDeniedError() : new Error(`Google sign-in: ${hash.get("error_description") || error}`),
 		});
-	// Open the popup synchronously within the click when possible.
-	return gisLoaded ? start(gisLoaded) : loadGis().then(start);
-}
-
-/** The sign-in popup was closed (or looked closed) before Google answered. */
-export class SignInCancelledError extends Error {
-	constructor() {
-		super("Sign-in cancelled");
 	}
+	if (!hash.get("scope")?.split(" ").includes(driveScope)) return (signInResult = { error: new MissingDriveAccessError() });
+	const token = { token: hash.get("access_token") ?? "", expiresAt: Date.now() + Number(hash.get("expires_in") ?? 3600) * 1000 };
+	sessionStorage.setItem(tokenKey, JSON.stringify(token));
+	return (signInResult = { token });
 }
 
-/** The browser blocked the sign-in popup. */
-export class PopupBlockedError extends Error {
+/** The user cancelled on Google's consent screen (or Google refused access). */
+export class SignInDeniedError extends Error {
 	constructor() {
-		super("The sign-in window was blocked");
+		super("Google sign-in was cancelled or denied");
 	}
 }
 
@@ -177,7 +117,15 @@ export class MissingDriveAccessError extends Error {
 export function signOut() {
 	const t = cachedToken();
 	sessionStorage.removeItem(tokenKey);
-	if (t) loadGis().then((oauth) => oauth.revoke(t.token), () => {});
+	// Google's revoke endpoint doesn't send CORS headers; the request still goes through.
+	if (t) {
+		fetch("https://oauth2.googleapis.com/revoke", {
+			method: "POST",
+			mode: "no-cors",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({ token: t.token }),
+		}).catch(() => {});
+	}
 }
 
 export class AuthExpiredError extends Error {}

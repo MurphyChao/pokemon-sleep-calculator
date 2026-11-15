@@ -8,12 +8,10 @@ import {
 	type GoogleAccount,
 	googleClientId,
 	MissingDriveAccessError,
-	onLateSignIn,
-	PopupBlockedError,
-	preloadGoogle,
-	SignInCancelledError,
+	SignInDeniedError,
 	signIn,
 	signOut,
+	takeSignInResult,
 } from "../sync/google";
 import { acceptRemote, forceUpload, type RemoteFile, type SyncData, type SyncMeta, sync } from "../sync/sync";
 import { t } from "./i18n";
@@ -69,8 +67,7 @@ const autoSyncDelay = 2000;
 
 function errorMessage(e: unknown): string {
 	if (e instanceof MissingDriveAccessError) return t("syncNeedDrive");
-	if (e instanceof PopupBlockedError) return t("syncPopupBlocked");
-	if (e instanceof SignInCancelledError) return t("syncCancelled");
+	if (e instanceof SignInDeniedError) return t("syncDenied");
 	return e instanceof Error ? e.message : String(e);
 }
 
@@ -86,6 +83,8 @@ function GoogleLogo() {
 }
 
 export default function SyncControl() {
+	// Read before any effect runs, so the auto sync on load already sees a token Google just returned.
+	const [signInResult] = useState(takeSignInResult);
 	const [settings, setSettingsState] = useState(loadSettings);
 	const [status, setStatus] = useState<Status>({ kind: "idle" });
 	const running = useRef(false);
@@ -108,10 +107,11 @@ export default function SyncControl() {
 			setStatus({ kind: "syncing" });
 			try {
 				for (let attempt = 0; ; attempt++) {
-					let token = cachedToken();
+					const token = cachedToken();
 					if (!token) {
 						if (!interactive) return setStatus({ kind: "signIn" });
-						token = await signIn();
+						// Leaves the page; the sync runs again when Google sends the user back.
+						return signIn({ loginHint: loadSettings().account?.email });
 					}
 					try {
 						const meta = loadSettings().meta;
@@ -122,11 +122,11 @@ export default function SyncControl() {
 						setStatus({ kind: "idle" });
 						return;
 					} catch (e) {
-						if (!(e instanceof AuthExpiredError) || attempt > 0) throw e;
+						if (!(e instanceof AuthExpiredError) || attempt > 0 || !interactive) throw e;
 					}
 				}
 			} catch (e) {
-				setStatus(e instanceof SignInCancelledError ? { kind: "signIn" } : { kind: "error", message: errorMessage(e) });
+				setStatus(e instanceof AuthExpiredError ? { kind: "signIn" } : { kind: "error", message: errorMessage(e) });
 			} finally {
 				running.current = false;
 				if (again.current) {
@@ -175,32 +175,23 @@ export default function SyncControl() {
 		[run],
 	);
 
-	// A sign-in that completes after it was reported cancelled still counts.
-	useEffect(
-		() =>
-			onLateSignIn((token) => {
-				if (loadSettings().enabled) void run(false);
-				else void finishSignIn(token);
-			}),
-		[run, finishSignIn],
-	);
-
-	// Already signed in on this device: have Google's script ready for when the session needs renewing.
+	// Coming back from Google's sign-in page: finish signing in, or show why it failed.
+	const handledSignIn = useRef(false);
 	useEffect(() => {
-		if (settings.enabled) preloadGoogle();
-	}, [settings.enabled]);
+		if (handledSignIn.current) return;
+		handledSignIn.current = true;
+		const result = signInResult;
+		if (!result) return;
+		if ("error" in result) setStatus({ kind: "error", message: errorMessage(result.error) });
+		else if (!loadSettings().enabled) void finishSignIn(result.token);
+		// Already signed in before: the auto sync above picks up the renewed token.
+	}, [signInResult, finishSignIn]);
 
 	if (!googleClientId) return null;
 
-	const turnOn = async () => {
+	const turnOn = () => {
 		setStatus({ kind: "signingIn" });
-		let token: AccessToken;
-		try {
-			token = await signIn(true);
-		} catch (e) {
-			return setStatus({ kind: "error", message: errorMessage(e) });
-		}
-		await finishSignIn(token);
+		signIn({ chooseAccount: true });
 	};
 	const turnOff = () => {
 		signOut();
@@ -238,9 +229,6 @@ export default function SyncControl() {
 					type="button"
 					className="google-signin"
 					onClick={turnOn}
-					onPointerEnter={preloadGoogle}
-					onFocus={preloadGoogle}
-					onTouchStart={preloadGoogle}
 					disabled={status.kind === "syncing"}
 					title={t("syncHint")}
 				>
