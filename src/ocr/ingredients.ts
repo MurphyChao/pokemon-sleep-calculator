@@ -13,6 +13,22 @@ import { crop, pixel, type Rect, type RgbaImage, resize } from "./image";
 const referenceScale = 294.5;
 /** Background of an ingredient slot in the game (light cream circle). */
 const slotBackground = [255, 251, 236];
+/**
+ * The reference icons have a transparent background (they're also shown in the UI); for comparing,
+ * they're put back on the cream they were cut from.
+ */
+const referenceBackground: [number, number, number] = [255, 253, 249];
+
+/** The icon composited over referenceBackground, opaque. */
+function onReferenceBackground(img: RgbaImage): RgbaImage {
+	const data = new Uint8ClampedArray(img.data.length);
+	for (let i = 0; i < img.data.length; i += 4) {
+		const a = img.data[i + 3] / 255;
+		for (let c = 0; c < 3; c++) data[i + c] = Math.round(img.data[i + c] * a + referenceBackground[c] * (1 - a));
+		data[i + 3] = 255;
+	}
+	return { width: img.width, height: img.height, data };
+}
 
 interface Reference {
 	img: RgbaImage;
@@ -23,10 +39,11 @@ interface Reference {
 
 const prepared = new WeakMap<RgbaImage, Reference>();
 
-function prepare(img: RgbaImage): Reference {
-	let ref = prepared.get(img);
+function prepare(icon: RgbaImage): Reference {
+	let ref = prepared.get(icon);
 	if (ref) return ref;
-	const background = pixel(img, 0, 0);
+	const img = onReferenceBackground(icon);
+	const background = referenceBackground;
 	const fg: { i: number; y: number }[] = [];
 	for (let y = 0; y < img.height; y++) {
 		for (let x = 0; x < img.width; x++) {
@@ -38,7 +55,7 @@ function prepare(img: RgbaImage): Reference {
 	const bottom = Math.max(...fg.map((p) => p.y));
 	const cut = bottom - (bottom - top) * 0.65;
 	ref = { img, background, mask: fg.filter((p) => p.y >= cut).map((p) => p.i) };
-	prepared.set(img, ref);
+	prepared.set(icon, ref);
 	return ref;
 }
 
