@@ -477,6 +477,27 @@ input.narrow {
 	object-fit: contain;
 }
 
+.ing-icons {
+	display: inline-flex;
+	gap: 2px;
+	margin-top: 2px;
+	vertical-align: middle;
+}
+
+.ing-icons img {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+}
+
+.ing-icons span {
+	font-size: 0.7rem;
+}
+
+.ing-icons .locked {
+	opacity: 0.4;
+}
+
 /* Google sync */
 .sync {
 	position: relative;

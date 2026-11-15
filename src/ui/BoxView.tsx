@@ -11,6 +11,7 @@ import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImpo
 import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 import { PokemonIconCell } from "./PokemonIcon";
+import { IngredientIcons } from "./IngredientIcons";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -306,7 +307,6 @@ export default function BoxView(props: {
 								<th className="icon-cell" />
 								<th>{t("pokemon")}</th>
 								<th>{t("colLv")}</th>
-								<th>{t("colIngredients")}</th>
 								<th>{t("colSkillLv")}</th>
 								<th>{t("colNature")}</th>
 								<th>{t("colSubskills")}</th>
@@ -328,9 +328,11 @@ export default function BoxView(props: {
 											pokemonLabel(e.pokemonName)
 										)}
 										{duplicateNumber(labels.get(e.id)) && <span className="tag">{duplicateNumber(labels.get(e.id))}</span>}
+										<div>
+											<IngredientIcons entry={e} />
+										</div>
 									</td>
 									<td>{e.level}</td>
-									<td>{e.ingredient}</td>
 									<td>{e.skillLevel ?? "–"}</td>
 									<td>{natureLabel(e.nature)}</td>
 									<td title={entryTooltip(e)}>{subSkillSummary(e) || "–"}</td>

@@ -3,8 +3,9 @@ import { getLang, natureLabel, pokemonLabel, subSkillLabel } from "./i18n";
 
 export { ingredientLabel } from "./i18n";
 
-function baseLabel(entry: BoxEntry): string {
-	return `${pokemonLabel(entry.pokemonName)} Lv${entry.level} ${entry.ingredient}`;
+function baseLabel(entry: BoxEntry, withIngredients = true): string {
+	const label = `${pokemonLabel(entry.pokemonName)} Lv${entry.level}`;
+	return withIngredients ? `${label} ${entry.ingredient}` : label;
 }
 
 /**
@@ -41,8 +42,11 @@ export function entryTooltip(entry: BoxEntry): string {
 /**
  * Display labels for every box entry. Nicknames are used as-is. Entries that would otherwise share
  * a label get their nature and subskills appended, and truly identical ones are numbered.
+ * @param opts.ingredients include the ingredient letters ("AAB"); leave them out where ingredient
+ *   icons are shown next to the label (entries that differ only in ingredients still count as different).
  */
-export function buildEntryLabels(box: BoxEntry[]): Map<string, string> {
+export function buildEntryLabels(box: BoxEntry[], opts: { ingredients?: boolean } = {}): Map<string, string> {
+	const withIngredients = opts.ingredients ?? true;
 	const labels = new Map<string, string>();
 	const unnamed = box.filter((e) => !e.nickname?.trim());
 	for (const e of box) {
@@ -53,7 +57,8 @@ export function buildEntryLabels(box: BoxEntry[]): Map<string, string> {
 		const key = baseLabel(e);
 		groups.set(key, [...(groups.get(key) ?? []), e]);
 	}
-	for (const [base, group] of groups) {
+	for (const [key, group] of groups) {
+		const base = withIngredients ? key : baseLabel(group[0], false);
 		if (group.length === 1) {
 			labels.set(group[0].id, base);
 			continue;

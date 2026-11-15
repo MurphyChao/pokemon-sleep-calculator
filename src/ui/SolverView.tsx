@@ -19,6 +19,7 @@ import { Rich, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
+import { EntryName } from "./IngredientIcons";
 
 export const teamSize = 5;
 
@@ -38,6 +39,7 @@ export default function SolverView(props: {
 	const members: Member[] = useMemo(() => box.map((e) => ({ id: e.id, yield: yields.get(e.id) ?? {} })), [box, yields]);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
+	const shortLabels = useMemo(() => buildEntryLabels(box, { ingredients: false }), [box]);
 	const pinned = pinnedRaw.filter((id) => byId.has(id));
 	const target = useMemo(() => achievableDemand(members, demand), [members, demand]);
 
@@ -167,6 +169,7 @@ export default function SolverView(props: {
 							demand={demand}
 							byId={byId}
 							labels={labels}
+							shortLabels={shortLabels}
 							yields={yields}
 							usage={Number.isFinite(result.slots) ? result.usage : undefined}
 							tastyValue={memberTastyValue}
@@ -191,6 +194,7 @@ export default function SolverView(props: {
 							demand={demand}
 							byId={byId}
 							labels={labels}
+							shortLabels={shortLabels}
 							yields={yields}
 							onMove={moveToTeam}
 						/>
@@ -217,6 +221,8 @@ function TeamTable(props: {
 	demand: Demand;
 	byId: Map<string, BoxEntry>;
 	labels: Map<string, string>;
+	/** Labels without ingredient letters, shown above the ingredient icons. */
+	shortLabels: Map<string, string>;
 	yields: Map<string, IngredientYield>;
 	usage: Map<string, number> | undefined;
 	tastyValue: Map<string, TastySlotValue>;
@@ -224,7 +230,7 @@ function TeamTable(props: {
 	onPin: (id: string) => void;
 	onMove: (id: string) => void;
 }) {
-	const { ids, demand, byId, labels, yields, usage, tastyValue, pinned, onPin, onMove } = props;
+	const { ids, demand, byId, shortLabels, yields, usage, tastyValue, pinned, onPin, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	const supply = fullSupply(
 		ids.map((id) => ({ id, yield: yields.get(id) ?? {} })),
@@ -250,7 +256,9 @@ function TeamTable(props: {
 					return (
 						<tr key={id}>
 							<PokemonIconCell name={byId.get(id)?.pokemonName} />
-							<td title={entryTooltip(byId.get(id) as BoxEntry)}>{labels.get(id)}</td>
+							<td title={entryTooltip(byId.get(id) as BoxEntry)}>
+								<EntryName entry={byId.get(id)} label={shortLabels.get(id)} />
+							</td>
 							<YieldCells id={id} ings={ings} yields={yields} />
 							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">{t("notNeeded")}</span>}</td>
 							<TastyCell value={tastyValue.get(id)} />
@@ -307,10 +315,12 @@ function BenchTable(props: {
 	demand: Demand;
 	byId: Map<string, BoxEntry>;
 	labels: Map<string, string>;
+	/** Labels without ingredient letters, shown above the ingredient icons. */
+	shortLabels: Map<string, string>;
 	yields: Map<string, IngredientYield>;
 	onMove: (id: string) => void;
 }) {
-	const { scores, tastyValue, vsBest, demand, byId, labels, yields, onMove } = props;
+	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
@@ -333,7 +343,9 @@ function BenchTable(props: {
 				{scores.map((s) => (
 					<tr key={s.id}>
 						<PokemonIconCell name={byId.get(s.id)?.pokemonName} />
-						<td title={entryTooltip(byId.get(s.id) as BoxEntry)}>{labels.get(s.id)}</td>
+						<td title={entryTooltip(byId.get(s.id) as BoxEntry)}>
+							<EntryName entry={byId.get(s.id)} label={shortLabels.get(s.id)} />
+						</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
 						<td>{reductionLabel(s)}</td>
 						<td>{vsBestLabel(vsBest.get(s.id))}</td>

@@ -22,6 +22,7 @@ import { islandLabel, Rich, t, typeLabel } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
+import { IngredientIcons } from "./IngredientIcons";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -59,6 +60,7 @@ export default function EnergyView(props: {
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
+	const shortLabels = useMemo(() => buildEntryLabels(box, { ingredients: false }), [box]);
 	const pinned = pinnedRaw.filter((id) => byId.has(id));
 	const excluded = excludedRaw.filter((id) => byId.has(id) && !pinned.includes(id));
 
@@ -209,9 +211,12 @@ export default function EnergyView(props: {
 										<tr key={id}>
 											<PokemonIconCell name={byId.get(id)?.pokemonName} />
 											<td title={entryTooltip(byId.get(id) as BoxEntry)}>
-												{labels.get(id)}
+												{shortLabels.get(id)}
 												{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
+												<div>
+													<IngredientIcons entry={byId.get(id) as BoxEntry} />
+												</div>
 											</td>
 											{ings.map((i) => (
 												<td key={i}>{(m.yield[i] ?? 0) > 0 ? formatAmount(m.yield[i] ?? 0) : "–"}</td>
@@ -304,10 +309,13 @@ export default function EnergyView(props: {
 											<tr key={id} className={isExcluded ? "muted" : ""}>
 												<PokemonIconCell name={byId.get(id)?.pokemonName} />
 												<td title={entryTooltip(byId.get(id) as BoxEntry)}>
-													{labels.get(id)}
+													{shortLabels.get(id)}
 													{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
 													{isExcluded && <span className="tag">{t("tagExcluded")}</span>}
+													<div>
+														<IngredientIcons entry={byId.get(id) as BoxEntry} />
+													</div>
 												</td>
 												{ings.map((i) => (
 													<td key={i}>{(m.yield[i] ?? 0) > 0 ? formatAmount(m.yield[i] ?? 0) : "–"}</td>

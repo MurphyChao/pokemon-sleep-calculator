@@ -313,6 +313,9 @@ test("Box can be sorted by order added, Pokédex number, level and name", () => 
 	const sortBy = within(box).getByLabelText("Sort by");
 
 	expect(order()).toEqual(["Dragonite", "Bulbasaur", "Pikachu"]);
+	// Ingredients are icons under the name, not a column of letters.
+	expect(within(box).queryByText("Ingredients")).toBeNull();
+	expect(box.querySelectorAll("tbody tr")[0].querySelectorAll(".ing-icons img")).toHaveLength(3);
 	// Each row starts with the Pokémon's icon.
 	const icons = [...box.querySelectorAll("tbody tr td.icon-cell img")].map((img) => img.getAttribute("src"));
 	expect(icons).toHaveLength(3);
