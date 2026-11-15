@@ -509,6 +509,28 @@ img.ing-icon.header {
 	vertical-align: middle;
 }
 
+.subskill-icons {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	vertical-align: middle;
+}
+
+img.subskill-icon {
+	width: 22px;
+	height: 22px;
+	object-fit: contain;
+	vertical-align: middle;
+}
+
+.subskill-picker img.subskill-icon {
+	width: 18px;
+	height: 18px;
+	margin-right: 4px;
+	vertical-align: -4px;
+}
+
+.subskill-icons .locked,
 .ing-icons .locked {
 	opacity: 0.4;
 }

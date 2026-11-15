@@ -275,7 +275,8 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	const boxTable = section("你的寶可夢盒");
 	expect(boxTable.textContent).toContain("穿山王");
 	expect(boxTable.textContent).toContain("固執");
-	expect(boxTable.textContent).toContain("幫忙速度M");
+	// Subskills are icons named (in Chinese) by their alt text and tooltip.
+	expect(boxTable.querySelector('img.subskill-icon[alt="幫忙速度M"]')).toBeTruthy();
 
 	// Typing a Chinese name selects the Pokémon.
 	fireEvent.change(screen.getByPlaceholderText("輸入以搜尋"), { target: { value: "咚咚鼠" } });
@@ -330,4 +331,17 @@ test("Box can be sorted by order added, Pokédex number, level and name", () => 
 	expect(order()).toEqual(["Bulbasaur", "Dragonite", "Pikachu"]);
 	// The choice is remembered.
 	expect(JSON.parse(localStorage.getItem("pscalc.boxSort") ?? "{}")).toEqual({ by: "name", reversed: false });
+});
+
+test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			{ ...entry("pika", "Pikachu", "AAA"), level: 20, subSkills: { lv10: "Helping Bonus", lv25: "Helping Speed M" } },
+		]),
+	);
+	render(<App />);
+	const icons = [...section("Your box").querySelectorAll("tbody img.subskill-icon")];
+	expect(icons.map((i) => i.getAttribute("title"))).toEqual(["Lv10 Helping Bonus", "Lv25 Helping Speed M"]);
+	expect(icons.map((i) => i.classList.contains("locked"))).toEqual([false, true]);
 });

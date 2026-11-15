@@ -1,6 +1,7 @@
 import { type SubSkillLevel, subSkillLevels } from "../core/box";
 import SubSkill, { type SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { subSkillLabel, t } from "./i18n";
+import { SubSkillIcon } from "./SubSkillIcons";
 
 export type SubSkillSelection = Partial<Record<SubSkillLevel, SubSkillType | null>>;
 
@@ -59,6 +60,7 @@ export default function SubSkillPicker(props: {
 							onClick={() => name && onChange({ ...value, [lv]: null })}
 						>
 							<span className="lv">{levelLabel(lv)}</span>
+							{name && <SubSkillIcon name={name} decorative />}
 							{name ? subSkillLabel(name) : "—"}
 						</button>
 					);
@@ -84,6 +86,7 @@ export default function SubSkillPicker(props: {
 							aria-pressed={lv !== undefined}
 							onClick={() => toggle(s.name)}
 						>
+							<SubSkillIcon name={s.name} decorative />
 							{subSkillLabel(s.name)}
 							{lv && <span className="lv">{levelLabel(lv)}</span>}
 						</button>

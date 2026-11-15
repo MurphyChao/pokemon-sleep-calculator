@@ -5,13 +5,14 @@ import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokes
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
 import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
-import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel, subSkillSummary } from "./names";
+import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel } from "./names";
 import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
 import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 import { PokemonIconCell } from "./PokemonIcon";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
+import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
@@ -336,7 +337,9 @@ export default function BoxView(props: {
 									<td>{e.level}</td>
 									<td>{e.skillLevel ?? "–"}</td>
 									<td>{natureLabel(e.nature)}</td>
-									<td title={entryTooltip(e)}>{subSkillSummary(e) || "–"}</td>
+									<td>
+										<SubSkillIcons entry={e} />
+									</td>
 									<td>
 										<YieldSummary detail={details.get(e.id)} />
 									</td>
