@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import {
 	dailyIngredientYieldDetail,
@@ -32,6 +32,10 @@ export default function App() {
 	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
 	// Text helpers read the language from a module-level value; the page below is re-mounted when it changes.
 	setLang(lang);
+	useEffect(() => {
+		document.title = t("pageTitle");
+		document.documentElement.lang = lang;
+	}, [lang]);
 	const [box, setBox] = useStoredState<BoxEntry[]>("pscalc.box.v1", []);
 	const [storedOptions, setOptions] = useStoredState<YieldOptions>("pscalc.yieldOptions", defaultYieldOptions);
 	const options = { ...defaultYieldOptions, ...storedOptions };

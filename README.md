@@ -1,4 +1,4 @@
-# Pokémon Sleep Dish Team Calculator
+# PokeMasterChef – Pokémon Sleep dish team calculator
 
 Given the Pokémon in your box and a dish to cook at every meal (3 a day), two solvers:
 

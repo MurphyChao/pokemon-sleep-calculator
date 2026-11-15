@@ -28,7 +28,8 @@ export function getLang(): Lang {
 }
 
 const en = {
-	appTitle: "Dish Team Calculator",
+	appTitle: "PokeMasterChef",
+	pageTitle: "PokeMasterChef – Pokémon Sleep dish team calculator",
 	subtitle: "How many team slots do your Pokémon need to supply a dish's ingredients for 3 meals a day?",
 	language: "Language",
 	tabBox: "Box ({n})",
@@ -263,7 +264,8 @@ const en = {
 export type Key = keyof typeof en;
 
 const zh: Record<Key, string> = {
-	appTitle: "料理隊伍計算機",
+	appTitle: "寶睡廚神",
+	pageTitle: "寶睡廚神 – 寶可夢睡眠料理隊伍計算機",
 	subtitle: "你的寶可夢需要幾個隊伍名額，才能供應一道料理每天 3 餐的食材？",
 	language: "語言",
 	tabBox: "寶可夢盒 ({n})",
