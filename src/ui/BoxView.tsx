@@ -10,6 +10,7 @@ import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
 import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
+import { PokemonIconCell } from "./PokemonIcon";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -302,6 +303,7 @@ export default function BoxView(props: {
 					<table>
 						<thead>
 							<tr>
+								<th className="icon-cell" />
 								<th>{t("pokemon")}</th>
 								<th>{t("colLv")}</th>
 								<th>{t("colIngredients")}</th>
@@ -315,6 +317,7 @@ export default function BoxView(props: {
 						<tbody>
 							{sortedBox.map((e) => (
 								<tr key={e.id}>
+									<PokemonIconCell name={e.pokemonName} />
 									<td title={entryTooltip(e)}>
 										{e.nickname?.trim() ? (
 											<>

@@ -194,6 +194,7 @@ export default function App() {
 			<footer>
 				{t("footerData")} <a href="https://github.com/nitoyon/pokesleep-tool">nitoyon/pokesleep-tool</a> (MIT).{" "}
 				{t("footerRecipes")} <a href="https://github.com/SleepAPI/SleepAPI">SleepAPI</a> (Apache-2.0).{" "}
+				{t("footerIcons")} <a href="https://pokemondb.net/sprites">Pokémon Database</a> (© Nintendo/Game Freak).{" "}
 				{t("footerRecipeNames")} {t("footerAssumptions")} <a href="privacy.html">{t("privacyPolicy")}</a>
 			</footer>
 		</div>

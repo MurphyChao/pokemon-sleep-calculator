@@ -464,6 +464,19 @@ input.narrow {
 	gap: 6px 16px;
 }
 
+/* Pokémon icons */
+.icon-cell {
+	width: 36px;
+	padding-right: 0 !important;
+}
+
+.poke-icon {
+	display: block;
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+}
+
 /* Google sync */
 .sync {
 	position: relative;

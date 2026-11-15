@@ -78,6 +78,12 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
   `src/ui/i18n.tsx`. Japanese names (used only to read Japanese screenshots) come from the same place.
   Traditional Chinese recipe names (`src/data/recipes.zh-TW.json`) are from the
   [52poke wiki](https://wiki.52poke.com/zh-hant/料理（Pokémon_Sleep）), matched by official English name.
+- **Pokémon icons:** `src/data/pokemon-icons/`, the Scarlet/Violet box icons from
+  [Pokémon Database](https://pokemondb.net/sprites) (images © Nintendo/Game Freak; pokemondb.net says the sprites are
+  free to use), cropped to the Pokémon by `npm run fetch-pokemon-icons`, which downloads only icons not there yet.
+  Run it after syncing new Pokémon from upstream; a test fails if any Pokémon lacks an icon. Event costumes
+  (Halloween Pikachu, Holiday Eevee…) use the plain species' icon; real forms map to their own in
+  `src/data/pokemonIconSlug.ts`.
 - **Recipes:** `src/data/recipes.json`, generated from [SleepAPI](https://github.com/SleepAPI/SleepAPI) (Apache-2.0)
   by `node scripts/import-recipes.mjs`. Recipes using newer ingredients (e.g. Snackable Nuts) may be missing.
 

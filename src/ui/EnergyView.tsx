@@ -21,6 +21,7 @@ import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/p
 import { islandLabel, Rich, t, typeLabel } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
+import { PokemonIconCell } from "./PokemonIcon";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -188,6 +189,7 @@ export default function EnergyView(props: {
 						<table>
 							<thead>
 								<tr>
+									<th className="icon-cell" />
 									<th>{t("pokemon")}</th>
 									{ings.map((i) => (
 										<th key={i}>{ingredientLabel(i)}</th>
@@ -205,6 +207,7 @@ export default function EnergyView(props: {
 									const w = without.get(id);
 									return (
 										<tr key={id}>
+											<PokemonIconCell name={byId.get(id)?.pokemonName} />
 											<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 												{labels.get(id)}
 												{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
@@ -230,7 +233,7 @@ export default function EnergyView(props: {
 									);
 								})}
 								<tr className="total">
-									<td>{t("totalNeeded")}</td>
+									<td colSpan={2}>{t("totalNeeded")}</td>
 									{ings.map((i) => {
 										const supply = best.entries.reduce((a, x) => a + x.share * (x.member.yield[i] ?? 0), 0);
 										const cov = supply / (demand[i] as number);
@@ -281,7 +284,8 @@ export default function EnergyView(props: {
 							<table>
 								<thead>
 									<tr>
-										<th>{t("pokemon")}</th>
+										<th className="icon-cell" />
+									<th>{t("pokemon")}</th>
 										{ings.map((i) => (
 											<th key={i}>{ingredientLabel(i)}</th>
 										))}
@@ -298,6 +302,7 @@ export default function EnergyView(props: {
 										const isExcluded = excluded.includes(id);
 										return (
 											<tr key={id} className={isExcluded ? "muted" : ""}>
+												<PokemonIconCell name={byId.get(id)?.pokemonName} />
 												<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 													{labels.get(id)}
 													{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}

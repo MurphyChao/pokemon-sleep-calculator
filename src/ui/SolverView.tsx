@@ -18,6 +18,7 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { Rich, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
+import { PokemonIconCell } from "./PokemonIcon";
 
 export const teamSize = 5;
 
@@ -233,6 +234,7 @@ function TeamTable(props: {
 		<table>
 			<thead>
 				<tr>
+					<th className="icon-cell" />
 					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
 						<th key={i}>{ingredientLabel(i)}</th>
@@ -247,6 +249,7 @@ function TeamTable(props: {
 					const u = usage?.get(id);
 					return (
 						<tr key={id}>
+							<PokemonIconCell name={byId.get(id)?.pokemonName} />
 							<td title={entryTooltip(byId.get(id) as BoxEntry)}>{labels.get(id)}</td>
 							<YieldCells id={id} ings={ings} yields={yields} />
 							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">{t("notNeeded")}</span>}</td>
@@ -264,7 +267,7 @@ function TeamTable(props: {
 					);
 				})}
 				<tr className="total">
-					<td>{t("totalNeeded")}</td>
+					<td colSpan={2}>{t("totalNeeded")}</td>
 					{ings.map((i) => {
 						const cov = (supply[i] ?? 0) / (demand[i] as number);
 						return (
@@ -314,6 +317,7 @@ function BenchTable(props: {
 		<table>
 			<thead>
 				<tr>
+					<th className="icon-cell" />
 					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
 						<th key={i}>{ingredientLabel(i)}</th>
@@ -328,6 +332,7 @@ function BenchTable(props: {
 			<tbody>
 				{scores.map((s) => (
 					<tr key={s.id}>
+						<PokemonIconCell name={byId.get(s.id)?.pokemonName} />
 						<td title={entryTooltip(byId.get(s.id) as BoxEntry)}>{labels.get(s.id)}</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
 						<td>{reductionLabel(s)}</td>

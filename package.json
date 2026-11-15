@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "sync-upstream": "node scripts/sync-upstream.mjs"
+    "sync-upstream": "node scripts/sync-upstream.mjs",
+    "fetch-pokemon-icons": "node scripts/fetch-pokemon-icons.ts"
   },
   "dependencies": {
     "@tesseract.js-data/chi_tra": "^1.0.0",

@@ -209,7 +209,8 @@ test("Energy solver: uses at most 5 slots for the shared dish and re-optimises o
 	const before = total();
 
 	// Excluding a member can only lower the total, and it moves to the bench.
-	const first = rows()[0].querySelector("td")?.textContent ?? "";
+	const first = rows()[0].querySelector("td:not(.icon-cell)")?.textContent ?? "";
+	expect(first).not.toBe("");
 	fireEvent.click(within(rows()[0] as HTMLElement).getByText("Exclude"));
 	expect(total()).toBeLessThanOrEqual(before);
 	expect(rowOf(section("Bench"), first).textContent).toContain("excluded");
@@ -308,10 +309,14 @@ test("Box can be sorted by order added, Pokédex number, level and name", () => 
 	);
 	render(<App />);
 	const box = section("Your box");
-	const order = () => [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector("td")?.textContent);
+	const order = () => [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector("td:not(.icon-cell)")?.textContent);
 	const sortBy = within(box).getByLabelText("Sort by");
 
 	expect(order()).toEqual(["Dragonite", "Bulbasaur", "Pikachu"]);
+	// Each row starts with the Pokémon's icon.
+	const icons = [...box.querySelectorAll("tbody tr td.icon-cell img")].map((img) => img.getAttribute("src"));
+	expect(icons).toHaveLength(3);
+	expect(icons[0]).toMatch(/dragonite/);
 	fireEvent.change(sortBy, { target: { value: "dex" } });
 	expect(order()).toEqual(["Bulbasaur", "Pikachu", "Dragonite"]);
 	fireEvent.change(sortBy, { target: { value: "level" } });
