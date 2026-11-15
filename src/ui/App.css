@@ -690,6 +690,19 @@ button.icon-select-button {
 	vertical-align: middle;
 }
 
+/* Level scaling (solvers) */
+.level-scale {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.level-scale .key-levels button {
+	flex: none;
+	padding: 2px 8px;
+}
+
 /* Google sync */
 .sync {
 	position: relative;

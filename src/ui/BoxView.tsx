@@ -19,7 +19,7 @@ import { PencilIcon, TrashIcon } from "./icons";
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
 const maxPokemonLevel = 100;
-const keyLevels = [30, 50, 60, 70, 80];
+export const keyLevels = [30, 50, 60, 70, 80];
 
 const pokemonNames = pokemons.filter((p) => getPokemonRarity(p) !== "mythical").map((p) => p.name);
 

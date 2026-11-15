@@ -19,6 +19,18 @@ export interface BoxEntry {
 	ingredient: IngredientType;
 	nature: string;
 	subSkills: Partial<Record<SubSkillLevel, SubSkillType | null>>;
+	/** Set only on the solvers' level-scaled copies (never saved): the entry's real level. */
+	scaledFrom?: number;
+}
+
+/**
+ * The box as the solvers see it with level scaling: every Pokémon below `level` is treated as being at
+ * `level` (its ingredient slots and subskills unlock accordingly); the real level is kept in `scaledFrom`.
+ * Returns the box itself when scaling is off.
+ */
+export function scaleLevels(box: BoxEntry[], level: number | null | undefined): BoxEntry[] {
+	if (!level || level <= 1) return box;
+	return box.map((e) => (e.level >= level ? e : { ...e, level, scaledFrom: e.level }));
 }
 
 export function toPokemonIv(entry: BoxEntry): PokemonIv {

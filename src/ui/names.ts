@@ -4,7 +4,8 @@ import { getLang, natureLabel, pokemonLabel, subSkillLabel } from "./i18n";
 export { ingredientLabel } from "./i18n";
 
 function baseLabel(entry: BoxEntry, withIngredients = true): string {
-	const label = `${pokemonLabel(entry.pokemonName)} Lv${entry.level}`;
+	const level = entry.scaledFrom !== undefined ? `${entry.scaledFrom}→${entry.level}` : entry.level;
+	const label = `${pokemonLabel(entry.pokemonName)} Lv${level}`;
 	return withIngredients ? `${label} ${entry.ingredient}` : label;
 }
 

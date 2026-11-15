@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { BoxEntry } from "../core/box";
+import { type BoxEntry, scaleLevels } from "../core/box";
 import {
 	dailyIngredientYieldDetail,
 	defaultYieldOptions,
@@ -10,7 +10,7 @@ import {
 	type YieldDetail,
 	type YieldOptions,
 } from "../core/yield";
-import BoxView from "./BoxView";
+import BoxView, { keyLevels } from "./BoxView";
 import type { TastySource } from "../core/tasty";
 import DishCard, { useDish } from "./DishCard";
 import EnergyView, { defaultEnergySettings, type EnergySettings } from "./EnergyView";
@@ -42,10 +42,15 @@ export default function App() {
 	const [storedEnergy, setEnergy] = useStoredState<EnergySettings>("pscalc.energySettings", defaultEnergySettings);
 	const energy = { ...defaultEnergySettings, ...storedEnergy };
 	const dish = useDish();
+	/** Solvers only: Pokémon below this level are treated as this level (null = off). */
+	const [levelScale, setLevelScale] = useStoredState<number | null>("pscalc.levelScale", null);
+	const solverBox = useMemo(() => scaleLevels(box, levelScale), [box, levelScale]);
+	/** The box the numbers below are computed for: as entered on the Box tab, level-scaled in the solvers. */
+	const mathBox = tab === "box" ? box : solverBox;
 
 	const details = useMemo(() => {
 		const map = new Map<string, YieldDetail>();
-		for (const e of box) {
+		for (const e of mathBox) {
 			try {
 				map.set(e.id, soloYieldDetail(e, options, energy));
 			} catch {
@@ -53,13 +58,13 @@ export default function App() {
 			}
 		}
 		return map;
-	}, [box, options.inventoryLimit, options.campTicket, options.energy, options.sleepScore, JSON.stringify(energy.favorites), energy.fieldBonus]);
+	}, [mathBox, options.inventoryLimit, options.campTicket, options.energy, options.sleepScore, JSON.stringify(energy.favorites), energy.fieldBonus]);
 
 	/** With simulated energy: a Pokémon's yields when healed by `heal` (cached). */
 	const healedDetail = useMemo(() => {
 		if (options.energy !== "simulated") return undefined;
 		const cache = new Map<string, YieldDetail>();
-		const byId = new Map(box.map((e) => [e.id, e]));
+		const byId = new Map(mathBox.map((e) => [e.id, e]));
 		return (id: string, heal: Heal | undefined): YieldDetail => {
 			const key = heal ? `${id}|${heal.count}|${heal.energy.toFixed(3)}` : id;
 			let d = cache.get(key);
@@ -168,6 +173,48 @@ export default function App() {
 						/>
 						<span className="muted small">{t("sleepScoreHint")}</span>
 					</label>
+					{tab !== "box" && (
+						<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
+							<label id="level-scale-label" htmlFor="level-scale-input">
+								{t("levelScaling")}
+							</label>
+							<input
+								id="level-scale-input"
+								type="number"
+								min={1}
+								max={100}
+								className="narrow"
+								placeholder={t("levelScalingOff")}
+								value={levelScale ?? ""}
+								onChange={(e) => {
+									const v = Math.round(Number(e.target.value));
+									setLevelScale(e.target.value === "" || !v || v <= 1 ? null : Math.min(100, v));
+								}}
+							/>
+							<div className="key-levels">
+								<button
+									type="button"
+									className={levelScale === null ? "" : "secondary"}
+									aria-pressed={levelScale === null}
+									onClick={() => setLevelScale(null)}
+								>
+									{t("levelScalingOff")}
+								</button>
+								{keyLevels.map((lv) => (
+									<button
+										type="button"
+										key={lv}
+										className={levelScale === lv ? "" : "secondary"}
+										aria-pressed={levelScale === lv}
+										onClick={() => setLevelScale(lv)}
+									>
+										{lv}
+									</button>
+								))}
+							</div>
+							<span className="muted small">{t("levelScalingHint")}</span>
+						</div>
+					)}
 				</div>
 			</header>
 			<main>
@@ -177,10 +224,10 @@ export default function App() {
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />
 						{tab === "slots" ? (
-							<SolverView box={box} recipe={dish.recipe} yields={yields} tasty={tasty} />
+							<SolverView box={solverBox} recipe={dish.recipe} yields={yields} tasty={tasty} />
 						) : (
 							<EnergyView
-								box={box}
+								box={solverBox}
 								recipe={dish.recipe}
 								details={details}
 								healedDetail={healedDetail}

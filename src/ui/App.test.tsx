@@ -222,16 +222,18 @@ test("Energy solver: recipe level buttons and arrows", () => {
 	render(<App />);
 	fireEvent.click(screen.getByText("Energy solver"));
 	const input = screen.getByLabelText("Recipe level") as HTMLInputElement;
+	// The level scaling control has buttons with the same numbers; use the recipe level field's.
+	const field = within(input.closest(".field") as HTMLElement);
 	expect(input.value).toBe("1");
-	fireEvent.click(screen.getByText("50"));
+	fireEvent.click(field.getByText("50"));
 	expect(input.value).toBe("50");
-	expect(screen.getByText("50").getAttribute("aria-pressed")).toBe("true");
+	expect(field.getByText("50").getAttribute("aria-pressed")).toBe("true");
 	fireEvent.click(screen.getByLabelText("Recipe level up"));
 	expect(input.value).toBe("51");
 	fireEvent.click(screen.getByLabelText("Recipe level down"));
 	fireEvent.click(screen.getByLabelText("Recipe level down"));
 	expect(input.value).toBe("49");
-	fireEvent.click(screen.getByText("70"));
+	fireEvent.click(field.getByText("70"));
 	expect((screen.getByLabelText("Recipe level up") as HTMLButtonElement).disabled).toBe(true);
 	expect(JSON.parse(localStorage.getItem("pscalc.energySettings") ?? "{}").recipeLevel).toBe(70);
 });
@@ -427,4 +429,40 @@ test("Replaces column shows the replaced Pokémon with icons instead of letters"
 		// The full text label is still there on hover.
 		expect(r.getAttribute("title")).toMatch(/Lv60 [ABC]{3}/);
 	}
+});
+
+test("level scaling: solvers treat lower-level Pokémon as the chosen level, the box keeps real levels", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([{ ...entry("bulba", "Bulbasaur", "ABC"), level: 10 }, entry("pika", "Pikachu", "AAA")]),
+	);
+	render(<App />);
+	// Only shown on the solver tabs.
+	expect(screen.queryByLabelText("Level scaling")).toBeNull();
+	fireEvent.click(screen.getByText("Slot solver"));
+	const nameCell = () =>
+		[...document.querySelectorAll("section.card tbody td:not(.icon-cell)")].find((td) =>
+			td.textContent?.startsWith("Bulbasaur"),
+		) as HTMLElement;
+	expect(nameCell().textContent).toMatch(/^Bulbasaur Lv10/);
+	expect(nameCell().querySelectorAll(".ing-icons .locked")).toHaveLength(2);
+
+	fireEvent.click(within(screen.getByRole("group", { name: "Level scaling" })).getByText("60"));
+	expect(nameCell().textContent).toMatch(/^Bulbasaur Lv10→60/);
+	expect(nameCell().querySelectorAll(".ing-icons .locked")).toHaveLength(0); // Lv30 and Lv60 slots unlocked
+	// Pikachu is already Lv60: unchanged.
+	expect(document.body.textContent).toContain("Pikachu Lv60");
+	expect(document.body.textContent).not.toContain("Pikachu Lv60→");
+	expect(JSON.parse(localStorage.getItem("pscalc.levelScale") ?? "null")).toBe(60);
+
+	// The box itself is untouched.
+	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].level).toBe(10);
+	fireEvent.click(screen.getByText("Box (2)"));
+	expect(section("Your box").querySelector("tbody tr")?.textContent).toContain("Bulbasaur");
+	expect(section("Your box").querySelectorAll("tbody tr")[0].querySelectorAll(".ing-icons .locked")).toHaveLength(2);
+
+	// Off restores real levels.
+	fireEvent.click(screen.getByText("Slot solver"));
+	fireEvent.click(within(screen.getByRole("group", { name: "Level scaling" })).getByText("Off"));
+	expect(nameCell().textContent).toMatch(/^Bulbasaur Lv10(?!→)/);
 });
