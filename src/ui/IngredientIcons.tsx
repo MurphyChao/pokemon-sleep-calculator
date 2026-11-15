@@ -10,6 +10,27 @@ const iconUrls = import.meta.glob("../data/ingredient-icons/*.png", {
 }) as Record<string, string>;
 const iconByName = new Map(Object.entries(iconUrls).map(([path, url]) => [path.replace(/^.*\/|\.png$/g, ""), url]));
 
+/**
+ * An ingredient's icon, named in its tooltip and alt text (the name itself if there's no icon, e.g.
+ * Snackable Nuts).
+ */
+export function IngredientIcon(props: {
+	name: IngredientName;
+	className?: string;
+	/** The name is already written next to the icon: no tooltip or alt text, and nothing without an icon. */
+	decorative?: boolean;
+}) {
+	const url = iconByName.get(props.name);
+	const label = ingredientLabel(props.name);
+	const className = ["ing-icon", props.className].filter(Boolean).join(" ");
+	if (props.decorative) return url ? <img src={url} alt="" className={className} /> : null;
+	return url ? (
+		<img src={url} alt={label} title={label} className={className} />
+	) : (
+		<span className={className}>{label}</span>
+	);
+}
+
 /** Level at which each ingredient slot unlocks. */
 const unlockLevels = [1, 30, 60];
 
@@ -40,17 +61,9 @@ export function IngredientIcons(props: { entry: BoxEntry }) {
 	const title = slots.map((s, i) => `Lv${unlockLevels[i]} ${ingredientLabel(s.name)} ×${s.count}`).join(" · ");
 	return (
 		<span className="ing-icons" title={title}>
-			{slots.map((s, i) => {
-				const url = iconByName.get(s.name);
-				const className = s.unlocked ? undefined : "locked";
-				return url ? (
-					<img key={i} src={url} alt={ingredientLabel(s.name)} className={className} />
-				) : (
-					<span key={i} className={className}>
-						{ingredientLabel(s.name)}
-					</span>
-				);
-			})}
+			{slots.map((s, i) => (
+				<IngredientIcon key={i} name={s.name} className={s.unlocked ? undefined : "locked"} />
+			))}
 		</span>
 	);
 }

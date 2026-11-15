@@ -19,7 +19,7 @@ import { Rich, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
-import { EntryName } from "./IngredientIcons";
+import { EntryName, IngredientIcon } from "./IngredientIcons";
 
 export const teamSize = 5;
 
@@ -243,7 +243,9 @@ function TeamTable(props: {
 					<th className="icon-cell" />
 					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
-						<th key={i}>{ingredientLabel(i)}</th>
+						<th key={i} className="ing-col">
+							<IngredientIcon name={i} className="header" />
+						</th>
 					))}
 					<th>{t("colSlotUsed")}</th>
 					<th>{t("colExtraTasty")}</th>
@@ -330,7 +332,9 @@ function BenchTable(props: {
 					<th className="icon-cell" />
 					<th>{t("pokemon")}</th>
 					{ings.map((i) => (
-						<th key={i}>{ingredientLabel(i)}</th>
+						<th key={i} className="ing-col">
+							<IngredientIcon name={i} className="header" />
+						</th>
 					))}
 					<th>{t("savesCurrent")}</th>
 					<th>{t("savesVsBest")}</th>

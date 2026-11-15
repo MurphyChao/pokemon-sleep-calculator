@@ -484,14 +484,21 @@ input.narrow {
 	vertical-align: middle;
 }
 
-.ing-icons img {
+img.ing-icon {
 	width: 18px;
 	height: 18px;
 	object-fit: contain;
+	vertical-align: -4px;
 }
 
-.ing-icons span {
-	font-size: 0.7rem;
+span.ing-icon {
+	font-size: 0.75rem;
+}
+
+img.ing-icon.header {
+	width: 28px;
+	height: 28px;
+	vertical-align: middle;
 }
 
 .ing-icons .locked {

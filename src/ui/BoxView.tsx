@@ -11,7 +11,7 @@ import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImpo
 import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 import { PokemonIconCell } from "./PokemonIcon";
-import { IngredientIcons } from "./IngredientIcons";
+import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -384,7 +384,7 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 				const fromSkill = detail.skill[ing] ?? 0;
 				return (
 					<div key={ing}>
-						{ingredientLabel(ing)} {formatAmount(n + fromSkill)}
+						<IngredientIcon name={ing} /> {formatAmount(n + fromSkill)}
 						{fromSkill > 0 && <span className="muted"> {t("inclFromSkill", { n: formatAmount(fromSkill) })}</span>}
 					</div>
 				);
@@ -394,7 +394,7 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 						.filter(([ing]) => !(ing in detail.help))
 						.map(([ing, n]) => (
 							<div key={ing}>
-								{ingredientLabel(ing)} {formatAmount(n)} <span className="muted">{t("fromSkill")}</span>
+								<IngredientIcon name={ing} /> {formatAmount(n)} <span className="muted">{t("fromSkill")}</span>
 							</div>
 						))
 				: skillTotal > 0 && (

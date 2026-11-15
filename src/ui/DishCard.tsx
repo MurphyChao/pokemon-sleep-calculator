@@ -1,6 +1,7 @@
 import { dailyDemand, mealsPerDay, potSizeNeeded, type Recipe, type RecipeType, recipes } from "../core/recipes";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { type Key, recipeLabel, t } from "./i18n";
+import { IngredientIcon } from "./IngredientIcons";
 import { ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 
@@ -121,7 +122,9 @@ function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boo
 				<tbody>
 					{(Object.entries(recipe.ingredients) as [IngredientName, number][]).map(([ing, n]) => (
 						<tr key={ing}>
-							<td>{ingredientLabel(ing)}</td>
+							<td>
+								<IngredientIcon name={ing} decorative /> {ingredientLabel(ing)}
+							</td>
 							<td>{n}</td>
 							<td>{demand[ing]}</td>
 						</tr>
