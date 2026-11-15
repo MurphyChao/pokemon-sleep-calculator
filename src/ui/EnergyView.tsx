@@ -23,6 +23,7 @@ import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTool
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
 import { EntryLabel, InlineEntry } from "./EntryLabel";
+import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
 
@@ -598,7 +599,7 @@ function SwapCard(props: {
 		);
 	}
 	const label = (id: string | undefined) => (id ? (labels.get(id) ?? id) : "?");
-	// Names in the explanations, with icons (the dropdowns above can only show plain text).
+	// Names with nature, subskill and ingredient icons, in the dropdowns and explanations.
 	const named = (id: string | undefined) =>
 		id && entries.has(id) ? <InlineEntry entry={entries.get(id)} parts={shortLabels.get(id)} /> : label(id);
 	const inName = named(swapInId);
@@ -615,24 +616,28 @@ function SwapCard(props: {
 			<div className="form-grid">
 				<label>
 					{t("extraTastyPokemon")}
-					<select value={swapInId} onChange={(e) => setChosenIn(e.target.value)}>
-						{tastyIds.map((id) => (
-							<option key={id} value={id}>
-								{label(id)}
-								{best.ids.includes(id) ? t("onTeamSuffix") : ""}
-							</option>
-						))}
-					</select>
+					<IconSelect
+						value={swapInId ?? ""}
+						onChange={setChosenIn}
+						options={tastyIds.map((id) => ({
+							value: id,
+							text: label(id) + (best.ids.includes(id) ? t("onTeamSuffix") : ""),
+							content: (
+								<>
+									{named(id)}
+									{best.ids.includes(id) && <span className="muted">{t("onTeamSuffix")}</span>}
+								</>
+							),
+						}))}
+					/>
 				</label>
 				<label>
 					{t("partner")}
-					<select value={partnerId ?? ""} onChange={(e) => setChosenPartner(e.target.value)}>
-						{partnerChoices.map((id) => (
-							<option key={id} value={id}>
-								{label(id)}
-							</option>
-						))}
-					</select>
+					<IconSelect
+						value={partnerId ?? ""}
+						onChange={setChosenPartner}
+						options={partnerChoices.map((id) => ({ value: id, text: label(id), content: named(id) }))}
+					/>
 				</label>
 			</div>
 			{analysis === undefined ? (

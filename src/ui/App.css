@@ -595,6 +595,64 @@ span.subskill-icon > svg {
 	margin-top: 6px;
 }
 
+/* Dropdown with icons */
+.icon-select {
+	position: relative;
+	display: inline-block;
+	min-width: 14em;
+}
+
+button.icon-select-button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+	padding: 5px 10px;
+	background: var(--card);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	text-align: left;
+	font-weight: normal;
+	font-size: 0.95rem;
+}
+
+.icon-select-caret {
+	color: var(--muted);
+}
+
+.icon-select-list {
+	position: fixed;
+	z-index: 20;
+	overflow-y: auto;
+	margin: 0;
+	padding: 4px;
+	list-style: none;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+	outline: none;
+}
+
+.icon-select-list li {
+	color: var(--text);
+	font-size: 0.95rem;
+	padding: 5px 8px;
+	border-radius: 5px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.icon-select-list li.active {
+	background: var(--highlight);
+}
+
+.icon-select-list li.selected {
+	font-weight: 600;
+}
+
 /* Google sync */
 .sync {
 	position: relative;

@@ -252,9 +252,14 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	render(<App />);
 	fireEvent.click(screen.getByText("Energy solver"));
 	const card = section("Swap partner");
-	expect((within(card).getByLabelText("Extra Tasty Pokémon") as HTMLSelectElement).value).toBe("dedenne");
+	const tastyButton = within(card).getByLabelText("Extra Tasty Pokémon");
+	expect(tastyButton.textContent).toMatch(/^Dedenne Lv60/);
+	// The dropdowns show the same icons as elsewhere.
+	expect(tastyButton.querySelector(".ing-icons img")).toBeTruthy();
 	// The default partner is the one giving the best result; pick Sceptile to compare with the berry Pokémon.
-	fireEvent.change(within(card).getByLabelText(/Partner/), { target: { value: "sceptile" } });
+	fireEvent.click(within(card).getByLabelText(/Partner/));
+	fireEvent.click(within(card).getByRole("option", { name: /^Sceptile/ }));
+	expect(within(section("Swap partner")).getByLabelText(/Partner/).textContent).toMatch(/^Sceptile/);
 	const card2 = section("Swap partner");
 	expect(card2.textContent).toMatch(/Dedenne[^,]* while chance ≤ \d+% \(Sun \d+%\), otherwise Sceptile|Always/);
 	expect(card2.textContent).toMatch(/[+−±][\d,]+ vs\. the best team/);
