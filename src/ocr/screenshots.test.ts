@@ -1,7 +1,7 @@
 /**
  * End-to-end check of the screenshot importer against real screenshots. The screenshots are kept
- * out of git (put them in ./screenshots); without them this test is skipped. The first run downloads
- * Tesseract language data into node_modules/.cache/tesseract.
+ * out of git (put them in ./screenshots); without them this test is skipped. Language data comes from
+ * the @tesseract.js-data packages, as in the app.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,7 +11,7 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import expected from "./__fixtures__/screenshots.expected.json";
 import type { RgbaImage } from "./image";
 import { readScreenshot } from "./read";
-import { createOcrEngine, type OcrEngine, type ScreenshotLang } from "./tesseract";
+import { createOcrEngine, type OcrEngine, type ScreenshotLang, tesseractLang } from "./tesseract";
 
 const dir = "screenshots";
 const iconDir = "src/data/ingredient-icons";
@@ -37,7 +37,10 @@ const engines = new Map<ScreenshotLang, Promise<OcrEngine>>();
 const engine = (lang: ScreenshotLang) => {
 	let e = engines.get(lang);
 	if (!e) {
-		e = createOcrEngine(lang, toPng, { cachePath: "node_modules/.cache/tesseract" });
+		e = createOcrEngine(lang, toPng, {
+			cachePath: "node_modules/.cache/tesseract",
+			paths: { langPath: `node_modules/@tesseract.js-data/${tesseractLang[lang]}/4.0.0_best_int` },
+		});
 		engines.set(lang, e);
 	}
 	return e;

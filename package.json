@@ -12,6 +12,9 @@
     "sync-upstream": "node scripts/sync-upstream.mjs"
   },
   "dependencies": {
+    "@tesseract.js-data/chi_tra": "^1.0.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/jpn": "^1.0.0",
     "i18next": "^27.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

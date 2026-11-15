@@ -14,8 +14,10 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 
 The Box tab can read Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills
 and nature are visible), in Traditional Chinese, Japanese or English. Text is read with
-[Tesseract.js](https://github.com/naptha/tesseract.js) in the browser (engine and language data load from the
-jsDelivr CDN on first use; screenshots are never uploaded) and fuzzy-matched against the game's names.
+[Tesseract.js](https://github.com/naptha/tesseract.js) in the browser and fuzzy-matched against the game's names.
+Screenshots are never uploaded. The OCR worker, engine and language data (`@tesseract.js-data/*`) are served from
+this site under `tesseract/` (copied from `node_modules` by a small plugin in `vite.config.ts`), not from a CDN;
+the first import downloads about 6 MB.
 Ingredients are recognized by comparing the Lv30/Lv60 icons with `src/data/ingredient-icons`. Every reading is
 checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 

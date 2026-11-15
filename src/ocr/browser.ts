@@ -31,7 +31,12 @@ function toCanvas(img: RgbaImage): HTMLCanvasElement {
 }
 
 export function createBrowserOcrEngine(lang: ScreenshotLang, onProgress?: (fraction: number) => void): Promise<OcrEngine> {
-	return createOcrEngine(lang, toCanvas, { onProgress });
+	// Absolute URLs: the worker resolves the engine and language data paths relative to itself.
+	const base = new URL(`${import.meta.env.BASE_URL}tesseract/`, document.baseURI).href;
+	return createOcrEngine(lang, toCanvas, {
+		onProgress,
+		paths: { workerPath: `${base}worker.min.js`, corePath: `${base}core`, langPath: `${base}lang` },
+	});
 }
 
 const iconUrls = import.meta.glob("../data/ingredient-icons/*.png", {
