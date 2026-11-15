@@ -34,6 +34,21 @@ export function EntryLabel(props: { entry: BoxEntry | undefined; parts: EntryLab
 	);
 }
 
+/** EntryLabel followed by the entry's ingredient icons on the same line, for use within sentences. */
+export function InlineEntry(props: { entry: BoxEntry | undefined; parts: EntryLabelParts | undefined }) {
+	return (
+		<span className="inline-entry">
+			<EntryLabel entry={props.entry} parts={props.parts} />
+			{props.entry && (
+				<>
+					{" "}
+					<IngredientIcons entry={props.entry} />
+				</>
+			)}
+		</span>
+	);
+}
+
 /** EntryLabel with the entry's ingredient icons underneath, for table cells. */
 export function EntryName(props: { entry: BoxEntry | undefined; parts: EntryLabelParts | undefined }) {
 	return (

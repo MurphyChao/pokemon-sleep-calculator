@@ -587,6 +587,10 @@ span.subskill-icon > svg {
 	opacity: 0.4;
 }
 
+.inline-entry {
+	white-space: nowrap;
+}
+
 .replaced + .replaced {
 	margin-top: 6px;
 }

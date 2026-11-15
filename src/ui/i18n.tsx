@@ -5,7 +5,7 @@
  * pokesleep-tool's translations; Traditional Chinese recipe names from the 52poke wiki (src/data/recipes.zh-TW.json).
  * The current language is a module-level value; App re-mounts the page when it changes.
  */
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import enData from "../vendor/pokesleep-tool/i18n/en/data.json";
 import zhCommon from "../vendor/pokesleep-tool/i18n/zh-TW/common.json";
 import zhData from "../vendor/pokesleep-tool/i18n/zh-TW/data.json";
@@ -494,6 +494,15 @@ const dictionaries: Record<Lang, Record<Key, string>> = { en, "zh-TW": zh };
 export function t(key: Key, vars: Record<string, string | number> = {}): string {
 	const text = dictionaries[current][key] ?? en[key];
 	return text.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m));
+}
+
+/** Like t(), but placeholders can be filled with elements (e.g. a Pokémon's label with icons). */
+export function tRich(key: Key, vars: Record<string, ReactNode>): ReactNode {
+	const text = dictionaries[current][key] ?? en[key];
+	return text.split(/(\{\w+\})/).map((part, i) => {
+		const name = /^\{(\w+)\}$/.exec(part)?.[1];
+		return name && name in vars ? <Fragment key={i}>{vars[name]}</Fragment> : part;
+	});
 }
 
 /** Renders text where **x** is bold. */

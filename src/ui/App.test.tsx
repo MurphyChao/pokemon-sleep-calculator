@@ -258,6 +258,10 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	const card2 = section("Swap partner");
 	expect(card2.textContent).toMatch(/Dedenne[^,]* while chance ≤ \d+% \(Sun \d+%\), otherwise Sceptile|Always/);
 	expect(card2.textContent).toMatch(/[+−±][\d,]+ vs\. the best team/);
+	// Names in the explanation carry ingredient icons instead of "AAA"-style letters.
+	const rule = card2.querySelector("p strong");
+	expect(rule?.querySelector(".inline-entry .ing-icons img")).toBeTruthy();
+	expect(rule?.textContent).not.toMatch(/\b[ABC]{3}\b/);
 	expect(card2.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
 });
 

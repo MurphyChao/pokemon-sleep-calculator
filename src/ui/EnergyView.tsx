@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import {
 	type BestTeam,
@@ -18,11 +18,11 @@ import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
 import type { Heal, StrengthOptions, YieldDetail } from "../core/yield";
 import { getFavoriteBerries } from "../vendor/pokesleep-tool/data/fields";
 import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/pokesleep-tool/data/pokemons";
-import { islandLabel, Rich, t, typeLabel } from "./i18n";
-import { buildEntryLabelParts, buildEntryLabels, entryTooltip, formatAmount, formatPercent } from "./names";
+import { islandLabel, Rich, t, tRich, typeLabel } from "./i18n";
+import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
-import { EntryLabel } from "./EntryLabel";
+import { EntryLabel, InlineEntry } from "./EntryLabel";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
 
@@ -286,6 +286,8 @@ export default function EnergyView(props: {
 						pinned={pinned}
 						excluded={excluded}
 						labels={labels}
+						entries={byId}
+						shortLabels={shortLabels}
 					/>
 
 					<section className="card">
@@ -497,11 +499,11 @@ function chanceLimit(threshold: number, base: number): string {
 	return `${Math.min(100, base + threshold - 1)}%`;
 }
 
-function ruleText(o: SwapOption, swapIn: string, partner: string, last: boolean): string {
+function ruleText(o: SwapOption, swapIn: ReactNode, partner: ReactNode, last: boolean): ReactNode {
 	const threshold = o.policy.threshold;
-	if (threshold === 0) return t("ruleAlways", { name: partner });
-	if (last) return t("ruleAlways", { name: swapIn });
-	return t("ruleWhile", {
+	if (threshold === 0) return tRich("ruleAlways", { name: partner });
+	if (last) return tRich("ruleAlways", { name: swapIn });
+	return tRich("ruleWhile", {
 		name: swapIn,
 		wd: chanceLimit(threshold, weekdayBaseChance),
 		sd: chanceLimit(threshold, sundayBaseChance),
@@ -520,8 +522,11 @@ function SwapCard(props: {
 	pinned: string[];
 	excluded: string[];
 	labels: Map<string, string>;
+	/** For the explanations: names with nature, subskill and ingredient icons. */
+	entries: Map<string, BoxEntry>;
+	shortLabels: Map<string, EntryLabelParts>;
 }) {
-	const { members, problem, best, withIt, pinned, excluded, labels } = props;
+	const { members, problem, best, withIt, pinned, excluded, labels, entries, shortLabels } = props;
 	const [chosenIn, setChosenIn] = useState<string | null>(null);
 	const [chosenPartner, setChosenPartner] = useState<string | null>(null);
 	const byId = new Map(members.map((m) => [m.id, m]));
@@ -593,8 +598,11 @@ function SwapCard(props: {
 		);
 	}
 	const label = (id: string | undefined) => (id ? (labels.get(id) ?? id) : "?");
-	const inName = label(swapInId);
-	const partnerName = label(partnerId);
+	// Names in the explanations, with icons (the dropdowns above can only show plain text).
+	const named = (id: string | undefined) =>
+		id && entries.has(id) ? <InlineEntry entry={entries.get(id)} parts={shortLabels.get(id)} /> : label(id);
+	const inName = named(swapInId);
+	const partnerName = named(partnerId);
 	const analysis = result?.analysis;
 	const last = analysis ? analysis.options.length - 1 : 0;
 	const isLast = (o: SwapOption) => analysis !== undefined && o === analysis.options[last];
@@ -633,12 +641,12 @@ function SwapCard(props: {
 				<>
 					<p>
 						<strong>{ruleText(analysis.best, inName, partnerName, isLast(analysis.best))}</strong>
-						{analysis.best.policy.threshold !== 0 && !isLast(analysis.best) && t("ruleOtherwise", { name: partnerName })}
+						{analysis.best.policy.threshold !== 0 && !isLast(analysis.best) && tRich("ruleOtherwise", { name: partnerName })}
 					</p>
 					<p className="muted">
 						{t("strengthPerDay", { n: formatStrength(analysis.best.energy.total) })} ·{" "}
 						<Diff value={analysis.best.energy.total - bestTotal} /> {t("vsBestTeam")} ·{" "}
-						{t("onTeamShare", { name: inName, n: formatPercent(analysis.best.policy.share) })} ·{" "}
+						{tRich("onTeamShare", { name: inName, n: formatPercent(analysis.best.policy.share) })} ·{" "}
 						{t("swapTasty", {
 							wd: formatPercent(analysis.best.policy.weekdayChance),
 							sd: formatPercent(analysis.best.policy.sundayChance),
@@ -651,7 +659,7 @@ function SwapCard(props: {
 							<thead>
 								<tr>
 									<th>{t("colRule")}</th>
-									<th>{t("colOnTeam", { name: inName })}</th>
+									<th>{tRich("colOnTeam", { name: inName })}</th>
 									<th>{t("colExtraTasty")}</th>
 									<th>{t("colCooked")}</th>
 									<th>{t("colStrengthPerDay")}</th>
