@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	type AccessToken,
 	AuthExpiredError,
 	cachedToken,
 	driveStore,
@@ -7,6 +8,10 @@ import {
 	type GoogleAccount,
 	googleClientId,
 	MissingDriveAccessError,
+	onLateSignIn,
+	PopupBlockedError,
+	preloadGoogle,
+	SignInCancelledError,
 	signIn,
 	signOut,
 } from "../sync/google";
@@ -64,6 +69,8 @@ const autoSyncDelay = 2000;
 
 function errorMessage(e: unknown): string {
 	if (e instanceof MissingDriveAccessError) return t("syncNeedDrive");
+	if (e instanceof PopupBlockedError) return t("syncPopupBlocked");
+	if (e instanceof SignInCancelledError) return t("syncCancelled");
 	return e instanceof Error ? e.message : String(e);
 }
 
@@ -119,7 +126,7 @@ export default function SyncControl() {
 					}
 				}
 			} catch (e) {
-				setStatus({ kind: "error", message: errorMessage(e) });
+				setStatus(e instanceof SignInCancelledError ? { kind: "signIn" } : { kind: "error", message: errorMessage(e) });
 			} finally {
 				running.current = false;
 				if (again.current) {
@@ -153,19 +160,47 @@ export default function SyncControl() {
 		};
 	}, [settings.enabled, run]);
 
+	/** After the first sign-in on this device: remember the account, then sync. */
+	const finishSignIn = useCallback(
+		async (token: AccessToken) => {
+			try {
+				const account = await fetchAccount(token.token);
+				// Not "enabled" until the first sync succeeds (or its conflict is resolved).
+				localStorage.setItem(settingsKey, JSON.stringify({ enabled: false, account } satisfies SyncSettings));
+				await run(true);
+			} catch (e) {
+				setStatus({ kind: "error", message: errorMessage(e) });
+			}
+		},
+		[run],
+	);
+
+	// A sign-in that completes after it was reported cancelled still counts.
+	useEffect(
+		() =>
+			onLateSignIn((token) => {
+				if (loadSettings().enabled) void run(false);
+				else void finishSignIn(token);
+			}),
+		[run, finishSignIn],
+	);
+
+	// Already signed in on this device: have Google's script ready for when the session needs renewing.
+	useEffect(() => {
+		if (settings.enabled) preloadGoogle();
+	}, [settings.enabled]);
+
 	if (!googleClientId) return null;
 
 	const turnOn = async () => {
 		setStatus({ kind: "signingIn" });
+		let token: AccessToken;
 		try {
-			const token = await signIn(true);
-			const account = await fetchAccount(token.token);
-			// Not "enabled" until the first sync succeeds (or its conflict is resolved).
-			localStorage.setItem(settingsKey, JSON.stringify({ enabled: false, account } satisfies SyncSettings));
-			await run(true);
+			token = await signIn(true);
 		} catch (e) {
-			setStatus({ kind: "error", message: errorMessage(e) });
+			return setStatus({ kind: "error", message: errorMessage(e) });
 		}
+		await finishSignIn(token);
 	};
 	const turnOff = () => {
 		signOut();
@@ -199,7 +234,16 @@ export default function SyncControl() {
 	if (!settings.enabled && status.kind !== "conflict") {
 		return (
 			<div className="sync">
-				<button type="button" className="google-signin" onClick={turnOn} disabled={status.kind === "syncing"} title={t("syncHint")}>
+				<button
+					type="button"
+					className="google-signin"
+					onClick={turnOn}
+					onPointerEnter={preloadGoogle}
+					onFocus={preloadGoogle}
+					onTouchStart={preloadGoogle}
+					disabled={status.kind === "syncing"}
+					title={t("syncHint")}
+				>
 					<GoogleLogo />
 					{status.kind === "signingIn" || status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
 				</button>
