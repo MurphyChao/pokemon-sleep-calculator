@@ -587,6 +587,10 @@ span.subskill-icon > svg {
 	opacity: 0.4;
 }
 
+.replaced + .replaced {
+	margin-top: 6px;
+}
+
 /* Google sync */
 .sync {
 	position: relative;

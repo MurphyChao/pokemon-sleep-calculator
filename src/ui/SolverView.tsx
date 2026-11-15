@@ -362,7 +362,13 @@ function BenchTable(props: {
 						<td>{reductionLabel(s)}</td>
 						<td>{vsBestLabel(vsBest.get(s.id))}</td>
 						<TastyCell value={tastyValue.get(s.id)} />
-						<td>{s.replaces.map((id) => labels.get(id)).join(", ")}</td>
+						<td>
+							{s.replaces.map((id) => (
+								<div key={id} className="replaced" title={labels.get(id)}>
+									<EntryName entry={byId.get(id)} parts={shortLabels.get(id)} />
+								</div>
+							))}
+						</td>
 						<td>
 							<button
 								type="button"

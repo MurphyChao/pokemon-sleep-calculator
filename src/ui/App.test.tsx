@@ -390,3 +390,29 @@ test("solver labels draw a nature's effects as icons, keeping the name only for 
 	expect(gentle?.textContent).not.toContain("Gentle");
 	expect(cells.find((td) => !td.querySelector(".nature-effects"))?.textContent).toContain("Hardy");
 });
+
+test("Replaces column shows the replaced Pokémon with icons instead of letters", () => {
+	localStorage.setItem(
+		"pscalc.teams",
+		JSON.stringify({ scald_chunky_salad: ["gourgeist", "gourgeist2", "meow", "meow2", "drag", "spirit", "amoon", "quag"] }),
+	);
+	renderSolver([
+		entry("sandslash", "Sandslash", "ABC", 6),
+		entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+		entry("gourgeist2", "Gourgeist (Jumbo)", "AAA"),
+		{ ...entry("meow", "Meowscarada", "AAA"), nature: "Gentle" },
+		entry("meow2", "Meowscarada", "AAA"),
+		entry("drag", "Dragonite", "ABB"),
+		entry("spirit", "Spiritomb", "AAA"),
+		entry("amoon", "Amoonguss", "AAA"),
+		entry("quag", "Quagsire", "AAA"),
+	]);
+	const replaced = [...section("Bench").querySelectorAll(".replaced")];
+	expect(replaced.length).toBeGreaterThan(0);
+	for (const r of replaced) {
+		expect(r.querySelector(".ing-icons img")).toBeTruthy();
+		expect(r.textContent).not.toMatch(/\b[ABC]{3}\b/);
+		// The full text label is still there on hover.
+		expect(r.getAttribute("title")).toMatch(/Lv60 [ABC]{3}/);
+	}
+});
