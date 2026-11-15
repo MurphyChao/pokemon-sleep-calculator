@@ -12,18 +12,20 @@ import type { RemoteFile, RemoteStore } from "./sync";
 export const googleClientId: string | undefined = import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined;
 
 // openid/email/profile: show who is signed in; drive.appdata: the sync file.
-const scope = "openid email profile https://www.googleapis.com/auth/drive.appdata";
+const driveScope = "https://www.googleapis.com/auth/drive.appdata";
+const scope = `openid email profile ${driveScope}`;
 const fileName = "pokemon-sleep-calculator.json";
 
 interface TokenResponse {
 	access_token?: string;
+	/** Space-separated scopes the user actually granted (they can untick some on the consent screen). */
+	scope?: string;
 	expires_in?: number;
 	error?: string;
 	error_description?: string;
 }
 interface TokenClient {
 	callback: (r: TokenResponse) => void;
-	error_callback?: (e: { type: string; message?: string }) => void;
 	requestAccessToken(opts?: { prompt?: string }): void;
 }
 interface GoogleOAuth {
@@ -83,13 +85,24 @@ export async function signIn(chooseAccount = false): Promise<AccessToken> {
 		tokenClient ??= oauth.initTokenClient({ client_id: googleClientId, scope, callback: () => {} });
 		tokenClient.callback = (r) => {
 			if (!r.access_token) return reject(new Error(r.error_description || r.error || "Sign-in failed"));
-			const token = { token: r.access_token, expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000 };
+			if (!r.scope?.split(" ").includes(driveScope)) return reject(new MissingDriveAccessError());
+			const token = { token: r.access_token, expiresAt: Date.now() + Number(r.expires_in ?? 3600) * 1000 };
 			sessionStorage.setItem(tokenKey, JSON.stringify(token));
 			resolve(token);
 		};
-		tokenClient.error_callback = (e) => reject(new Error(e.type === "popup_closed" ? "Sign-in cancelled" : e.message || e.type));
+		// No error_callback on purpose: with one, Google's script polls whether the popup is closed, and
+		// Google's sign-in pages make the popup look closed mid-sign-in (Cross-Origin-Opener-Policy), so it
+		// reported "popup_closed" and the token that followed was dropped. A cancelled sign-in instead just
+		// leaves this promise pending; the button stays clickable to try again.
 		tokenClient.requestAccessToken({ prompt: chooseAccount ? "select_account consent" : "" });
 	});
+}
+
+/** The user signed in but left the Google Drive permission unticked on the consent screen. */
+export class MissingDriveAccessError extends Error {
+	constructor() {
+		super("Google Drive access was not granted");
+	}
 }
 
 export function signOut() {
@@ -126,7 +139,14 @@ export function driveStore(token: string): RemoteStore {
 			sessionStorage.removeItem(tokenKey);
 			throw new AuthExpiredError("Google sign-in expired");
 		}
-		if (!res.ok) throw new Error(`Google Drive error ${res.status}: ${(await res.text()).slice(0, 200)}`);
+		if (!res.ok) {
+			const text = await res.text();
+			let message = text.slice(0, 200);
+			try {
+				message = (JSON.parse(text) as { error: { message: string } }).error.message;
+			} catch {}
+			throw new Error(`Google Drive: ${message} (${res.status})`);
+		}
 		return res;
 	};
 	const api = "https://www.googleapis.com/drive/v3/files";

@@ -6,6 +6,7 @@ import {
 	fetchAccount,
 	type GoogleAccount,
 	googleClientId,
+	MissingDriveAccessError,
 	signIn,
 	signOut,
 } from "../sync/google";
@@ -53,12 +54,18 @@ function writeLocal(data: SyncData) {
 
 type Status =
 	| { kind: "idle" }
+	| { kind: "signingIn" }
 	| { kind: "syncing" }
 	| { kind: "signIn" }
 	| { kind: "error"; message: string }
 	| { kind: "conflict"; remote: SyncData; remoteFile: RemoteFile; remoteSavedAt?: number };
 
 const autoSyncDelay = 2000;
+
+function errorMessage(e: unknown): string {
+	if (e instanceof MissingDriveAccessError) return t("syncNeedDrive");
+	return e instanceof Error ? e.message : String(e);
+}
 
 function GoogleLogo() {
 	return (
@@ -112,7 +119,7 @@ export default function SyncControl() {
 					}
 				}
 			} catch (e) {
-				setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+				setStatus({ kind: "error", message: errorMessage(e) });
 			} finally {
 				running.current = false;
 				if (again.current) {
@@ -149,7 +156,7 @@ export default function SyncControl() {
 	if (!googleClientId) return null;
 
 	const turnOn = async () => {
-		setStatus({ kind: "syncing" });
+		setStatus({ kind: "signingIn" });
 		try {
 			const token = await signIn(true);
 			const account = await fetchAccount(token.token);
@@ -157,7 +164,7 @@ export default function SyncControl() {
 			localStorage.setItem(settingsKey, JSON.stringify({ enabled: false, account } satisfies SyncSettings));
 			await run(true);
 		} catch (e) {
-			setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+			setStatus({ kind: "error", message: errorMessage(e) });
 		}
 	};
 	const turnOff = () => {
@@ -183,7 +190,7 @@ export default function SyncControl() {
 			}
 			setStatus({ kind: "idle" });
 		} catch (e) {
-			setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+			setStatus({ kind: "error", message: errorMessage(e) });
 		}
 	};
 
@@ -194,7 +201,7 @@ export default function SyncControl() {
 			<div className="sync">
 				<button type="button" className="google-signin" onClick={turnOn} disabled={status.kind === "syncing"} title={t("syncHint")}>
 					<GoogleLogo />
-					{status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
+					{status.kind === "signingIn" || status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
 				</button>
 				{status.kind === "error" && <span className="sync-error small">{status.message}</span>}
 			</div>

@@ -92,6 +92,8 @@ const en = {
 	syncSyncing: "Syncing…",
 	syncSigningIn: "Signing in…",
 	syncSignedIn: "Signed in",
+	syncNeedDrive:
+		"Sync needs access to Google Drive. Sign in again and tick the box that lets this app see, create and delete its own configuration data in your Google Drive.",
 	syncOn: "Sync on",
 	syncedAt: "Synced {time}",
 	syncSignIn: "Sign in again to sync",
@@ -321,6 +323,7 @@ const zh: Record<Key, string> = {
 	syncSyncing: "同步中…",
 	syncSigningIn: "登入中…",
 	syncSignedIn: "已登入",
+	syncNeedDrive: "同步需要 Google 雲端硬碟的存取權。請重新登入，並勾選允許此應用程式查看、建立及刪除其在你 Google 雲端硬碟中的設定資料的選項。",
 	syncOn: "同步已開啟",
 	syncedAt: "已同步 {time}",
 	syncSignIn: "請重新登入以同步",
