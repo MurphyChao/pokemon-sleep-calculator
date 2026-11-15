@@ -600,14 +600,17 @@ span.subskill-icon > svg {
 	position: relative;
 	display: inline-block;
 	min-width: 14em;
+	max-width: 100%;
 }
 
 button.icon-select-button {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	width: 100%;
+	min-width: 100%;
+	max-width: 100%;
+	overflow: hidden;
 	padding: 5px 10px;
 	background: var(--card);
 	color: var(--text);
@@ -616,6 +619,23 @@ button.icon-select-button {
 	text-align: left;
 	font-weight: normal;
 	font-size: 0.95rem;
+}
+
+/* Swap partner pickers: sized to their (long, icon-filled) labels rather than grid columns. */
+.form-grid.swap-pickers {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.form-grid.swap-pickers label {
+	min-width: 220px;
+	max-width: 100%;
+}
+
+.icon-select-value {
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
 }
 
 .icon-select-caret {
@@ -651,6 +671,14 @@ button.icon-select-button {
 
 .icon-select-list li.selected {
 	font-weight: 600;
+}
+
+.poke-icon.small {
+	display: inline-block;
+	width: 26px;
+	height: 26px;
+	margin: -4px 6px -4px 0;
+	vertical-align: middle;
 }
 
 /* Google sync */

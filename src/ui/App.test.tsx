@@ -256,6 +256,7 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	expect(tastyButton.textContent).toMatch(/^Dedenne Lv60/);
 	// The dropdowns show the same icons as elsewhere.
 	expect(tastyButton.querySelector(".ing-icons img")).toBeTruthy();
+	expect(tastyButton.querySelector("img.poke-icon")?.getAttribute("src")).toMatch(/dedenne/);
 	// The default partner is the one giving the best result; pick Sceptile to compare with the berry Pokémon.
 	fireEvent.click(within(card).getByLabelText(/Partner/));
 	fireEvent.click(within(card).getByRole("option", { name: /^Sceptile/ }));

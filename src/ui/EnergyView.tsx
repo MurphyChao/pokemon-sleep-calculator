@@ -21,7 +21,7 @@ import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/p
 import { islandLabel, Rich, t, tRich, typeLabel } from "./i18n";
 import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent } from "./names";
 import { useStoredState } from "./storage";
-import { PokemonIconCell } from "./PokemonIcon";
+import { PokemonIcon, PokemonIconCell } from "./PokemonIcon";
 import { EntryLabel, InlineEntry } from "./EntryLabel";
 import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
@@ -613,7 +613,7 @@ function SwapCard(props: {
 		<section className="card">
 			<h2>{t("swapPartner")}</h2>
 			<p className="muted small">{t("swapHelp", { n: teamSlots - 1 })}</p>
-			<div className="form-grid">
+			<div className="form-grid swap-pickers">
 				<label>
 					{t("extraTastyPokemon")}
 					<IconSelect
@@ -624,6 +624,7 @@ function SwapCard(props: {
 							text: label(id) + (best.ids.includes(id) ? t("onTeamSuffix") : ""),
 							content: (
 								<>
+									<PokemonIcon name={entries.get(id)?.pokemonName} className="small" />
 									{named(id)}
 									{best.ids.includes(id) && <span className="muted">{t("onTeamSuffix")}</span>}
 								</>
@@ -636,7 +637,16 @@ function SwapCard(props: {
 					<IconSelect
 						value={partnerId ?? ""}
 						onChange={setChosenPartner}
-						options={partnerChoices.map((id) => ({ value: id, text: label(id), content: named(id) }))}
+						options={partnerChoices.map((id) => ({
+							value: id,
+							text: label(id),
+							content: (
+								<>
+									<PokemonIcon name={entries.get(id)?.pokemonName} className="small" />
+									{named(id)}
+								</>
+							),
+						}))}
 					/>
 				</label>
 			</div>

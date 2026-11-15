@@ -10,9 +10,10 @@ const urls = import.meta.glob("../data/pokemon-icons/*.png", {
 const bySlug = new Map(Object.entries(urls).map(([path, url]) => [path.replace(/^.*\/|\.png$/g, ""), url]));
 
 /** A Pokémon's box icon (blank if there is none). */
-export function PokemonIcon(props: { name: string | undefined }) {
+export function PokemonIcon(props: { name: string | undefined; className?: string }) {
 	const url = props.name ? bySlug.get(pokemonIconSlug(props.name)) : undefined;
-	return url ? <img className="poke-icon" src={url} alt="" loading="lazy" decoding="async" /> : <span className="poke-icon" />;
+	const className = ["poke-icon", props.className].filter(Boolean).join(" ");
+	return url ? <img className={className} src={url} alt="" loading="lazy" decoding="async" /> : <span className={className} />;
 }
 
 /** First table cell of a Pokémon row. */
