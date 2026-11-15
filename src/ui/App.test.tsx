@@ -295,3 +295,31 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(screen.getByText("Energy solver")).toBeTruthy();
 	expect(section("Best team").textContent).toMatch(/[\d,]+ strength \/ day/);
 });
+
+test("Box can be sorted by order added, Pokédex number, level and name", () => {
+	const at = (e: BoxEntry, level: number): BoxEntry => ({ ...e, level });
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			at(entry("drag", "Dragonite", "AAA"), 30),
+			at(entry("bulba", "Bulbasaur", "AAA"), 10),
+			at(entry("pika", "Pikachu", "AAA"), 50),
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	const order = () => [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector("td")?.textContent);
+	const sortBy = within(box).getByLabelText("Sort by");
+
+	expect(order()).toEqual(["Dragonite", "Bulbasaur", "Pikachu"]);
+	fireEvent.change(sortBy, { target: { value: "dex" } });
+	expect(order()).toEqual(["Bulbasaur", "Pikachu", "Dragonite"]);
+	fireEvent.change(sortBy, { target: { value: "level" } });
+	expect(order()).toEqual(["Pikachu", "Dragonite", "Bulbasaur"]);
+	fireEvent.click(within(box).getByLabelText("Reverse order"));
+	expect(order()).toEqual(["Bulbasaur", "Dragonite", "Pikachu"]);
+	fireEvent.change(sortBy, { target: { value: "name" } });
+	expect(order()).toEqual(["Bulbasaur", "Dragonite", "Pikachu"]);
+	// The choice is remembered.
+	expect(JSON.parse(localStorage.getItem("pscalc.boxSort") ?? "{}")).toEqual({ by: "name", reversed: false });
+});

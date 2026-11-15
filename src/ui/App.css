@@ -521,3 +521,16 @@ input.narrow {
 .error {
 	color: var(--danger);
 }
+
+.box-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+.box-sort {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}

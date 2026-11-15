@@ -4,10 +4,11 @@ import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
+import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel, subSkillSummary } from "./names";
 import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
+import { useStoredState } from "./storage";
 import SubSkillPicker from "./SubSkillPicker";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
@@ -36,6 +37,43 @@ const emptyDraft = (): BoxEntry => ({
 function slotIngredients(pokemonName: string): Record<"A" | "B" | "C", IngredientName | undefined> {
 	const p = pokemons.find((x) => x.name === pokemonName);
 	return { A: p?.ing1?.name, B: p?.ing2?.name, C: p?.ing3?.name };
+}
+
+type SortBy = "added" | "dex" | "level" | "name";
+interface BoxSort {
+	by: SortBy;
+	/** Opposite of the natural direction (added: oldest first; dex and name: A→Z; level: highest first). */
+	reversed: boolean;
+}
+const sortOptions: { by: SortBy; label: Key }[] = [
+	{ by: "added", label: "sortAdded" },
+	{ by: "dex", label: "sortDex" },
+	{ by: "level", label: "sortLevel" },
+	{ by: "name", label: "sortName" },
+];
+
+/** Position in pokesleep-tool's list: Pokédex order, with a species' forms after its base form. */
+const dexOrder = new Map(pokemons.map((p, i) => [p.name, i]));
+
+/** The box in display order. Ties keep the order the Pokémon were added. */
+function sortBox(box: BoxEntry[], sort: BoxSort): BoxEntry[] {
+	const collator = new Intl.Collator(getLang());
+	const dex = (e: BoxEntry) => dexOrder.get(e.pokemonName) ?? Number.MAX_SAFE_INTEGER;
+	const name = (e: BoxEntry) => pokemonLabel(e.pokemonName);
+	const compare: Record<SortBy, (a: BoxEntry, b: BoxEntry) => number> = {
+		added: () => 0,
+		dex: (a, b) => dex(a) - dex(b) || b.level - a.level,
+		level: (a, b) => b.level - a.level || dex(a) - dex(b),
+		name: (a, b) =>
+			collator.compare(name(a), name(b)) ||
+			collator.compare(a.nickname ?? "", b.nickname ?? "") ||
+			b.level - a.level,
+	};
+	const sorted = box
+		.map((e, i) => ({ e, i }))
+		.sort((a, b) => compare[sort.by](a.e, b.e) || a.i - b.i)
+		.map((x) => x.e);
+	return sort.reversed ? sorted.reverse() : sorted;
 }
 
 function comboLabel(pokemonName: string, combo: IngredientType): string {
@@ -76,6 +114,9 @@ export default function BoxView(props: {
 		}
 	};
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
+	const [storedSort, setSort] = useStoredState<BoxSort>("pscalc.boxSort", { by: "added", reversed: false });
+	const sort: BoxSort = sortOptions.some((o) => o.by === storedSort.by) ? storedSort : { by: "added", reversed: false };
+	const sortedBox = useMemo(() => sortBox(box, sort), [box, sort.by, sort.reversed]);
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
 	const maxSkillLevel = draftPokemon ? getMaxSkillLevel(draftPokemon.skill) : 1;
@@ -228,7 +269,33 @@ export default function BoxView(props: {
 			</section>
 
 			<section className="card">
-				<h2>{t("yourBox")}</h2>
+				<div className="box-header">
+					<h2>{t("yourBox")}</h2>
+					{box.length > 1 && (
+						<div className="box-sort">
+							<label>
+								{t("sortBy")}{" "}
+								<select value={sort.by} onChange={(e) => setSort({ by: e.target.value as SortBy, reversed: false })}>
+									{sortOptions.map((o) => (
+										<option key={o.by} value={o.by}>
+											{t(o.label)}
+										</option>
+									))}
+								</select>
+							</label>
+							<button
+								type="button"
+								className="secondary"
+								aria-pressed={sort.reversed}
+								title={t("sortReverse")}
+								aria-label={t("sortReverse")}
+								onClick={() => setSort({ ...sort, reversed: !sort.reversed })}
+							>
+								⇅
+							</button>
+						</div>
+					)}
+				</div>
 				{box.length === 0 ? (
 					<p className="muted">{t("emptyBox")}</p>
 				) : (
@@ -246,7 +313,7 @@ export default function BoxView(props: {
 							</tr>
 						</thead>
 						<tbody>
-							{box.map((e) => (
+							{sortedBox.map((e) => (
 								<tr key={e.id}>
 									<td title={entryTooltip(e)}>
 										{e.nickname?.trim() ? (
