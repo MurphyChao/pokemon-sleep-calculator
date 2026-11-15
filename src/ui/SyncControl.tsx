@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AuthExpiredError, cachedToken, driveStore, googleClientId, signIn, signOut } from "../sync/google";
+import {
+	AuthExpiredError,
+	cachedToken,
+	driveStore,
+	fetchAccount,
+	type GoogleAccount,
+	googleClientId,
+	signIn,
+	signOut,
+} from "../sync/google";
 import { acceptRemote, forceUpload, type RemoteFile, type SyncData, type SyncMeta, sync } from "../sync/sync";
 import { t } from "./i18n";
 import { storageChangedEvent, storagePrefix, storageReplacedEvent } from "./storage";
@@ -7,7 +16,9 @@ import { storageChangedEvent, storagePrefix, storageReplacedEvent } from "./stor
 /** Sync settings on this device; deliberately outside the "pscalc." keys so they aren't synced. */
 const settingsKey = "pscalc-sync";
 interface SyncSettings {
+	/** Signed in (sync on). */
 	enabled: boolean;
+	account?: GoogleAccount;
 	meta?: SyncMeta;
 }
 
@@ -49,6 +60,17 @@ type Status =
 
 const autoSyncDelay = 2000;
 
+function GoogleLogo() {
+	return (
+		<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+			<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+			<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+			<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+			<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+		</svg>
+	);
+}
+
 export default function SyncControl() {
 	const [settings, setSettingsState] = useState(loadSettings);
 	const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -82,7 +104,7 @@ export default function SyncControl() {
 						const result = await sync(driveStore(token.token), readLocal(), meta, Date.now());
 						if (result.kind === "conflict") return setStatus(result);
 						if (result.kind === "downloaded") writeLocal(result.remote);
-						setSettings({ enabled: true, meta: result.meta });
+						setSettings({ ...loadSettings(), enabled: true, meta: result.meta });
 						setStatus({ kind: "idle" });
 						return;
 					} catch (e) {
@@ -129,7 +151,10 @@ export default function SyncControl() {
 	const turnOn = async () => {
 		setStatus({ kind: "syncing" });
 		try {
-			await signIn(true);
+			const token = await signIn(true);
+			const account = await fetchAccount(token.token);
+			// Not "enabled" until the first sync succeeds (or its conflict is resolved).
+			localStorage.setItem(settingsKey, JSON.stringify({ enabled: false, account } satisfies SyncSettings));
 			await run(true);
 		} catch (e) {
 			setStatus({ kind: "error", message: e instanceof Error ? e.message : String(e) });
@@ -148,9 +173,10 @@ export default function SyncControl() {
 			const now = Date.now();
 			if (keep === "remote") {
 				writeLocal(status.remote);
-				setSettings({ enabled: true, meta: acceptRemote(status.remote, status.remoteFile, now) });
+				setSettings({ ...loadSettings(), enabled: true, meta: acceptRemote(status.remote, status.remoteFile, now) });
 			} else {
 				setSettings({
+					...loadSettings(),
 					enabled: true,
 					meta: await forceUpload(driveStore(token.token), readLocal(), status.remoteFile.id, now),
 				});
@@ -166,16 +192,22 @@ export default function SyncControl() {
 	if (!settings.enabled && status.kind !== "conflict") {
 		return (
 			<div className="sync">
-				<button type="button" onClick={turnOn} disabled={status.kind === "syncing"}>
-					{status.kind === "syncing" ? t("syncSyncing") : t("syncTurnOn")}
+				<button type="button" className="google-signin" onClick={turnOn} disabled={status.kind === "syncing"} title={t("syncHint")}>
+					<GoogleLogo />
+					{status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
 				</button>
 				{status.kind === "error" && <span className="sync-error small">{status.message}</span>}
 			</div>
 		);
 	}
 
+	const account = settings.account ?? loadSettings().account;
 	return (
 		<div className="sync">
+			<span className="account" title={account?.email}>
+				{account?.picture && <img src={account.picture} alt="" referrerPolicy="no-referrer" />}
+				<span>{account?.name || account?.email || t("syncSignedIn")}</span>
+			</span>
 			<span className="muted small" title={t("syncHint")}>
 				{status.kind === "syncing"
 					? t("syncSyncing")

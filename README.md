@@ -27,22 +27,24 @@ to run it (it's skipped otherwise).
 
 ## Google Drive sync
 
-The header's "Sync with Google Drive" button keeps the box and all settings (everything saved under `pscalc.*`
-in localStorage) in one JSON file in the user's Drive app-data folder, so every device signed in to the same
-Google account shares them. The app asks only for the `drive.appdata` scope: it can't see any other Drive files,
-and the file is hidden from the Drive UI. Sign-in uses
+Users can sign in with their own Google account from the header ("Sign in with Google"); the header then shows
+their name and picture. While signed in, the box and all settings (everything saved under `pscalc.*` in
+localStorage) are kept in one JSON file in that account's Drive app-data folder, so every device signed in to the
+same account shares them. Besides the basic profile (`openid email profile`), the app asks only for the
+`drive.appdata` scope: it can't see any other Drive files, and the file is hidden from the Drive UI. Sign-in uses
 [Google Identity Services](https://developers.google.com/identity/oauth2/web/guides/use-token-model) in the
 browser; there's no server. Changes are uploaded a couple of seconds after they're made, and the Drive copy is
 fetched on load and when the tab comes back into view. If both sides changed since the last sync, the user picks
 which copy to keep. Access tokens last an hour and are kept for the browser session; after that, "Sync now" signs
 in again (usually without asking). Code: `src/sync/`, `src/ui/SyncControl.tsx`.
 
-The button only appears when the build has an OAuth client ID. To set one up:
+The sign-in button only appears when the build has an OAuth client ID. The client ID identifies this app to
+Google, not any one account: every user signs in with their own. To set one up:
 
 1. In the [Google Cloud console](https://console.cloud.google.com/), create a project and enable the
    **Google Drive API**.
-2. Under **Google Auth Platform**, configure the consent screen (External), add the scope
-   `https://www.googleapis.com/auth/drive.appdata`, and either add test users or publish the app.
+2. Under **Google Auth Platform**, configure the consent screen (External), add the scopes
+   `openid`, `email`, `profile` and `https://www.googleapis.com/auth/drive.appdata`, and either add test users or publish the app.
 3. Create an OAuth client of type **Web application** with these authorized JavaScript origins:
    `https://<user>.github.io` and `http://localhost:5173` (for `npm run dev`). No redirect URIs are needed.
 4. Put the client ID in the repo variable `GOOGLE_CLIENT_ID` (Settings → Secrets and variables → Actions →

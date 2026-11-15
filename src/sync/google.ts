@@ -1,5 +1,6 @@
 /**
- * Google sign-in (Google Identity Services token flow) and the Drive file that holds the synced data.
+ * Signing in to the user's own Google account (Google Identity Services token flow) and the Drive
+ * file in that account that holds the synced data.
  *
  * The data goes to Drive's hidden app-data folder: only this app can read it, and the app cannot
  * see any of the user's other files (scope drive.appdata). Google's script is only loaded once the
@@ -10,7 +11,8 @@ import type { RemoteFile, RemoteStore } from "./sync";
 /** OAuth client ID (a Google Cloud "Web application" client); sync is hidden when unset. */
 export const googleClientId: string | undefined = import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined;
 
-const scope = "https://www.googleapis.com/auth/drive.appdata";
+// openid/email/profile: show who is signed in; drive.appdata: the sync file.
+const scope = "openid email profile https://www.googleapis.com/auth/drive.appdata";
 const fileName = "pokemon-sleep-calculator.json";
 
 interface TokenResponse {
@@ -72,9 +74,9 @@ let tokenClient: TokenClient | undefined;
 /**
  * Asks Google for an access token. Call from a click: it opens a popup (just a flash once the user
  * already agreed).
- * @param consent show the account chooser and consent screen even if already granted.
+ * @param chooseAccount show the account chooser and consent screen even if already granted.
  */
-export async function signIn(consent = false): Promise<AccessToken> {
+export async function signIn(chooseAccount = false): Promise<AccessToken> {
 	if (!googleClientId) throw new Error("Google sync is not configured");
 	const oauth = await loadGis();
 	return new Promise((resolve, reject) => {
@@ -86,7 +88,7 @@ export async function signIn(consent = false): Promise<AccessToken> {
 			resolve(token);
 		};
 		tokenClient.error_callback = (e) => reject(new Error(e.type === "popup_closed" ? "Sign-in cancelled" : e.message || e.type));
-		tokenClient.requestAccessToken({ prompt: consent ? "consent" : "" });
+		tokenClient.requestAccessToken({ prompt: chooseAccount ? "select_account consent" : "" });
 	});
 }
 
@@ -97,6 +99,24 @@ export function signOut() {
 }
 
 export class AuthExpiredError extends Error {}
+
+export interface GoogleAccount {
+	email?: string;
+	name?: string;
+	picture?: string;
+}
+
+/** The signed-in user's name, email and picture. */
+export async function fetchAccount(token: string): Promise<GoogleAccount> {
+	const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${token}` } });
+	if (res.status === 401) {
+		sessionStorage.removeItem(tokenKey);
+		throw new AuthExpiredError("Google sign-in expired");
+	}
+	if (!res.ok) throw new Error(`Google account error ${res.status}`);
+	const { email, name, picture } = (await res.json()) as GoogleAccount;
+	return { email, name, picture };
+}
 
 /** The sync file in Drive's app-data folder. */
 export function driveStore(token: string): RemoteStore {

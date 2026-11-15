@@ -483,6 +483,31 @@ input.narrow {
 	cursor: pointer;
 }
 
+.sync .google-signin {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: #fff;
+	color: #1f1f1f;
+	border: 1px solid #747775;
+	border-radius: 20px;
+	padding: 6px 14px;
+	font-weight: 500;
+}
+
+.sync .account {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 500;
+}
+
+.sync .account img {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+}
+
 .sync-error {
 	color: #c0392b;
 	max-width: 24em;
