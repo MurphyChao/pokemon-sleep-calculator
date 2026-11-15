@@ -16,10 +16,11 @@ import { extraTasty, type TastySlotValue, type TastySource, tastySlotValue } fro
 import type { IngredientYield } from "../core/yield";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { Rich, t } from "./i18n";
-import { buildEntryLabels, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
+import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
-import { EntryName, IngredientIcon } from "./IngredientIcons";
+import { EntryName } from "./EntryLabel";
+import { IngredientIcon } from "./IngredientIcons";
 import { MinusIcon, PlusIcon } from "./icons";
 
 export const teamSize = 5;
@@ -40,7 +41,7 @@ export default function SolverView(props: {
 	const members: Member[] = useMemo(() => box.map((e) => ({ id: e.id, yield: yields.get(e.id) ?? {} })), [box, yields]);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
-	const shortLabels = useMemo(() => buildEntryLabels(box, { ingredients: false }), [box]);
+	const shortLabels = useMemo(() => buildEntryLabelParts(box, { ingredients: false }), [box]);
 	const pinned = pinnedRaw.filter((id) => byId.has(id));
 	const target = useMemo(() => achievableDemand(members, demand), [members, demand]);
 
@@ -223,7 +224,7 @@ function TeamTable(props: {
 	byId: Map<string, BoxEntry>;
 	labels: Map<string, string>;
 	/** Labels without ingredient letters, shown above the ingredient icons. */
-	shortLabels: Map<string, string>;
+	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
 	usage: Map<string, number> | undefined;
 	tastyValue: Map<string, TastySlotValue>;
@@ -260,7 +261,7 @@ function TeamTable(props: {
 						<tr key={id}>
 							<PokemonIconCell name={byId.get(id)?.pokemonName} />
 							<td title={entryTooltip(byId.get(id) as BoxEntry)}>
-								<EntryName entry={byId.get(id)} label={shortLabels.get(id)} />
+								<EntryName entry={byId.get(id)} parts={shortLabels.get(id)} />
 							</td>
 							<YieldCells id={id} ings={ings} yields={yields} />
 							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">{t("notNeeded")}</span>}</td>
@@ -325,7 +326,7 @@ function BenchTable(props: {
 	byId: Map<string, BoxEntry>;
 	labels: Map<string, string>;
 	/** Labels without ingredient letters, shown above the ingredient icons. */
-	shortLabels: Map<string, string>;
+	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
 	onMove: (id: string) => void;
 }) {
@@ -355,7 +356,7 @@ function BenchTable(props: {
 					<tr key={s.id}>
 						<PokemonIconCell name={byId.get(s.id)?.pokemonName} />
 						<td title={entryTooltip(byId.get(s.id) as BoxEntry)}>
-							<EntryName entry={byId.get(s.id)} label={shortLabels.get(s.id)} />
+							<EntryName entry={byId.get(s.id)} parts={shortLabels.get(s.id)} />
 						</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
 						<td>{reductionLabel(s)}</td>

@@ -67,17 +67,3 @@ export function IngredientIcons(props: { entry: BoxEntry }) {
 		</span>
 	);
 }
-
-/** A Pokémon's label with its ingredient icons underneath, for table cells. */
-export function EntryName(props: { entry: BoxEntry | undefined; label: string | undefined }) {
-	return (
-		<>
-			{props.label}
-			{props.entry && (
-				<div>
-					<IngredientIcons entry={props.entry} />
-				</div>
-			)}
-		</>
-	);
-}

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { BoxEntry } from "../core/box";
+import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import App from "./App";
 
 const entry = (
@@ -276,7 +277,7 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(boxTable.textContent).toContain("穿山王");
 	expect(boxTable.textContent).toContain("固執");
 	// Subskills are icons named (in Chinese) by their alt text and tooltip.
-	expect(boxTable.querySelector('img.subskill-icon[alt="幫忙速度M"]')).toBeTruthy();
+	expect(boxTable.querySelector('.subskill-icon[aria-label="幫忙速度M"]')).toBeTruthy();
 
 	// Typing a Chinese name selects the Pokémon.
 	fireEvent.change(screen.getByPlaceholderText("輸入以搜尋"), { target: { value: "咚咚鼠" } });
@@ -341,7 +342,24 @@ test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet
 		]),
 	);
 	render(<App />);
-	const icons = [...section("Your box").querySelectorAll("tbody img.subskill-icon")];
+	const icons = [...section("Your box").querySelectorAll("tbody .subskill-icon")];
 	expect(icons.map((i) => i.getAttribute("title"))).toEqual(["Lv10 Helping Bonus", "Lv25 Helping Speed M"]);
 	expect(icons.map((i) => i.classList.contains("locked"))).toEqual([false, true]);
+});
+
+test("solver labels tell identical Pokémon apart with subskill icons, not abbreviations", () => {
+	const meow = (id: string, lv10: SubSkillType) => ({ ...entry(id, "Meowscarada", "AAA"), subSkills: { lv10 } });
+	renderSolver([meow("m1", "Helping Bonus"), meow("m2", "Helping Speed M")]);
+	const cells = [...document.querySelectorAll("section.card tbody td:not(.icon-cell)")].filter((td) =>
+		td.textContent?.startsWith("Meowscarada Lv60"),
+	);
+	expect(cells).toHaveLength(2);
+	for (const td of cells) {
+		expect(td.textContent).toMatch(/^Meowscarada Lv60 · Serious · $/);
+		expect(td.querySelectorAll(".subskill-icon")).toHaveLength(1);
+	}
+	expect(cells.map((td) => td.querySelector(".subskill-icon")?.getAttribute("aria-label")).sort()).toEqual([
+		"Helping Bonus",
+		"Helping Speed M",
+	]);
 });

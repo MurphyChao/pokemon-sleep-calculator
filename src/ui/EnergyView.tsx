@@ -19,9 +19,10 @@ import type { Heal, StrengthOptions, YieldDetail } from "../core/yield";
 import { getFavoriteBerries } from "../vendor/pokesleep-tool/data/fields";
 import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/pokesleep-tool/data/pokemons";
 import { islandLabel, Rich, t, typeLabel } from "./i18n";
-import { buildEntryLabels, entryTooltip, formatAmount, formatPercent } from "./names";
+import { buildEntryLabelParts, buildEntryLabels, entryTooltip, formatAmount, formatPercent } from "./names";
 import { useStoredState } from "./storage";
 import { PokemonIconCell } from "./PokemonIcon";
+import { EntryLabel } from "./EntryLabel";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
 
@@ -61,7 +62,7 @@ export default function EnergyView(props: {
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
-	const shortLabels = useMemo(() => buildEntryLabels(box, { ingredients: false }), [box]);
+	const shortLabels = useMemo(() => buildEntryLabelParts(box, { ingredients: false }), [box]);
 	const pinned = pinnedRaw.filter((id) => byId.has(id));
 	const excluded = excludedRaw.filter((id) => byId.has(id) && !pinned.includes(id));
 
@@ -214,7 +215,7 @@ export default function EnergyView(props: {
 										<tr key={id}>
 											<PokemonIconCell name={byId.get(id)?.pokemonName} />
 											<td title={entryTooltip(byId.get(id) as BoxEntry)}>
-												{shortLabels.get(id)}
+												<EntryLabel entry={byId.get(id)} parts={shortLabels.get(id)} />
 												{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
 												<div>
@@ -320,7 +321,7 @@ export default function EnergyView(props: {
 											<tr key={id} className={isExcluded ? "muted" : ""}>
 												<PokemonIconCell name={byId.get(id)?.pokemonName} />
 												<td title={entryTooltip(byId.get(id) as BoxEntry)}>
-													{shortLabels.get(id)}
+													<EntryLabel entry={byId.get(id)} parts={shortLabels.get(id)} />
 													{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
 													{isExcluded && <span className="tag">{t("tagExcluded")}</span>}

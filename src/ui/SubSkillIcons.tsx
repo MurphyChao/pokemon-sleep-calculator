@@ -1,32 +1,20 @@
 import { type BoxEntry, subSkillLevels } from "../core/box";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { subSkillLabel } from "./i18n";
-
-// Cut from the game's subskill badges (src/data/subskill-icons/<name>.png, e.g. helping-bonus.png).
-const urls = import.meta.glob("../data/subskill-icons/*.png", {
-	eager: true,
-	query: "?url",
-	import: "default",
-}) as Record<string, string>;
-const bySlug = new Map(Object.entries(urls).map(([path, url]) => [path.replace(/^.*\/|\.png$/g, ""), url]));
-
-export function subSkillIconUrl(name: SubSkillType): string | undefined {
-	return bySlug.get(name.toLowerCase().replace(/ /g, "-"));
-}
+import { SubSkillGlyph } from "./SubSkillGlyph";
 
 /**
- * A subskill's icon, named in its tooltip and alt text.
- * @param decorative the name is written next to it: no tooltip or alt text, and nothing without an icon.
+ * A subskill's icon, named in its tooltip and accessible label.
+ * @param decorative the name is written next to it: no tooltip or label.
  */
 export function SubSkillIcon(props: { name: SubSkillType; title?: string; className?: string; decorative?: boolean }) {
-	const url = subSkillIconUrl(props.name);
 	const label = subSkillLabel(props.name);
 	const className = ["subskill-icon", props.className].filter(Boolean).join(" ");
-	if (props.decorative) return url ? <img src={url} alt="" className={className} /> : null;
-	return url ? (
-		<img src={url} alt={label} title={props.title ?? label} className={className} />
-	) : (
-		<span className={className}>{label}</span>
+	if (props.decorative) return <SubSkillGlyph name={props.name} className={className} />;
+	return (
+		<span className={className} role="img" aria-label={label} title={props.title ?? label}>
+			<SubSkillGlyph name={props.name} />
+		</span>
 	);
 }
 
