@@ -591,6 +591,15 @@ span.subskill-icon > svg {
 	white-space: nowrap;
 }
 
+.replaced {
+	display: flex;
+	align-items: flex-start;
+}
+
+.replaced .poke-icon.small {
+	margin-top: 0;
+}
+
 .replaced + .replaced {
 	margin-top: 6px;
 }

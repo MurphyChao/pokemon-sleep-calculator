@@ -18,7 +18,7 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { Rich, t } from "./i18n";
 import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
-import { PokemonIconCell } from "./PokemonIcon";
+import { PokemonIcon, PokemonIconCell } from "./PokemonIcon";
 import { EntryName } from "./EntryLabel";
 import { IngredientIcon } from "./IngredientIcons";
 import { MinusIcon, PlusIcon } from "./icons";
@@ -365,7 +365,10 @@ function BenchTable(props: {
 						<td>
 							{s.replaces.map((id) => (
 								<div key={id} className="replaced" title={labels.get(id)}>
-									<EntryName entry={byId.get(id)} parts={shortLabels.get(id)} />
+									<PokemonIcon name={byId.get(id)?.pokemonName} className="small" />
+									<div>
+										<EntryName entry={byId.get(id)} parts={shortLabels.get(id)} />
+									</div>
 								</div>
 							))}
 						</td>

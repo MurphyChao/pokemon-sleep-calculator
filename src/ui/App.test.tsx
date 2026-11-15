@@ -422,6 +422,7 @@ test("Replaces column shows the replaced Pokémon with icons instead of letters"
 	expect(replaced.length).toBeGreaterThan(0);
 	for (const r of replaced) {
 		expect(r.querySelector(".ing-icons img")).toBeTruthy();
+		expect(r.querySelector("img.poke-icon")).toBeTruthy();
 		expect(r.textContent).not.toMatch(/\b[ABC]{3}\b/);
 		// The full text label is still there on hover.
 		expect(r.getAttribute("title")).toMatch(/Lv60 [ABC]{3}/);
