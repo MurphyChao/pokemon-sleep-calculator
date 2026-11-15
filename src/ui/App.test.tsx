@@ -377,3 +377,16 @@ test("box shows the stats a nature raises and lowers under its name", () => {
 	// Neutral natures (Serious) have no effects to show.
 	expect(rows[1].querySelector(".nature-effects")).toBeNull();
 });
+
+test("solver labels draw a nature's effects as icons, keeping the name only for neutral natures", () => {
+	const meow = (id: string, nature: string) => ({ ...entry(id, "Meowscarada", "AAA"), nature });
+	renderSolver([meow("m1", "Gentle"), meow("m2", "Hardy")]);
+	const cells = [...document.querySelectorAll("section.card tbody td:not(.icon-cell)")].filter((td) =>
+		td.textContent?.startsWith("Meowscarada Lv60"),
+	);
+	expect(cells).toHaveLength(2);
+	const gentle = cells.find((td) => td.querySelector(".nature-effects"));
+	expect(gentle?.querySelector(".nature-effects")?.getAttribute("aria-label")).toBe("Gentle: ▲ Skill, ▼ Energy");
+	expect(gentle?.textContent).not.toContain("Gentle");
+	expect(cells.find((td) => !td.querySelector(".nature-effects"))?.textContent).toContain("Hardy");
+});

@@ -1,9 +1,14 @@
 import { type BoxEntry, subSkillLevels } from "../core/box";
+import Nature from "../vendor/pokesleep-tool/util/Nature";
 import { IngredientIcons } from "./IngredientIcons";
+import { NatureEffects } from "./NatureEffects";
 import type { EntryLabelParts } from "./names";
 import { SubSkillIcons } from "./SubSkillIcons";
 
-/** A box entry's label with any subskills that tell it apart drawn as icons (see buildEntryLabelParts). */
+/**
+ * A box entry's label with the nature and subskills that tell it apart (see buildEntryLabelParts)
+ * drawn as icons; a neutral nature, having no effects to draw, keeps its name.
+ */
 export function EntryLabel(props: { entry: BoxEntry | undefined; parts: EntryLabelParts | undefined }) {
 	const { entry, parts } = props;
 	if (!entry || !parts) return null;
@@ -14,7 +19,8 @@ export function EntryLabel(props: { entry: BoxEntry | undefined; parts: EntryLab
 			{parts.detail && (
 				<>
 					{" "}
-					· {parts.detail.nature}
+					·{" "}
+					{new Nature(entry.nature).isNeautral ? parts.detail.nature : <NatureEffects nature={entry.nature} named />}
 					{hasSubSkills && (
 						<>
 							{" "}

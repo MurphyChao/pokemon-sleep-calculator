@@ -414,9 +414,13 @@ footer a {
 .nature-effects {
 	display: inline-flex;
 	gap: 8px;
-	margin-top: 2px;
+	vertical-align: middle;
 	font-size: 0.7rem;
 	line-height: 1;
+}
+
+td > div > .nature-effects {
+	margin-top: 2px;
 }
 
 .nature-effects > span {
