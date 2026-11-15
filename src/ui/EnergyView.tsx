@@ -21,7 +21,7 @@ import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/p
 import { islandLabel, Rich, t, tRich, typeLabel } from "./i18n";
 import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent } from "./names";
 import { useStoredState } from "./storage";
-import { PokemonIcon, PokemonIconCell } from "./PokemonIcon";
+import { PokemonIconCell } from "./PokemonIcon";
 import { EntryLabel, InlineEntry } from "./EntryLabel";
 import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
@@ -624,7 +624,6 @@ function SwapCard(props: {
 							text: label(id) + (best.ids.includes(id) ? t("onTeamSuffix") : ""),
 							content: (
 								<>
-									<PokemonIcon name={entries.get(id)?.pokemonName} className="small" />
 									{named(id)}
 									{best.ids.includes(id) && <span className="muted">{t("onTeamSuffix")}</span>}
 								</>
@@ -642,7 +641,6 @@ function SwapCard(props: {
 							text: label(id),
 							content: (
 								<>
-									<PokemonIcon name={entries.get(id)?.pokemonName} className="small" />
 									{named(id)}
 								</>
 							),

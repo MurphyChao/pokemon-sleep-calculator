@@ -267,6 +267,7 @@ test("Energy solver: swap partner suggests a bonus threshold for Dedenne vs Scep
 	// Names in the explanation carry ingredient icons instead of "AAA"-style letters.
 	const rule = card2.querySelector("p strong");
 	expect(rule?.querySelector(".inline-entry .ing-icons img")).toBeTruthy();
+	expect(rule?.querySelector(".inline-entry img.poke-icon")).toBeTruthy();
 	expect(rule?.textContent).not.toMatch(/\b[ABC]{3}\b/);
 	expect(card2.querySelectorAll("details tbody tr").length).toBeGreaterThan(2);
 });

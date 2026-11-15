@@ -2,6 +2,7 @@ import { type BoxEntry, subSkillLevels } from "../core/box";
 import Nature from "../vendor/pokesleep-tool/util/Nature";
 import { IngredientIcons } from "./IngredientIcons";
 import { NatureEffects } from "./NatureEffects";
+import { PokemonIcon } from "./PokemonIcon";
 import type { EntryLabelParts } from "./names";
 import { SubSkillIcons } from "./SubSkillIcons";
 
@@ -34,10 +35,14 @@ export function EntryLabel(props: { entry: BoxEntry | undefined; parts: EntryLab
 	);
 }
 
-/** EntryLabel followed by the entry's ingredient icons on the same line, for use within sentences. */
+/**
+ * EntryLabel after the Pokémon's icon and followed by its ingredient icons, all on one line, for use
+ * within sentences and dropdowns.
+ */
 export function InlineEntry(props: { entry: BoxEntry | undefined; parts: EntryLabelParts | undefined }) {
 	return (
 		<span className="inline-entry">
+			{props.entry && <PokemonIcon name={props.entry.pokemonName} className="small" />}
 			<EntryLabel entry={props.entry} parts={props.parts} />
 			{props.entry && (
 				<>
