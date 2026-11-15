@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { type BoxEntry, scaleLevels } from "../core/box";
+import { type BoxEntry, evolveToFinal, scaleLevels } from "../core/box";
 import {
 	dailyIngredientYieldDetail,
 	defaultYieldOptions,
@@ -44,7 +44,12 @@ export default function App() {
 	const dish = useDish();
 	/** Solvers only: Pokémon below this level are treated as this level (null = off). */
 	const [levelScale, setLevelScale] = useStoredState<number | null>("pscalc.levelScale", null);
-	const solverBox = useMemo(() => scaleLevels(box, levelScale), [box, levelScale]);
+	/** Solvers only: evolve every Pokémon to its final form. */
+	const [finalEvolution, setFinalEvolution] = useStoredState("pscalc.finalEvolution", false);
+	const solverBox = useMemo(
+		() => scaleLevels(evolveToFinal(box, finalEvolution), levelScale),
+		[box, finalEvolution, levelScale],
+	);
 	/** The box the numbers below are computed for: as entered on the Box tab, level-scaled in the solvers. */
 	const mathBox = tab === "box" ? box : solverBox;
 
@@ -173,6 +178,17 @@ export default function App() {
 						/>
 						<span className="muted small">{t("sleepScoreHint")}</span>
 					</label>
+					{tab !== "box" && (
+						<label className="check">
+							<input
+								type="checkbox"
+								checked={finalEvolution}
+								onChange={(e) => setFinalEvolution(e.target.checked)}
+							/>
+							{t("finalEvolution")}
+							<span className="muted small">{t("finalEvolutionHint")}</span>
+						</label>
+					)}
 					{tab !== "box" && (
 						<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
 							<label id="level-scale-label" htmlFor="level-scale-input">

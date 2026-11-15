@@ -1,3 +1,4 @@
+import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import Nature from "../vendor/pokesleep-tool/util/Nature";
 import PokemonIv, { type IngredientType } from "../vendor/pokesleep-tool/util/PokemonIv";
 import SubSkill, { type SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
@@ -21,6 +22,31 @@ export interface BoxEntry {
 	subSkills: Partial<Record<SubSkillLevel, SubSkillType | null>>;
 	/** Set only on the solvers' level-scaled copies (never saved): the entry's real level. */
 	scaledFrom?: number;
+	/** Set only on the solvers' evolved copies (never saved): the Pokémon before evolving. */
+	evolvedFrom?: string;
+}
+
+/**
+ * The box as the solvers see it with "final evolution": every Pokémon that can still evolve becomes its
+ * final form, following pokesleep-tool's "evolved" option: the first final form where the line
+ * branches (Eevee, Ralts…), Toxel by nature, and the main skill level +1 per evolution (capped at the
+ * new skill's maximum). Ingredients, nature and subskills stay. Returns the box itself when off.
+ */
+export function evolveToFinal(box: BoxEntry[], on: boolean | undefined): BoxEntry[] {
+	if (!on) return box;
+	return box.map((e) => {
+		try {
+			const iv = toPokemonIv(e);
+			const finals = iv.decendants;
+			if (finals.length === 0 || finals.some((p) => p.id === iv.pokemon.id)) return e;
+			const final = finals[0];
+			const evolved = iv.clone({ pokemonName: final.name });
+			const skillLevel = Math.min(evolved.skillLevel, getMaxSkillLevel(final.skill));
+			return { ...e, pokemonName: final.name, skillLevel, evolvedFrom: e.pokemonName };
+		} catch {
+			return e;
+		}
+	});
 }
 
 /**

@@ -466,3 +466,16 @@ test("level scaling: solvers treat lower-level Pokémon as the chosen level, the
 	fireEvent.click(within(screen.getByRole("group", { name: "Level scaling" })).getByText("Off"));
 	expect(nameCell().textContent).toMatch(/^Bulbasaur Lv10(?!→)/);
 });
+
+test("final evolution: solvers evolve every Pokémon, the box keeps the real ones", () => {
+	localStorage.setItem("pscalc.box.v1", JSON.stringify([entry("bulba", "Bulbasaur", "AAA"), entry("pika", "Pikachu", "AAA")]));
+	render(<App />);
+	expect(screen.queryByLabelText(/Final evolution/)).toBeNull(); // solver tabs only
+	fireEvent.click(screen.getByText("Slot solver"));
+	expect(document.body.textContent).not.toContain("Venusaur");
+	fireEvent.click(screen.getByLabelText(/Final evolution/));
+	expect(document.body.textContent).toContain("Bulbasaur→Venusaur Lv60");
+	expect(document.body.textContent).toContain("Pikachu→Raichu Lv60");
+	expect(JSON.parse(localStorage.getItem("pscalc.finalEvolution") ?? "false")).toBe(true);
+	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].pokemonName).toBe("Bulbasaur");
+});

@@ -5,7 +5,10 @@ export { ingredientLabel } from "./i18n";
 
 function baseLabel(entry: BoxEntry, withIngredients = true): string {
 	const level = entry.scaledFrom !== undefined ? `${entry.scaledFrom}→${entry.level}` : entry.level;
-	const label = `${pokemonLabel(entry.pokemonName)} Lv${level}`;
+	const name = entry.evolvedFrom
+		? `${pokemonLabel(entry.evolvedFrom)}→${pokemonLabel(entry.pokemonName)}`
+		: pokemonLabel(entry.pokemonName);
+	const label = `${name} Lv${level}`;
 	return withIngredients ? `${label} ${entry.ingredient}` : label;
 }
 
