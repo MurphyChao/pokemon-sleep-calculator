@@ -304,7 +304,7 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(section("料理").textContent).toContain("所需鍋子容量");
 	// Recipe names in Chinese too (the default dish is "Scald" Chunky Salad).
 	expect((within(section("料理")).getByLabelText(/食譜/) as HTMLSelectElement).selectedOptions[0].textContent).toBe(
-		"大塊滿滿熱水沙拉 (95)",
+		"大塊滿滿熱水沙拉・能量 25,356・鍋 95",
 	);
 
 	fireEvent.change(screen.getByLabelText(/語言/), { target: { value: "en" } });
@@ -491,4 +491,16 @@ test("max Sub Skill Seeds: solvers use upgraded subskills, the box keeps the rea
 	const upgraded = document.querySelector('section.card tbody .subskill-icon[aria-label="Helping Speed M"]');
 	expect(upgraded?.getAttribute("title")).toBe("Lv10 Helping Speed M (Sub Skill Seed: was Helping Speed S)");
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].subSkills.lv10).toBe("Helping Speed S");
+});
+
+test("recipes are listed by energy, highest first, and changing the dish type picks the top one", () => {
+	renderSolver([]);
+	const recipe = screen.getByLabelText("Recipe") as HTMLSelectElement;
+	const energies = () => [...recipe.options].map((o) => Number(/· ([\d,]+) energy/.exec(o.text)?.[1].replace(/,/g, "")));
+	expect(energies().length).toBeGreaterThan(10);
+	expect(energies()).toEqual([...energies()].sort((a, b) => b - a));
+	fireEvent.change(screen.getByLabelText("Type"), { target: { value: "dessert" } });
+	expect(recipe.selectedIndex).toBe(0);
+	expect(energies()).toEqual([...energies()].sort((a, b) => b - a));
+	expect([...recipe.options].some((o) => o.text.startsWith("Slowpoke Tail Roll Cake"))).toBe(true);
 });

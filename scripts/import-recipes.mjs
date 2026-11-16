@@ -9,6 +9,7 @@ const ingredientMap = {
 	PURE_OIL: "oil", SOFT_POTATO: "potato", FIERY_HERB: "herb", GREENGRASS_CORN: "corn",
 	SOOTHING_CACAO: "cacao", ROUSING_COFFEE: "coffee", GLOSSY_AVOCADO: "avocado",
 	TASTY_MUSHROOM: "mushroom", LARGE_LEEK: "leek", PLUMP_PUMPKIN: "pumpkin", SLOWPOKE_TAIL: "tail",
+	SNACKABLE_NUTS: "nuts",
 };
 
 const recipes = [];

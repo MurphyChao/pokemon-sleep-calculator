@@ -1,3 +1,4 @@
+import { dishStrength } from "../core/energy";
 import { dailyDemand, mealsPerDay, potSizeNeeded, type Recipe, type RecipeType, recipes } from "../core/recipes";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { type Key, recipeLabel, t } from "./i18n";
@@ -10,6 +11,14 @@ const recipeTypes: { type: RecipeType; label: Key }[] = [
 	{ type: "salad", label: "salad" },
 	{ type: "dessert", label: "dessert" },
 ];
+
+/** A dish's base energy: recipe level 1, no field bonus, not Extra Tasty. */
+const baseEnergy = (r: Recipe) => Math.round(dishStrength(r, 1, 0));
+
+/** The recipes of a type, highest base energy first. */
+function recipesOfType(type: RecipeType): Recipe[] {
+	return recipes.filter((r) => r.type === type).sort((a, b) => baseEnergy(b) - baseEnergy(a));
+}
 
 export interface DishState {
 	recipe: Recipe;
@@ -25,14 +34,14 @@ export function useDish(): DishState {
 	const [recipeType, setRecipeType] = useStoredState<RecipeType>("pscalc.recipeType", "salad");
 	const [recipeId, setRecipeId] = useStoredState("pscalc.recipe", "scald_chunky_salad");
 	const [potSize, setPotSize] = useStoredState("pscalc.potSize", 0);
-	const typeRecipes = recipes.filter((r) => r.type === recipeType);
+	const typeRecipes = recipesOfType(recipeType);
 	const recipe = typeRecipes.find((r) => r.id === recipeId) ?? typeRecipes[0];
 	return { recipe, recipeType, setRecipeType, setRecipeId, potSize, setPotSize };
 }
 
 export default function DishCard(props: { dish: DishState; campTicket: boolean }) {
 	const { recipe, recipeType, setRecipeType, setRecipeId, potSize, setPotSize } = props.dish;
-	const typeRecipes = recipes.filter((r) => r.type === recipeType);
+	const typeRecipes = recipesOfType(recipeType);
 	return (
 		<section className="card">
 			<h2>{t("dish")}</h2>
@@ -44,7 +53,7 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 						onChange={(e) => {
 							const type = e.target.value as RecipeType;
 							setRecipeType(type);
-							setRecipeId(recipes.find((r) => r.type === type)?.id ?? "");
+							setRecipeId(recipesOfType(type)[0]?.id ?? "");
 						}}
 					>
 						{recipeTypes.map((x) => (
@@ -59,7 +68,11 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					<select value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
 						{typeRecipes.map((r) => (
 							<option key={r.id} value={r.id}>
-								{recipeLabel(r)} ({potSizeNeeded(r)})
+								{t("recipeOption", {
+									name: recipeLabel(r),
+									energy: baseEnergy(r).toLocaleString("en-US"),
+									pot: potSizeNeeded(r),
+								})}
 							</option>
 						))}
 					</select>

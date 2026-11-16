@@ -1,5 +1,5 @@
 Files in this directory are copied unmodified from https://github.com/nitoyon/pokesleep-tool
-(commit 965f5d7481cec52be9f407fc54f0dee43d30df9a), licensed under the MIT License. Copyright (c) nitoyon.
+(commit 38bf4840564a7e3c244c9130907020d7e8f6d26a), licensed under the MIT License. Copyright (c) nitoyon.
 
 Do not edit by hand; re-run `node scripts/sync-upstream.mjs`.
 

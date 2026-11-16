@@ -272,6 +272,17 @@
 		}
 	},
 	{
+		"id": "seed_bomb_naan_curry",
+		"name": "\"Seed Bomb\" Naan and Curry",
+		"type": "curry",
+		"bonus": 25,
+		"ingredients": {
+			"nuts": 15,
+			"pumpkin": 12,
+			"corn": 12
+		}
+	},
+	{
 		"id": "fancy_apple_salad",
 		"name": "Fancy Apple Salad",
 		"type": "salad",
@@ -553,6 +564,18 @@
 			"potato": 30,
 			"corn": 18,
 			"mushroom": 27
+		}
+	},
+	{
+		"id": "grass_knot_salad_wrap",
+		"name": "\"Grass Knot\" Salad Wrap",
+		"type": "salad",
+		"bonus": 82,
+		"ingredients": {
+			"nuts": 30,
+			"avocado": 22,
+			"ginger": 36,
+			"tomato": 33
 		}
 	},
 	{
@@ -846,6 +869,18 @@
 			"avocado": 18,
 			"tomato": 16,
 			"milk": 14
+		}
+	},
+	{
+		"id": "slowpoke_tail_roll_cake",
+		"name": "Slowpoke Tail Roll Cake",
+		"type": "dessert",
+		"bonus": 61,
+		"ingredients": {
+			"nuts": 26,
+			"tail": 10,
+			"soy": 22,
+			"egg": 33
 		}
 	}
 ]

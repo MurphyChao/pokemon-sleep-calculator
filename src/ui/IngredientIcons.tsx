@@ -11,8 +11,7 @@ const iconUrls = import.meta.glob("../data/ingredient-icons/*.png", {
 const iconByName = new Map(Object.entries(iconUrls).map(([path, url]) => [path.replace(/^.*\/|\.png$/g, ""), url]));
 
 /**
- * An ingredient's icon, named in its tooltip and alt text (the name itself if there's no icon, e.g.
- * Snackable Nuts).
+ * An ingredient's icon, named in its tooltip and alt text (the name itself if there's no icon).
  */
 export function IngredientIcon(props: {
 	name: IngredientName;
