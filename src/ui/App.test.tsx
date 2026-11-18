@@ -402,6 +402,51 @@ test("both solvers' bench lists show each Pokémon's rating, for the Pokémon as
 	await waitFor(() => expect(benchRow.querySelector(".rating")?.textContent).toMatch(/^[SABCD] Top /));
 });
 
+test("Box filters by type (icons) and by unlocked ingredient", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			{ ...entry("bulba", "Bulbasaur", "ABC"), level: 10 }, // honey (tomato, potato locked)
+			{ ...entry("char", "Charmander", "AAB"), level: 30 }, // sausage, sausage (ginger locked)
+			entry("pika", "Pikachu", "ABC"), // apple, ginger, egg
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	const names = () => [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector("td:not(.icon-cell)")?.textContent?.split(" ")[0]);
+	const types = within(within(box).getByRole("group", { name: "Type" }));
+	const ings = within(within(box).getByRole("group", { name: "Ingredients (unlocked)" }));
+	expect(types.getAllByRole("button")).toHaveLength(19); // All + 18 types, each an icon
+	expect(types.getByRole("button", { name: "Grass" }).querySelector("img.type-icon")).not.toBeNull();
+	expect(names()).toEqual(["Bulbasaur", "Charmander", "Pikachu"]);
+
+	// One click: only that type. More clicks add types; clicking again removes one.
+	fireEvent.click(types.getByRole("button", { name: "Grass" }));
+	expect(names()).toEqual(["Bulbasaur"]);
+	expect(box.textContent).toContain("Showing 1 of 3 Pokémon.");
+	fireEvent.click(types.getByRole("button", { name: "Fire" }));
+	expect(names()).toEqual(["Bulbasaur", "Charmander"]);
+	fireEvent.click(types.getByRole("button", { name: "Grass" }));
+	expect(names()).toEqual(["Charmander"]);
+	expect(JSON.parse(localStorage.getItem("pscalc.boxFilter") ?? "{}").types).toEqual(["fire"]);
+	fireEvent.click(types.getByRole("button", { name: "All" }));
+	expect(names()).toEqual(["Bulbasaur", "Charmander", "Pikachu"]);
+
+	// Ingredient choices are only those unlocked in the box: no Tomato, Potato (locked on Bulbasaur).
+	const choices = ings.getAllByRole("button").map((b) => b.getAttribute("aria-label")).filter(Boolean);
+	expect(choices).not.toContain("Tasty Tomato");
+	expect(choices).not.toContain("Soft Potato");
+	fireEvent.click(ings.getByRole("button", { name: "Warming Ginger" }));
+	expect(names()).toEqual(["Pikachu"]); // Charmander's Ginger slot isn't unlocked at Lv30
+	fireEvent.click(ings.getByRole("button", { name: "Honey" }));
+	expect(names()).toEqual(["Bulbasaur", "Pikachu"]);
+
+	// Both filters together; nothing left shows a message.
+	fireEvent.click(types.getByRole("button", { name: "Fire" }));
+	expect(names()).toEqual([]);
+	expect(box.textContent).toContain("No Pokémon match these filters.");
+});
+
 test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {
 	localStorage.setItem(
 		"pscalc.box.v1",

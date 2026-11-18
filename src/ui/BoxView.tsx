@@ -1,11 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import type { Rating } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
-import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
+import pokemons, {
+	getPokemonRarity,
+	type IngredientName,
+	IngredientNames,
+	type PokemonType,
+	PokemonTypes,
+} from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
+import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t, typeLabel } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel } from "./names";
 import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
@@ -17,6 +23,8 @@ import { NatureEffects } from "./NatureEffects";
 import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
 import RatingCell from "./RatingCell";
+import { type BoxFilter, matchesFilter, noFilter, toggleChoice, unlockedIngredients } from "./boxFilter";
+import { TypeIcon } from "./TypeIcon";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -138,6 +146,18 @@ export default function BoxView(props: {
 	const sort: BoxSort = sortOptions.some((o) => o.by === storedSort.by) ? storedSort : { by: "added", reversed: false };
 	const sortRatings = sort.by === "rating" ? ratings : noRatings;
 	const sortedBox = useMemo(() => sortBox(box, sort, sortRatings), [box, sort.by, sort.reversed, sortRatings]);
+	const [storedFilter, setFilter] = useStoredState<BoxFilter>("pscalc.boxFilter", noFilter);
+	/** Ingredients some Pokémon in the box has unlocked, in the game's order: the ingredient filter's choices. */
+	const ingredientChoices = useMemo(() => {
+		const present = new Set(adjusted.flatMap(unlockedIngredients));
+		return IngredientNames.filter((i) => present.has(i));
+	}, [adjusted]);
+	// Choices no longer in the box (e.g. after deleting a Pokémon) don't filter anything out.
+	const filter: BoxFilter = {
+		types: (storedFilter.types ?? []).filter((x) => PokemonTypes.includes(x)),
+		ingredients: (storedFilter.ingredients ?? []).filter((x) => ingredientChoices.includes(x)),
+	};
+	const shownBox = sortedBox.filter((e) => matchesFilter(e, adjustedById.get(e.id) ?? e, filter));
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
 	const maxSkillLevel = draftPokemon ? getMaxSkillLevel(draftPokemon.skill) : 1;
@@ -317,8 +337,33 @@ export default function BoxView(props: {
 						</div>
 					)}
 				</div>
+				{box.length > 0 && (
+					<div className="box-filters">
+						<FilterRow
+							label={t("filterType")}
+							choices={PokemonTypes}
+							selected={filter.types}
+							onChange={(types) => setFilter({ ...filter, types })}
+							name={typeLabel}
+							icon={(type: PokemonType) => <TypeIcon type={type} decorative />}
+						/>
+						<FilterRow
+							label={t("filterIngredient")}
+							choices={ingredientChoices}
+							selected={filter.ingredients}
+							onChange={(ingredients) => setFilter({ ...filter, ingredients })}
+							name={ingredientLabel}
+							icon={(ing: IngredientName) => <IngredientIcon name={ing} decorative />}
+						/>
+						{shownBox.length < box.length && (
+							<p className="muted small">{t("filterShowing", { n: shownBox.length, total: box.length })}</p>
+						)}
+					</div>
+				)}
 				{box.length === 0 ? (
 					<p className="muted">{t("emptyBox")}</p>
+				) : shownBox.length === 0 ? (
+					<p className="muted">{t("noMatches")}</p>
 				) : (
 					<table>
 						<thead>
@@ -335,7 +380,7 @@ export default function BoxView(props: {
 							</tr>
 						</thead>
 						<tbody>
-							{sortedBox.map((e) => {
+							{shownBox.map((e) => {
 								const a = adjustedById.get(e.id) ?? e;
 								return (
 								<tr key={e.id}>
@@ -418,6 +463,46 @@ export default function BoxView(props: {
 }
 
 const noRatings = new Map<string, Rating | null>();
+
+/**
+ * A row of icon buttons filtering the box. With none selected everything is shown; the first click shows
+ * only that choice, more clicks add or remove choices, and "All" clears them.
+ */
+function FilterRow<T extends string>(props: {
+	label: string;
+	choices: readonly T[];
+	selected: T[];
+	onChange: (selected: T[]) => void;
+	name: (choice: T) => string;
+	icon: (choice: T) => ReactNode;
+}) {
+	const { label, choices, selected, onChange, name, icon } = props;
+	const all = selected.length === 0;
+	return (
+		<div className="filter-row" role="group" aria-label={label} title={t("filterHelp")}>
+			<span className="field-label">{label}</span>
+			<button type="button" className={all ? "filter-all" : "filter-all secondary"} aria-pressed={all} onClick={() => onChange([])}>
+				{t("filterAll")}
+			</button>
+			{choices.map((c) => {
+				const on = selected.includes(c);
+				return (
+					<button
+						type="button"
+						key={c}
+						className={`filter-choice${on ? " selected" : all ? "" : " dim"}`}
+						aria-pressed={on}
+						aria-label={name(c)}
+						title={name(c)}
+						onClick={() => onChange(toggleChoice(selected, c))}
+					>
+						{icon(c)}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
 
 /** Help ingredients first, then skill-only ingredients, e.g. "Soft Potato 16 (+3.1 skill)". */
 function YieldSummary(props: { detail: YieldDetail | undefined }) {

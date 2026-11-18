@@ -72,6 +72,14 @@ two can be added up. The best build (for the tooltip) is found by a local search
 against an exhaustive search over every Pokémon, it finds the same optimum. Code: `src/core/rating.ts`,
 `src/ui/useRatings.ts`.
 
+## Box filters
+
+The Box table can be filtered by type (the game's type icons) and by ingredient: only ingredients a Pokémon has
+unlocked count (at its level, or the scaled level with Level scaling on), and only ingredients someone in the box
+has unlocked are offered. With nothing selected everything is shown; the first click on a choice shows only it,
+further clicks add or remove choices, and "All" clears a row. A Pokémon is shown if it has any selected type and any
+selected ingredient. The filters are remembered.
+
 ## Screenshot import
 
 The Box tab can read Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills
@@ -146,6 +154,8 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
   Run it after syncing new Pokémon from upstream; a test fails if any Pokémon lacks an icon. Event costumes
   (Halloween Pikachu, Holiday Eevee…) use the plain species' icon; real forms map to their own in
   `src/data/pokemonIconSlug.ts`.
+- **Type icons:** `src/data/type-icons/`, the 18 type icons cut from a screenshot of Pokémon Sleep's box filter
+  screen (images © Nintendo/The Pokémon Company), each cropped to its circle with a transparent background.
 - **Recipes:** `src/data/recipes.json`, generated from [SleepAPI](https://github.com/SleepAPI/SleepAPI) (Apache-2.0)
   by `node scripts/import-recipes.mjs`. Recipes using newer ingredients (e.g. Snackable Nuts) may be missing.
 

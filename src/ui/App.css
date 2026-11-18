@@ -876,3 +876,45 @@ button.icon-select-button {
 .rating .small {
 	white-space: normal;
 }
+
+/* Box filters: rows of type and ingredient icon buttons. */
+.box-filters {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin: 0.5rem 0 0.75rem;
+}
+.filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+}
+.filter-row .field-label {
+	min-width: 9rem;
+}
+.filter-row .filter-all {
+	padding: 2px 10px;
+	font-size: 0.85rem;
+}
+.filter-choice {
+	padding: 2px;
+	border: 2px solid transparent;
+	border-radius: 50%;
+	background: transparent;
+	line-height: 0;
+}
+.filter-choice.selected {
+	border-color: var(--accent);
+}
+.filter-choice.dim {
+	opacity: 0.35;
+}
+.filter-choice:hover {
+	opacity: 1;
+}
+.filter-choice .type-icon,
+.filter-choice .ing-icon {
+	width: 28px;
+	height: 28px;
+}
