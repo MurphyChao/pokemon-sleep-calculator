@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import type { Rating } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
@@ -132,6 +132,22 @@ export default function BoxView(props: {
 	const [reviewingId, setReviewingId] = useState<string | undefined>();
 	const reviewing = imports.find((i) => i.id === reviewingId);
 	const formRef = useRef<HTMLElement>(null);
+	/** The pop-up with the screenshot import and the add/edit form. */
+	const [panelOpen, setPanelOpen] = useState(false);
+	/** Closes the pop-up; screenshots still waiting to be checked stay for next time. */
+	const closePanel = () => {
+		setPanelOpen(false);
+		setReviewingId(undefined);
+		startDraft(emptyDraft());
+	};
+	useEffect(() => {
+		if (!panelOpen) return;
+		const onKey = (ev: KeyboardEvent) => {
+			if (ev.key === "Escape") closePanel();
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	}, [panelOpen]);
 	const review = (item: ImportItem | undefined) => {
 		setReviewingId(item?.id);
 		if (item?.reading) {
@@ -171,147 +187,179 @@ export default function BoxView(props: {
 			setBox([...box, { ...draft, skillLevel, id: crypto.randomUUID() }]);
 		}
 		if (reviewing) {
-			// Done with this screenshot: drop it and move on to the next one that's been read.
+			// Done with this screenshot: drop it and move on to the next one that's been read. The pop-up
+			// stays open while other screenshots are waiting.
 			URL.revokeObjectURL(reviewing.url);
 			const rest = imports.filter((i) => i.id !== reviewing.id);
 			setImports(rest);
 			review(rest.find((i) => i.status === "done"));
+			if (rest.length === 0) setPanelOpen(false);
 		} else {
-			startDraft(emptyDraft());
+			closePanel();
 		}
 	};
 
+	const formTitle = isEditing ? t("editPokemon") : reviewing ? t("reviewPokemon") : t("addPokemon");
 	return (
 		<div className="box-view">
-			<ScreenshotImport
-				items={imports}
-				setItems={setImports}
-				reviewingId={reviewingId}
-				onReview={review}
-			/>
-			<section className="card" ref={formRef}>
-				<h2>{isEditing ? t("editPokemon") : reviewing ? t("reviewPokemon") : t("addPokemon")}</h2>
-				{reviewing?.reading && (
-					<div className="review-note">
-						<a href={reviewing.url} target="_blank" rel="noreferrer">
-							<img src={reviewing.url} alt={reviewing.fileName} />
-						</a>
-						<div>
-							<p>{t("reviewHelp")}</p>
-							{reviewing.reading.warnings.length > 0 && (
-								<ul className="warnings">
-									{reviewing.reading.warnings.map((w) => (
-										<li key={w}>{warningText(w, reviewing.reading as NonNullable<typeof reviewing.reading>)}</li>
-									))}
-								</ul>
-							)}
-						</div>
-					</div>
-				)}
-				<div className="form-grid">
-					<label>
-						{t("pokemon")}
-						<input
-							list="pokemon-names"
-							value={nameInput}
-							onChange={(e) => {
-								setNameInput(e.target.value);
-								const name = pokemonFromLabel(e.target.value, pokemonNames) ?? e.target.value;
-								setDraft({ ...draft, pokemonName: name, skillLevel: undefined });
-							}}
-							placeholder={t("typeToSearch")}
-						/>
-						<datalist id="pokemon-names">
-							{pokemonNames.map((n) => (
-								<option key={n} value={pokemonLabel(n)} />
-							))}
-						</datalist>
-					</label>
-					<label>
-						{t("nicknameOptional")}
-						<input
-							value={draft.nickname ?? ""}
-							placeholder={t("nicknamePlaceholder")}
-							onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
-						/>
-					</label>
-					<div className="field">
-						<label htmlFor="level-input">{t("level")}</label>
-						<input
-							id="level-input"
-							type="number"
-							min={1}
-							max={maxPokemonLevel}
-							value={draft.level}
-							onChange={(e) =>
-								setDraft({ ...draft, level: Math.min(maxPokemonLevel, Math.max(1, Number(e.target.value) || 1)) })
-							}
-						/>
-						<div className="key-levels">
-							{keyLevels.map((lv) => (
-								<button
-									type="button"
-									key={lv}
-									className={draft.level === lv ? "" : "secondary"}
-									aria-pressed={draft.level === lv}
-									onClick={() => setDraft({ ...draft, level: lv })}
-								>
-									{lv}
-								</button>
-							))}
-						</div>
-					</div>
-					<label>
-						{t("ingredientsCombo")}
-						<select
-							value={draft.ingredient}
-							onChange={(e) => setDraft({ ...draft, ingredient: e.target.value as IngredientType })}
+			{panelOpen && (
+				<div
+					className="modal-backdrop"
+					onClick={(ev) => {
+						if (ev.target === ev.currentTarget) closePanel();
+					}}
+				>
+					<div className="modal" role="dialog" aria-modal="true" aria-label={formTitle}>
+						<button
+							type="button"
+							className="secondary icon-button modal-close"
+							aria-label={t("close")}
+							title={t("close")}
+							onClick={closePanel}
 						>
-							{IngredientTypes.map((t) => (
-								<option key={t} value={t}>
-									{validName ? comboLabel(draft.pokemonName, t) : t}
-								</option>
-							))}
-						</select>
-					</label>
-					<label>
-						{draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")}
-						<select
-							value={skillLevel}
-							disabled={!validName}
-							onChange={(e) => setDraft({ ...draft, skillLevel: Number(e.target.value) })}
-						>
-							{Array.from({ length: maxSkillLevel }, (_, i) => i + 1).map((lv) => (
-								<option key={lv} value={lv}>
-									{lv}
-								</option>
-							))}
-						</select>
-					</label>
-				</div>
-				<div className="subskill-field">
-					<span className="field-label">{t("natureField")}</span>
-					<NaturePicker value={draft.nature} onChange={(nature) => setDraft({ ...draft, nature })} />
-				</div>
-				<div className="subskill-field">
-					<span className="field-label">{t("subskillsField")}</span>
-					<SubSkillPicker value={draft.subSkills} onChange={(subSkills) => setDraft({ ...draft, subSkills })} />
-				</div>
-				<div className="actions">
-					<button type="button" onClick={save} disabled={!validName}>
-						{isEditing ? t("saveChanges") : t("addToBox")}
-					</button>
-					{(isEditing || reviewing) && (
-						<button type="button" className="secondary" onClick={() => review(undefined)}>
-							{t("cancel")}
+							×
 						</button>
-					)}
+						{!isEditing && (
+							<ScreenshotImport
+								items={imports}
+								setItems={setImports}
+								reviewingId={reviewingId}
+								onReview={review}
+							/>
+						)}
+						<section className="card" ref={formRef}>
+							<h2>{formTitle}</h2>
+							{reviewing?.reading && (
+								<div className="review-note">
+									<a href={reviewing.url} target="_blank" rel="noreferrer">
+										<img src={reviewing.url} alt={reviewing.fileName} />
+									</a>
+									<div>
+										<p>{t("reviewHelp")}</p>
+										{reviewing.reading.warnings.length > 0 && (
+											<ul className="warnings">
+												{reviewing.reading.warnings.map((w) => (
+													<li key={w}>{warningText(w, reviewing.reading as NonNullable<typeof reviewing.reading>)}</li>
+												))}
+											</ul>
+										)}
+									</div>
+								</div>
+							)}
+							<div className="form-grid">
+								<label>
+									{t("pokemon")}
+									<input
+										list="pokemon-names"
+										value={nameInput}
+										onChange={(e) => {
+											setNameInput(e.target.value);
+											const name = pokemonFromLabel(e.target.value, pokemonNames) ?? e.target.value;
+											setDraft({ ...draft, pokemonName: name, skillLevel: undefined });
+										}}
+										placeholder={t("typeToSearch")}
+									/>
+									<datalist id="pokemon-names">
+										{pokemonNames.map((n) => (
+											<option key={n} value={pokemonLabel(n)} />
+										))}
+									</datalist>
+								</label>
+								<label>
+									{t("nicknameOptional")}
+									<input
+										value={draft.nickname ?? ""}
+										placeholder={t("nicknamePlaceholder")}
+										onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
+									/>
+								</label>
+								<div className="field">
+									<label htmlFor="level-input">{t("level")}</label>
+									<input
+										id="level-input"
+										type="number"
+										min={1}
+										max={maxPokemonLevel}
+										value={draft.level}
+										onChange={(e) =>
+											setDraft({ ...draft, level: Math.min(maxPokemonLevel, Math.max(1, Number(e.target.value) || 1)) })
+										}
+									/>
+									<div className="key-levels">
+										{keyLevels.map((lv) => (
+											<button
+												type="button"
+												key={lv}
+												className={draft.level === lv ? "" : "secondary"}
+												aria-pressed={draft.level === lv}
+												onClick={() => setDraft({ ...draft, level: lv })}
+											>
+												{lv}
+											</button>
+										))}
+									</div>
+								</div>
+								<label>
+									{t("ingredientsCombo")}
+									<select
+										value={draft.ingredient}
+										onChange={(e) => setDraft({ ...draft, ingredient: e.target.value as IngredientType })}
+									>
+										{IngredientTypes.map((t) => (
+											<option key={t} value={t}>
+												{validName ? comboLabel(draft.pokemonName, t) : t}
+											</option>
+										))}
+									</select>
+								</label>
+								<label>
+									{draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")}
+									<select
+										value={skillLevel}
+										disabled={!validName}
+										onChange={(e) => setDraft({ ...draft, skillLevel: Number(e.target.value) })}
+									>
+										{Array.from({ length: maxSkillLevel }, (_, i) => i + 1).map((lv) => (
+											<option key={lv} value={lv}>
+												{lv}
+											</option>
+										))}
+									</select>
+								</label>
+							</div>
+							<div className="subskill-field">
+								<span className="field-label">{t("natureField")}</span>
+								<NaturePicker value={draft.nature} onChange={(nature) => setDraft({ ...draft, nature })} />
+							</div>
+							<div className="subskill-field">
+								<span className="field-label">{t("subskillsField")}</span>
+								<SubSkillPicker value={draft.subSkills} onChange={(subSkills) => setDraft({ ...draft, subSkills })} />
+							</div>
+							<div className="actions">
+								<button type="button" onClick={save} disabled={!validName}>
+									{isEditing ? t("saveChanges") : t("addToBox")}
+								</button>
+								<button type="button" className="secondary" onClick={closePanel}>
+									{t("cancel")}
+								</button>
+							</div>
+						</section>
+					</div>
 				</div>
-			</section>
+			)}
 
 			<section className="card">
 				<div className="box-header">
 					<h2>{t("yourBox")}</h2>
+					<button
+						type="button"
+						onClick={() => {
+							startDraft(emptyDraft());
+							setPanelOpen(true);
+						}}
+					>
+						{t("addPokemonButton")}
+					</button>
 					{box.length > 1 && (
 						<div className="box-sort">
 							<label>
@@ -434,6 +482,7 @@ export default function BoxView(props: {
 											onClick={() => {
 												setReviewingId(undefined);
 												startDraft(e);
+												setPanelOpen(true);
 											}}
 										>
 											<PencilIcon />

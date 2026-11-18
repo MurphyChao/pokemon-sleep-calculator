@@ -62,6 +62,8 @@ const en = {
 
 	// Box
 	addPokemon: "Add Pokémon",
+	addPokemonButton: "+ Add Pokémon",
+	close: "Close",
 	editPokemon: "Edit Pokémon",
 	pokemon: "Pokémon",
 	typeToSearch: "Type to search",
@@ -335,6 +337,8 @@ const zh: Record<Key, string> = {
 	footerRecipeNames: "食譜中文名稱取自神奇寶貝百科（52poke）。",
 
 	addPokemon: "新增寶可夢",
+	addPokemonButton: "＋ 新增寶可夢",
+	close: "關閉",
 	editPokemon: "編輯寶可夢",
 	pokemon: "寶可夢",
 	typeToSearch: "輸入以搜尋",

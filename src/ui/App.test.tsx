@@ -76,16 +76,50 @@ test("box shortfall is reported and pinning counts a full slot", () => {
 	expect(JSON.parse(localStorage.getItem("pscalc.pinned") ?? "[]")).toEqual(["spirit"]);
 });
 
-test("adds a Pokémon from the Box form", () => {
+test("adds a Pokémon from the pop-up the Add Pokémon button opens", () => {
 	render(<App />);
-	fireEvent.change(screen.getByPlaceholderText("Type to search"), { target: { value: "Sandslash" } });
-	fireEvent.click(screen.getByText("Add to box"));
+	// The screenshot import and the form only appear in the pop-up.
+	expect(screen.queryByPlaceholderText("Type to search")).toBeNull();
+	expect(screen.queryByRole("dialog")).toBeNull();
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
+	const dialog = within(screen.getByRole("dialog", { name: "Add Pokémon" }));
+	expect(dialog.getByText("Import from screenshots")).toBeTruthy();
+	fireEvent.change(dialog.getByPlaceholderText("Type to search"), { target: { value: "Sandslash" } });
+	fireEvent.click(dialog.getByText("Add to box"));
 	expect(screen.getByText("Box (1)")).toBeTruthy();
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].pokemonName).toBe("Sandslash");
+	// Adding closes it.
+	expect(screen.queryByRole("dialog")).toBeNull();
+
+	// Cancel, Esc and the close button close it without adding anything.
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
+	fireEvent.click(screen.getByText("Cancel"));
+	expect(screen.queryByRole("dialog")).toBeNull();
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
+	fireEvent.keyDown(document, { key: "Escape" });
+	expect(screen.queryByRole("dialog")).toBeNull();
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
+	fireEvent.click(screen.getByLabelText("Close"));
+	expect(screen.queryByRole("dialog")).toBeNull();
+	expect(screen.getByText("Box (1)")).toBeTruthy();
+});
+
+test("the edit button opens the pop-up with the Pokémon, without the screenshot import", () => {
+	localStorage.setItem("pscalc.box.v1", JSON.stringify([entry("sandslash", "Sandslash", "ABC", 6)]));
+	render(<App />);
+	fireEvent.click(screen.getByLabelText("Edit"));
+	const dialog = within(screen.getByRole("dialog", { name: "Edit Pokémon" }));
+	expect((dialog.getByPlaceholderText("Type to search") as HTMLInputElement).value).toBe("Sandslash");
+	expect(dialog.queryByText("Import from screenshots")).toBeNull();
+	fireEvent.change(dialog.getByLabelText("Level"), { target: { value: "65" } });
+	fireEvent.click(dialog.getByText("Save changes"));
+	expect(screen.queryByRole("dialog")).toBeNull();
+	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].level).toBe(65);
 });
 
 test("key level buttons set the level and the number box still accepts any level", () => {
 	render(<App />);
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
 	const form = within(section("Add Pokémon"));
 	const level = form.getByLabelText("Level") as HTMLInputElement;
 	fireEvent.click(form.getByRole("button", { name: "60" }));
@@ -294,6 +328,7 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(boxTable.querySelector('.subskill-icon[aria-label="幫忙速度M"]')).toBeTruthy();
 
 	// Typing a Chinese name selects the Pokémon.
+	fireEvent.click(screen.getByText("＋ 新增寶可夢"));
 	fireEvent.change(screen.getByPlaceholderText("輸入以搜尋"), { target: { value: "咚咚鼠" } });
 	fireEvent.click(screen.getByText("加入寶可夢盒"));
 	const saved = JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]") as BoxEntry[];

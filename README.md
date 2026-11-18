@@ -82,8 +82,9 @@ selected ingredient. The filters are remembered.
 
 ## Screenshot import
 
-The Box tab can read Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills
-and nature are visible), in Traditional Chinese, Japanese or English. Text is read with
+The Box tab's **+ Add Pokémon** button opens a pop-up with the form and a screenshot importer, which reads
+Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills and nature are visible),
+in Traditional Chinese, Japanese or English. Text is read with
 [Tesseract.js](https://github.com/naptha/tesseract.js) in the browser and fuzzy-matched against the game's names.
 Screenshots are never uploaded. The OCR worker, engine and language data (`@tesseract.js-data/*`) are served from
 this site under `tesseract/` (copied from `node_modules` by a small plugin in `vite.config.ts`), not from a CDN;

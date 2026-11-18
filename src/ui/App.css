@@ -918,3 +918,32 @@ button.icon-select-button {
 	width: 28px;
 	height: 28px;
 }
+
+/* Pop-up with the screenshot import and the add/edit form. */
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 2rem 1rem;
+	overflow-y: auto;
+	background: rgba(0, 0, 0, 0.45);
+}
+.modal {
+	position: relative;
+	width: 100%;
+	max-width: 960px;
+	padding: 2.25rem 1rem 1rem;
+	border-radius: 12px;
+	background: var(--bg);
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+.modal-close {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	font-size: 1.25rem;
+	line-height: 1;
+}
