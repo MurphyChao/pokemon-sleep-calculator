@@ -123,7 +123,6 @@ const en = {
 	delete: "Delete",
 	inclFromSkill: "(incl. {n} from skill)",
 	fromSkill: "(from skill)",
-	skillRandom: "Skill: {n} random ingredients/day, split over {k} kinds",
 
 	// Google sync
 	syncTurnOn: "Sign in with Google",
@@ -405,7 +404,6 @@ const zh: Record<Key, string> = {
 	delete: "刪除",
 	inclFromSkill: "（含技能 {n}）",
 	fromSkill: "（來自技能）",
-	skillRandom: "技能：每日 {n} 個隨機食材，平均分到 {k} 種",
 
 	syncTurnOn: "使用 Google 帳戶登入",
 	syncTurnOff: "登出",

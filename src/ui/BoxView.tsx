@@ -570,7 +570,8 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 	const detail = props.detail;
 	if (!detail) return null;
 	const help = Object.entries(detail.help) as [IngredientName, number][];
-	const skillTotal = Object.values(detail.skill).reduce((a, b) => a + (b ?? 0), 0);
+	// Skills spreading over many kinds (Ingredient Magnet) would list them all: those only count where
+	// they add to an ingredient the Pokémon gathers anyway.
 	const skillKinds = Object.keys(detail.skill).length;
 	return (
 		<>
@@ -583,17 +584,14 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 					</div>
 				);
 			})}
-			{skillKinds <= 5
-				? (Object.entries(detail.skill) as [IngredientName, number][])
-						.filter(([ing]) => !(ing in detail.help))
-						.map(([ing, n]) => (
-							<div key={ing}>
-								<IngredientIcon name={ing} /> {formatAmount(n)} <span className="muted">{t("fromSkill")}</span>
-							</div>
-						))
-				: skillTotal > 0 && (
-						<div className="muted">{t("skillRandom", { n: formatAmount(skillTotal), k: skillKinds })}</div>
-					)}
+			{skillKinds <= 5 &&
+				(Object.entries(detail.skill) as [IngredientName, number][])
+					.filter(([ing]) => !(ing in detail.help))
+					.map(([ing, n]) => (
+						<div key={ing}>
+							<IngredientIcon name={ing} /> {formatAmount(n)} <span className="muted">{t("fromSkill")}</span>
+						</div>
+					))}
 		</>
 	);
 }
