@@ -959,6 +959,11 @@ button.icon-select-button {
 	line-height: 1;
 }
 
+/* The Dish card's ingredient note is only for the phone layout (below). */
+.dish-ings caption {
+	display: none;
+}
+
 /* Shorter labels on phones (below). */
 .label-short {
 	display: none;
@@ -1203,6 +1208,61 @@ button.icon-select-button {
 	}
 	table.stack td:empty {
 		display: none;
+	}
+
+	/* Dish card: Type and pot size side by side, the recipe below; ingredients as "🎃 20 / 60" chips. */
+	.dish-card .form-grid {
+		grid-template-columns: 1fr 1fr;
+		gap: 6px 10px;
+	}
+	.dish-card .form-grid > label:nth-child(2) {
+		grid-column: 1 / -1;
+		order: 3;
+	}
+	.dish-card .form-grid > label {
+		min-width: 0;
+	}
+	.dish-card .form-grid select,
+	.dish-card .form-grid input {
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+	.dish-card .recipe-summary p {
+		margin: 8px 0 4px;
+	}
+	.dish-ings caption {
+		display: block;
+		text-align: left;
+		color: var(--muted);
+		font-size: 0.8rem;
+	}
+	.dish-ings thead {
+		display: none;
+	}
+	.dish-ings,
+	.dish-ings tbody {
+		display: block;
+	}
+	.dish-ings tr {
+		display: inline-block;
+		margin: 4px 6px 0 0;
+		padding: 2px 8px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		white-space: nowrap;
+	}
+	.dish-ings td {
+		display: inline;
+		padding: 0;
+		border: none;
+	}
+	.dish-ings .ing-name {
+		display: none;
+	}
+	.dish-ings td:nth-child(3)::before {
+		content: " / ";
+		color: var(--muted);
 	}
 
 	/* The add/edit pop-up uses the whole screen width. */

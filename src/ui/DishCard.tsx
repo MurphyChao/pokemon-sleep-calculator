@@ -43,7 +43,7 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 	const { recipe, recipeType, setRecipeType, setRecipeId, potSize, setPotSize } = props.dish;
 	const typeRecipes = recipesOfType(recipeType);
 	return (
-		<section className="card">
+		<section className="card dish-card">
 			<h2>{t("dish")}</h2>
 			<div className="form-grid">
 				<label>
@@ -124,7 +124,11 @@ function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boo
 					</>
 				)}
 			</p>
-			<table>
+			<table className="dish-ings">
+				{/* Phones show the ingredients as "🎃 20 / 60" chips under this note instead of the header (App.css). */}
+				<caption>
+					{t("perMeal")} / {t("perDayMeals", { n: mealsPerDay })}
+				</caption>
 				<thead>
 					<tr>
 						<th>{t("colIngredient")}</th>
@@ -136,7 +140,7 @@ function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boo
 					{(Object.entries(recipe.ingredients) as [IngredientName, number][]).map(([ing, n]) => (
 						<tr key={ing}>
 							<td>
-								<IngredientIcon name={ing} decorative /> {ingredientLabel(ing)}
+								<IngredientIcon name={ing} decorative /> <span className="ing-name">{ingredientLabel(ing)}</span>
 							</td>
 							<td>{n}</td>
 							<td>{demand[ing]}</td>
