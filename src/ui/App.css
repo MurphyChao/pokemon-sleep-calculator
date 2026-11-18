@@ -1304,6 +1304,145 @@ button.icon-select-button {
 		font-size: 0.8rem;
 	}
 
+	/* Add/edit pop-up: smaller import section, two-column fields, tighter pickers, buttons kept in view. */
+	.modal .card {
+		padding: 10px;
+		margin-bottom: 10px;
+		/* Not a scroll container, so the buttons below can stick to the bottom of the screen. */
+		overflow: visible;
+	}
+	.modal .card h2 {
+		font-size: 1.05rem;
+		margin: 0 0 6px;
+	}
+	.modal .card > p.muted.small {
+		font-size: 0.78rem;
+		margin: 0 0 6px;
+	}
+	.modal .drop-zone {
+		padding: 0.5rem;
+		gap: 0.5rem;
+	}
+	.modal .drop-zone > .muted.small {
+		display: none;
+	}
+	.modal .form-grid {
+		grid-template-columns: 1fr 1fr;
+		gap: 6px 10px;
+	}
+	.modal .form-grid > * {
+		min-width: 0;
+		font-size: 0.8rem;
+	}
+	.modal .form-grid > :nth-child(1) {
+		grid-column: 1 / -1;
+		order: 1;
+	}
+	.modal .form-grid > :nth-child(3) {
+		order: 2;
+	}
+	.modal .form-grid > :nth-child(5) {
+		order: 3;
+	}
+	.modal .form-grid > :nth-child(4) {
+		grid-column: 1 / -1;
+		order: 4;
+	}
+	.modal .form-grid > :nth-child(2) {
+		grid-column: 1 / -1;
+		order: 5;
+	}
+	.modal .form-grid input,
+	.modal .form-grid select {
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+	.modal .key-levels {
+		gap: 3px;
+	}
+	.modal .key-levels button {
+		padding: 1px 0;
+		font-size: 0.78rem;
+	}
+	.modal .field-label {
+		font-size: 0.8rem;
+		margin-bottom: 4px;
+	}
+	.modal .subskill-field {
+		margin-top: 8px;
+	}
+	.modal .nature-picker {
+		gap: 4px;
+	}
+	.modal .nature-row,
+	.modal .nature-result {
+		gap: 4px;
+	}
+	/* Each ▲/▼ row: the arrow, then five equal buttons with the icon above a small label. */
+	.modal .nature-row {
+		display: grid;
+		grid-template-columns: 1rem repeat(5, minmax(0, 1fr));
+		gap: 3px;
+	}
+	.modal .nature-picker button.nature-button {
+		padding: 3px 0;
+		font-size: 0.62rem;
+		line-height: 1.1;
+	}
+	.modal .nature-row button.nature-button {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1px;
+		min-width: 0;
+		white-space: nowrap;
+	}
+	.modal .nature-result button.nature-button {
+		padding: 3px 10px;
+		font-size: 0.8rem;
+	}
+	.modal .subskill-slots {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 4px;
+		margin-bottom: 6px;
+	}
+	.modal .subskill-slot {
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	.modal .subskill-grid {
+		gap: 4px;
+	}
+	.modal .subskill-picker button.subskill-slot,
+	.modal .subskill-picker button.subskill-button,
+	.modal .subskill-picker .subskill-slots > button.secondary {
+		padding: 2px 6px;
+		font-size: 0.78rem;
+	}
+	.modal .review-note {
+		gap: 0.5rem;
+		padding: 0.5rem;
+		font-size: 0.85rem;
+	}
+	.modal .review-note img {
+		width: 90px;
+	}
+	.modal .actions {
+		position: sticky;
+		/* Down over the pop-up's outer margin, so nothing shows below the buttons. */
+		bottom: -0.5rem;
+		z-index: 1;
+		margin: 8px -10px -10px;
+		padding: 8px 10px calc(8px + 0.5rem);
+		border-top: 1px solid var(--border);
+		border-radius: 0 0 10px 10px;
+		background: var(--card);
+	}
+
 	/* The add/edit pop-up uses the whole screen width. */
 	.modal-backdrop {
 		padding: 0.5rem;
