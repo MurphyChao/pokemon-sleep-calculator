@@ -28,6 +28,7 @@ import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
 import RankCell from "./RankCell";
+import TableHelp from "./TableHelp";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -173,7 +174,7 @@ export default function EnergyView(props: {
 				</section>
 			) : (
 				<>
-					<section className="card headline">
+					<section className="card headline best-team">
 						<h2>{t("bestTeam")}</h2>
 						<p>
 							<strong className="big">{t("strengthPerDay", { n: formatStrength(e.total) })}</strong>
@@ -294,9 +295,9 @@ export default function EnergyView(props: {
 								</tr>
 							</tbody>
 						</table>
-						<p className="muted small">
+						<TableHelp>
 							<Rich text={t("energyTeamHelp", { n: teamSlots })} />
-						</p>
+						</TableHelp>
 					</section>
 
 					<SwapCard

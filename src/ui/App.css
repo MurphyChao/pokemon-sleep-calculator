@@ -965,6 +965,11 @@ button.icon-select-button {
 	display: none;
 }
 
+/* Table explanations fold behind this button on phones only (below). */
+.help-toggle {
+	display: none;
+}
+
 /* The sync button's icon is only for phones (below). */
 .sync-now-icon {
 	display: none;
@@ -1546,6 +1551,33 @@ button.icon-select-button {
 		border-top: 1px solid var(--border);
 		border-radius: 0 0 10px 10px;
 		background: var(--card);
+	}
+
+	/* Table explanations folded behind a small button. */
+	.help-toggle {
+		display: inline-block;
+		margin-top: 4px;
+		padding: 2px 8px;
+		font-size: 0.75rem;
+	}
+	.table-help:not(.open) {
+		display: none;
+	}
+
+	/* Energy solver's Best team card: a smaller headline, the summary lines in small text. */
+	.best-team .big {
+		font-size: 1.25rem;
+	}
+	.best-team > p {
+		margin: 4px 0;
+		font-size: 0.8rem;
+		line-height: 1.35;
+	}
+	.best-team > p:first-of-type {
+		font-size: 0.85rem;
+	}
+	.best-team h2 {
+		margin-bottom: 2px;
 	}
 
 	/* The add/edit pop-up uses the whole screen width. */
