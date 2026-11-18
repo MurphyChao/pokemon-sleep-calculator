@@ -28,7 +28,7 @@ best combinations found and refines them.
 
 The Box table rates each Pokémon's nature and subskills by where they rank among all possible rolls of the same
 Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
-as odds too ("1 in 33 rolls is better"). Grades: S top 5%, A top 20%, B top 50%, C top 80%, D the rest. The box can
+as odds too ("1 in 33 rolls is better"). Grades: S top 3%, A top 15%, B top 50%, C top 80%, D the rest. The box can
 be sorted by it, and both solvers' bench lists show it too. It's for the Pokémon after final evolution, if that
 option is on. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.

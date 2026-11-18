@@ -53,10 +53,10 @@ export const rollSampleSize = 2000;
 export const grades = ["S", "A", "B", "C", "D"] as const;
 export type Grade = (typeof grades)[number];
 
-/** For each grade but the last: the share of random rolls that may be better (S: top 5%, A: top 20%…). */
+/** For each grade but the last: the share of random rolls that may be better (S: top 3%, A: top 15%…). */
 const gradeThresholds: [Grade, number][] = [
-	["S", 0.05],
-	["A", 0.2],
+	["S", 0.03],
+	["A", 0.15],
 	["B", 0.5],
 	["C", 0.8],
 ];
