@@ -48,6 +48,7 @@ export default function RatingCell(props: { rating: Rating | null | undefined })
 				n: new Intl.NumberFormat(getLang()).format(rollSampleSize),
 				ofBest: Math.floor(rating.ofBest),
 				best,
+				benchmark: t(rating.skillMaxed ? "ratingBenchmarkMax" : "ratingBenchmarkOwn", { n: rating.skillLevel }),
 			})}
 		>
 			<strong>{rating.grade}</strong> {topLabel(rating.better)}

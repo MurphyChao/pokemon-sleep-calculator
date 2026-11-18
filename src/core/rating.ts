@@ -2,7 +2,7 @@ import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import Nature, { type NatureEffect } from "../vendor/pokesleep-tool/util/Nature";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import SubSkill from "../vendor/pokesleep-tool/util/SubSkill";
-import { type BoxEntry, type SubSkillLevel, subSkillLevels, toPokemonIv } from "./box";
+import { type BoxEntry, maxSubSkillSeeds, type SubSkillLevel, subSkillLevels, toPokemonIv } from "./box";
 import {
 	defaultStrengthOptions,
 	defaultYieldOptions,
@@ -66,8 +66,36 @@ export interface Rating {
 	grade: Grade;
 	/** 0–100: the Pokémon's value as a share of the best nature and subskills it could have. */
 	ofBest: number;
-	/** The best nature and subskills found, which score 100. */
+	/** The best nature and subskills found (as rolled, before Sub Skill Seeds), which score 100. */
 	best: { nature: string; subSkills: SubSkillType[] };
+	/** Main skill level the Pokémon was rated at. */
+	skillLevel: number;
+	/** Whether the main skill is rated at its max level (every role but ingredients). */
+	skillMaxed: boolean;
+}
+
+/**
+ * Whether a role is benchmarked with the main skill at its max level. Pure ingredient Pokémon keep their
+ * own skill level: players tend to save Main Skill Seeds for strength and skill-trigger Pokémon.
+ */
+export function maxesSkill(role: RatingRole): boolean {
+	return role !== "ingredients";
+}
+
+/**
+ * Subskills (all unlocked) after using Sub Skill Seeds as far as they go, by the same rules as the solvers'
+ * option: S → M → L, never giving a Pokémon the same subskill twice.
+ */
+export function seedSubSkills(subSkills: SubSkillType[]): SubSkillType[] {
+	const slots: Partial<Record<SubSkillLevel, SubSkillType>> = {};
+	subSkills.forEach((s, i) => {
+		slots[subSkillLevels[i]] = s;
+	});
+	const [seeded] = maxSubSkillSeeds(
+		[{ id: "", pokemonName: "", level: ratingLevel, ingredient: "AAA", nature: "Serious", subSkills: slots }],
+		true,
+	);
+	return subSkillLevels.map((lv) => seeded.subSkills[lv]).filter((n): n is SubSkillType => !!n);
 }
 
 /**
@@ -141,7 +169,8 @@ function seededRandom(seed: number): () => number {
 
 /**
  * Values of {@link rollSampleSize} random rolls, sorted: a nature and 5 different subskills, each equally
- * likely (the game doesn't publish the real odds), all unlocked as at the rating level.
+ * likely (the game doesn't publish the real odds), all unlocked as at the rating level and upgraded with
+ * Sub Skill Seeds like the Pokémon being rated.
  */
 export function sampleRolls(problem: RatingProblem, options: YieldOptions, count = rollSampleSize): Float64Array {
 	const random = seededRandom(20261118);
@@ -154,7 +183,7 @@ export function sampleRolls(problem: RatingProblem, options: YieldOptions, count
 		const pool = [...subSkills];
 		const roll: SubSkill[] = [];
 		while (roll.length < maxSubSkills) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
-		const key = `${natureClass(nature, options)}|${subSkillsKey(roll)}`;
+		const key = `${natureClass(nature, options)}|${subSkillsKey(seedSubSkills(roll.map((s) => s.name)).map((n) => new SubSkill(n)))}`;
 		let value = memo.get(key);
 		if (value === undefined) {
 			value = problem.valueOf(
@@ -202,18 +231,12 @@ function baseSkillLevel(entry: BoxEntry): number {
 }
 
 /** The Pokémon at the rating level with the given nature and subskills (all unlocked). */
-function build(entry: BoxEntry, base: number, maxSkill: number, nature: string, subSkills: SubSkillType[]): BoxEntry {
+function build(entry: BoxEntry, skillLevel: number, nature: string, subSkills: SubSkillType[]): BoxEntry {
 	const slots: Partial<Record<SubSkillLevel, SubSkillType | null>> = {};
 	subSkillLevels.forEach((lv, i) => {
 		slots[lv] = subSkills[i] ?? null;
 	});
-	return {
-		...entry,
-		level: ratingLevel,
-		nature,
-		subSkills: slots,
-		skillLevel: Math.min(maxSkill, base + skillLevelUp(subSkills)),
-	};
+	return { ...entry, level: ratingLevel, nature, subSkills: slots, skillLevel };
 }
 
 function measures(d: YieldDetail): Record<Measure, number> {
@@ -239,8 +262,13 @@ export function ratingRole(specialty: string, detail: YieldDetail): RatingRole {
 /** What the search for a Pokémon's best nature and subskills works with. */
 export interface RatingProblem {
 	role: RatingRole;
-	/** The role's value of the Pokémon at the rating level with this nature and subskills. */
+	/**
+	 * The role's value of the Pokémon at the rating level with this nature and these subskills as rolled
+	 * (Sub Skill Seeds are applied, see {@link seedSubSkills}).
+	 */
 	valueOf: (nature: string, subSkills: SubSkillType[]) => number;
+	/** Main skill level for these subskills as rolled. */
+	skillLevelOf: (subSkills: SubSkillType[]) => number;
 	natures: string[];
 	candidates: SubSkillType[];
 	/** Identifies the best build: species, ingredients, base skill level and settings. */
@@ -255,11 +283,17 @@ export function ratingProblem(
 	const iv = toPokemonIv(entry);
 	const maxSkill = getMaxSkillLevel(iv.pokemon.skill);
 	const base = baseSkillLevel(entry);
-	const detailOf = (nature: string, subSkills: SubSkillType[]) =>
-		soloYieldDetail(build(entry, base, maxSkill, nature, subSkills), options, strength);
-
+	const detailAt = (skillLevel: number, nature: string, seeded: SubSkillType[]) =>
+		soloYieldDetail(build(entry, skillLevel, nature, seeded), options, strength);
+	// What the main skill does doesn't depend on its level, so the role can be found at any level.
+	const role = ratingRole(iv.pokemon.specialty, detailAt(base, "Serious", []));
+	const seededSkillLevel = (seeded: SubSkillType[]) =>
+		maxesSkill(role) ? maxSkill : Math.min(maxSkill, base + skillLevelUp(seeded));
+	const detailOf = (nature: string, subSkills: SubSkillType[]) => {
+		const seeded = seedSubSkills(subSkills);
+		return detailAt(seededSkillLevel(seeded), nature, seeded);
+	};
 	const baseline = detailOf("Serious", []);
-	const role = ratingRole(iv.pokemon.specialty, baseline);
 	const weights = Object.entries(roleWeights[role]) as [Measure, number][];
 	const baseMeasures = measures(baseline);
 	const valueOf = (nature: string, subSkills: SubSkillType[]) => {
@@ -273,6 +307,7 @@ export function ratingProblem(
 	return {
 		role,
 		valueOf,
+		skillLevelOf: (subSkills) => seededSkillLevel(seedSubSkills(subSkills)),
 		natures: candidateNatures(options),
 		candidates: candidateSubSkills(role, skillCounts, options),
 		key: [entry.pokemonName, entry.ingredient, base, JSON.stringify(options), JSON.stringify(strength)].join("|"),
@@ -287,7 +322,9 @@ const speciesCache = new Map<string, { best: { value: number; nature: string; su
  * {@link ratingLevel}), with the yield model and settings the solvers use: where it ranks among random
  * rolls of the same Pokémon ({@link sampleRolls}), and how close it comes to the best nature and subskills
  * ({@link searchBest}). Each measure is taken relative to the same Pokémon with a neutral nature and no
- * subskills, so a hybrid's ingredients and skill triggers can be added up.
+ * subskills, so a hybrid's ingredients and skill triggers can be added up. Every build is benchmarked with
+ * Sub Skill Seeds used as far as they go, and with the main skill at its max level except for pure
+ * ingredient Pokémon, which keep their own skill level plus Skill Level Up ({@link maxesSkill}).
  */
 export function rateEntry(
 	entry: BoxEntry,
@@ -313,6 +350,8 @@ export function rateEntry(
 		grade: gradeOf(better),
 		ofBest: best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0,
 		best: { nature: best.nature, subSkills: best.subSkills },
+		skillLevel: problem.skillLevelOf(own),
+		skillMaxed: maxesSkill(problem.role),
 	};
 }
 

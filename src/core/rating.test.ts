@@ -63,25 +63,44 @@ describe("rateEntry", () => {
 		expect(rateEntry(e("Dragonite", "Adamant", subs)).ofBest).toBeLessThan(neutral); // ingredient finding ▼
 	});
 
-	it("rates at full potential: subskills not unlocked yet count, and so does their Skill Level Up", () => {
-		const subs: SubSkillType[] = ["Helping Speed S", "Berry Finding S", "Skill Level Up M"];
-		const lv30 = rateEntry(e("Sceptile", "Serious", subs, { level: 30, skillLevel: 2 }));
-		// At Lv60 Skill Level Up M is unlocked and already included in the in-game skill level.
-		const lv60 = rateEntry(e("Sceptile", "Serious", subs, { level: 60, skillLevel: 4 }));
-		expect(lv30.ofBest).toBeCloseTo(lv60.ofBest, 6);
-		const withoutLevelUp = rateEntry(e("Sceptile", "Serious", ["Helping Speed S", "Berry Finding S"], { level: 30, skillLevel: 2 }));
-		expect(lv30.ofBest).toBeGreaterThan(withoutLevelUp.ofBest);
+	it("maxes the main skill except for pure ingredient Pokémon, so their entered skill level doesn't matter", () => {
+		const subs: SubSkillType[] = ["Helping Speed M", "Berry Finding S"];
+		const low = rateEntry(e("Sceptile", "Serious", subs, { skillLevel: 1 }));
+		const high = rateEntry(e("Sceptile", "Serious", subs, { skillLevel: 5 }));
+		expect(low).toMatchObject({ skillMaxed: true, skillLevel: high.skillLevel });
+		expect(low.ofBest).toBeCloseTo(high.ofBest, 9);
+		expect(low.better).toBe(high.better);
+		expect(rateEntry(e("Chansey", "Serious", [], { skillLevel: 1 })).skillMaxed).toBe(true);
+		expect(rateEntry(e("Wigglytuff", "Serious", [], { skillLevel: 1 })).skillMaxed).toBe(true);
+		expect(rateEntry(e("Sandslash", "Serious", [], { skillLevel: 2 }))).toMatchObject({ skillMaxed: false, skillLevel: 2 });
 	});
 
-	it("rates the solvers' copies from the skill level as entered: level scaling changes nothing, seeds count", () => {
-		const subs: SubSkillType[] = ["Helping Speed S", "Berry Finding S", "Skill Level Up S"];
-		const real = e("Sceptile", "Serious", subs, { level: 30, skillLevel: 2 });
-		const score = rateEntry(real).ofBest;
+	it("uses Sub Skill Seeds: an S subskill counts as M unless the Pokémon already has the M", () => {
+		const s = rateEntry(e("Sceptile", "Serious", ["Helping Speed S", "Berry Finding S"]));
+		const m = rateEntry(e("Sceptile", "Serious", ["Helping Speed M", "Berry Finding S"]));
+		expect(s.ofBest).toBeCloseTo(m.ofBest, 9);
+		const both = rateEntry(e("Sceptile", "Serious", ["Helping Speed S", "Helping Speed M"]));
+		const twoM = rateEntry(e("Sceptile", "Serious", ["Helping Speed M"]));
+		expect(both.ofBest).toBeGreaterThan(twoM.ofBest);
+	});
+
+	it("pure ingredient Pokémon: Skill Level Up counts after seeds, also when not unlocked yet", () => {
+		// Lv30: Skill Level Up S in the Lv50 slot isn't unlocked, so the entered skill level doesn't include it.
+		const withLevelUp = rateEntry(e("Sandslash", "Serious", ["Helping Speed S", "Ingredient Finder S", "Skill Level Up S"], { level: 30, skillLevel: 2 }));
+		expect(withLevelUp.skillLevel).toBe(4); // Skill Level Up S → M: +2
+		const without = rateEntry(e("Sandslash", "Serious", ["Helping Speed S", "Ingredient Finder S"], { level: 30, skillLevel: 2 }));
+		expect(withLevelUp.ofBest).toBeGreaterThan(without.ofBest);
+	});
+
+	it("rates the solvers' copies from the skill level as entered: level scaling and seeds change nothing", () => {
+		const subs: SubSkillType[] = ["Helping Speed S", "Ingredient Finder S", "Skill Level Up S"];
+		const real = e("Sandslash", "Serious", subs, { level: 30, skillLevel: 2 });
+		const rating = rateEntry(real);
 		// Lv60 unlocks Skill Level Up S, which the entered skill level doesn't include yet.
 		const [scaled] = scaleLevels([real], 60);
-		expect(rateEntry(scaled).ofBest).toBeCloseTo(score, 6);
-		const [seeded] = maxSubSkillSeeds([real], true);
-		expect(rateEntry(seeded).ofBest).toBeGreaterThan(score);
+		expect(rateEntry(scaled)).toEqual(rating);
+		const [seeded] = maxSubSkillSeeds(scaleLevels([real], 60), true);
+		expect(rateEntry(seeded)).toEqual(rating);
 	});
 
 	it("ignores subskills that don't help the role", () => {
@@ -116,11 +135,12 @@ describe("sampleRolls", () => {
 		expect([...sampleRolls(ratingProblem(e("Sceptile")), defaultYieldOptions)]).toEqual([...a]);
 	});
 
-	it("shares one calculation between rolls that do the same: inventory adds up, unused subskills don't matter", () => {
+	it("shares one calculation between rolls that do the same after seeds; unused subskills don't matter", () => {
 		const p = ratingProblem(e("Dragonite"));
-		const sm = p.valueOf("Quiet", ["Inventory Up S", "Inventory Up M", "Helping Speed M", "Sleep EXP Bonus", "Dream Shard Bonus"]);
-		const l = p.valueOf("Quiet", ["Inventory Up L", "Helping Speed M", "Research EXP Bonus", "Sleep EXP Bonus", "Dream Shard Bonus"]);
-		expect(sm).toBeCloseTo(l, 12);
+		// Inventory Up S + L and M + L both end as M + L.
+		const sl = p.valueOf("Quiet", ["Inventory Up S", "Inventory Up L", "Helping Speed M", "Sleep EXP Bonus", "Dream Shard Bonus"]);
+		const ml = p.valueOf("Quiet", ["Inventory Up M", "Inventory Up L", "Helping Speed M", "Research EXP Bonus", "Sleep EXP Bonus"]);
+		expect(sl).toBeCloseTo(ml, 12);
 	});
 });
 

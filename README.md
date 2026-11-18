@@ -21,10 +21,17 @@ and what that best build is.
 
 A roll is a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
 subskills are probably rarer, so Pokémon with them rank lower than they should). The rank is estimated from 2,000
-random rolls, the same on every load, so odds are resolved down to about 1 in 2,000. Rolls that do the same in the
-yield model (e.g. Inventory Up S + M and Inventory Up L) share one calculation. Everything is computed at Lv80,
-where every subskill and ingredient slot is unlocked, with the same yield model and settings as the solvers. What
-is measured depends on what the Pokémon is kept for, not just its specialty:
+random rolls, the same on every load, so odds are resolved down to about 1 in 2,000. Everything is computed at
+Lv80, where every subskill and ingredient slot is unlocked, with the same yield model and settings as the solvers.
+The Pokémon and every roll it's compared with are benchmarked fully invested:
+
+- Sub Skill Seeds are used as far as they go (S → M → L, never the same subskill twice), as in the solvers' option.
+- The main skill is at its max level, except for pure ingredient Pokémon (including Ingredient Draw/Magnet
+  users): players tend to save Main Skill Seeds for the others, so these keep the skill level entered, plus
+  Skill Level Up from their (seeded) subskills.
+
+Rolls that end up doing the same in the yield model (e.g. Inventory Up S + L and M + L both become M + L) share one
+calculation. What is measured depends on what the Pokémon is kept for, not just its specialty:
 
 | Role | Measures | Who |
 |---|---|---|
