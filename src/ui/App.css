@@ -1580,6 +1580,45 @@ button.icon-select-button {
 		margin-bottom: 2px;
 	}
 
+	/* Swap partner card: each picker's label beside it, the result in smaller text. */
+	.swap-card .swap-pickers {
+		grid-template-columns: 1fr;
+		gap: 6px;
+	}
+	.swap-card .swap-pickers > label {
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+		font-size: 0.75rem;
+	}
+	.swap-card .swap-pickers > label > :last-child {
+		flex: 1;
+		min-width: 0;
+	}
+	/* The pickers shrink to fit, cutting a long name short rather than hiding the ▾. */
+	.swap-card .icon-select-button {
+		width: 100%;
+		max-width: 100%;
+		font-size: 0.85rem;
+	}
+	.swap-card .icon-select-value {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+	}
+	.swap-card > p {
+		margin: 6px 0;
+		font-size: 0.8rem;
+		line-height: 1.35;
+	}
+	.swap-card > p:not(.muted) {
+		font-size: 0.9rem;
+	}
+	.swap-card details {
+		font-size: 0.85rem;
+	}
+
 	/* The add/edit pop-up uses the whole screen width. */
 	.modal-backdrop {
 		padding: 0.5rem;

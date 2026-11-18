@@ -637,9 +637,9 @@ function SwapCard(props: {
 	const bestTotal = best.energy.total;
 
 	return (
-		<section className="card">
+		<section className="card swap-card">
 			<h2>{t("swapPartner")}</h2>
-			<p className="muted small">{t("swapHelp", { n: teamSlots - 1 })}</p>
+			<TableHelp>{t("swapHelp", { n: teamSlots - 1 })}</TableHelp>
 			<div className="form-grid swap-pickers">
 				<label>
 					{t("extraTastyPokemon")}
