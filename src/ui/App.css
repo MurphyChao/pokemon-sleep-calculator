@@ -1602,6 +1602,46 @@ button.icon-select-button {
 	.best-team h2 {
 		margin-bottom: 2px;
 	}
+	/* Its Pokémon cards: Pin and Exclude side by side, smaller numbers, tighter padding (like the benches). */
+	.best-team table.stack tr {
+		min-height: 38px;
+		padding: 5px 6px 5px 44px;
+	}
+	.best-team table.stack td.icon-cell img {
+		width: 32px;
+		height: 32px;
+	}
+	.best-team table.stack td {
+		padding-right: 5px;
+		font-size: 0.75rem;
+	}
+	.best-team table.stack td[data-label]::before {
+		font-size: 0.7rem;
+	}
+	.best-team table.stack td.icon-cell + td {
+		padding-right: 86px;
+		font-size: 0.9rem;
+	}
+	.best-team table.stack td.row-actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+	}
+	.best-team table.stack td.row-actions .check {
+		font-size: 0.75rem;
+		gap: 2px;
+	}
+	.best-team table.stack td.row-actions .icon-button {
+		width: 28px;
+		height: 28px;
+	}
+	.best-team table.stack tr.total {
+		padding: 6px 8px;
+	}
+	.best-team table.stack tr.total td {
+		font-size: 0.8rem;
+	}
 
 	/* Swap partner card: each picker's label beside it, the result in smaller text. */
 	.swap-card .swap-pickers {

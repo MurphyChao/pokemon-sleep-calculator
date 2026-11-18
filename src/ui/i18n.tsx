@@ -239,6 +239,7 @@ const en = {
 	benchHelp:
 		"**Saves (current team)**: slots saved by adding it to the team above; the list is sorted by this. **Saves (vs. best without it)**: best team from your whole box without it, minus the best team with it. This one doesn't depend on how the current team is arranged. **Extra Tasty**: the extra dish strength it would add, in slots (Mon–Sat / Sunday). The list is sorted by slots saved plus the weekly Extra Tasty value.",
 	colSlotUsed: "Slot used",
+	colSlotUsedShort: "Slot",
 	colExtraTasty: "Extra Tasty (Mon–Sat / Sun)",
 	colExtraTastyShort: "Tasty",
 	pin: "Pin",
@@ -281,6 +282,7 @@ const en = {
 	colBerries: "Berries",
 	colSkill: "Skill",
 	colWithoutIt: "Without it",
+	colWithoutItShort: "Without",
 	colBestWithIt: "Best team with it",
 	colBestWithItShort: "With it",
 	tagExtraTasty: "Extra Tasty",
@@ -526,6 +528,7 @@ const zh: Record<Key, string> = {
 	benchHelp:
 		"**節省（目前隊伍）**：加入上方隊伍可以節省的名額；清單依此排序。**節省（相較沒有牠的最佳隊伍）**：整個寶可夢盒中沒有牠的最佳隊伍，減去有牠的最佳隊伍。這一欄與目前隊伍的安排無關。**大成功**：牠會增加的料理能量，換算成名額（週一至六 / 週日）。清單依節省的名額加上每週大成功價值排序。",
 	colSlotUsed: "使用名額",
+	colSlotUsedShort: "名額",
 	colExtraTasty: "大成功（週一至六 / 週日）",
 	colExtraTastyShort: "大成功",
 	pin: "固定",
@@ -567,6 +570,7 @@ const zh: Record<Key, string> = {
 	colBerries: "樹果",
 	colSkill: "技能",
 	colWithoutIt: "沒有牠",
+	colWithoutItShort: "沒有牠",
 	colBestWithIt: "有牠的最佳隊伍",
 	colBestWithItShort: "加入後",
 	tagExtraTasty: "大成功",

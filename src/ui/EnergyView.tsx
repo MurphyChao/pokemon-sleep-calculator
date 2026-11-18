@@ -223,8 +223,8 @@ export default function EnergyView(props: {
 									))}
 									<th>{t("colBerries")}</th>
 									<th>{t("colSkill")}</th>
-									<th>{t("colSlotUsed")}</th>
-									<th>{t("colWithoutIt")}</th>
+									<th data-short={t("colSlotUsedShort")}>{t("colSlotUsed")}</th>
+									<th data-short={t("colWithoutItShort")}>{t("colWithoutIt")}</th>
 									<th />
 								</tr>
 							</thead>
