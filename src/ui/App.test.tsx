@@ -86,13 +86,14 @@ test("adds a Pokémon from the Box form", () => {
 
 test("key level buttons set the level and the number box still accepts any level", () => {
 	render(<App />);
-	const level = screen.getByLabelText("Level") as HTMLInputElement;
-	fireEvent.click(screen.getByRole("button", { name: "60" }));
+	const form = within(section("Add Pokémon"));
+	const level = form.getByLabelText("Level") as HTMLInputElement;
+	fireEvent.click(form.getByRole("button", { name: "60" }));
 	expect(level.value).toBe("60");
-	expect(screen.getByRole("button", { name: "60" }).getAttribute("aria-pressed")).toBe("true");
+	expect(form.getByRole("button", { name: "60" }).getAttribute("aria-pressed")).toBe("true");
 	fireEvent.change(level, { target: { value: "61" } });
 	expect(level.value).toBe("61");
-	fireEvent.click(screen.getByRole("button", { name: "80" }));
+	fireEvent.click(form.getByRole("button", { name: "80" }));
 	expect(level.value).toBe("80");
 });
 
@@ -486,14 +487,19 @@ test("Replaces column shows the replaced Pokémon with icons instead of letters"
 	}
 });
 
-test("level scaling: solvers treat lower-level Pokémon as the chosen level, the box keeps real levels", () => {
+test("level scaling: lower-level Pokémon count as the chosen level, the box marks it and keeps real levels", () => {
 	localStorage.setItem(
 		"pscalc.box.v1",
 		JSON.stringify([{ ...entry("bulba", "Bulbasaur", "ABC"), level: 10 }, entry("pika", "Pikachu", "AAA")]),
 	);
 	render(<App />);
-	// Only shown on the solver tabs.
-	expect(screen.queryByLabelText("Level scaling")).toBeNull();
+	// Also on the Box tab: the level column shows the real and the scaled level.
+	const boxRow = () => section("Your box").querySelectorAll("tbody tr")[0] as HTMLElement;
+	fireEvent.click(within(screen.getByRole("group", { name: "Level scaling" })).getByText("60"));
+	expect(boxRow().querySelectorAll("td")[2].textContent).toBe("10→60");
+	expect(boxRow().querySelectorAll(".ing-icons .locked")).toHaveLength(0);
+	fireEvent.click(within(screen.getByRole("group", { name: "Level scaling" })).getByText("Off"));
+	expect(boxRow().querySelectorAll("td")[2].textContent).toBe("10");
 	fireEvent.click(screen.getByText("Slot solver"));
 	const nameCell = () =>
 		[...document.querySelectorAll("section.card tbody td:not(.icon-cell)")].find((td) =>
@@ -510,11 +516,8 @@ test("level scaling: solvers treat lower-level Pokémon as the chosen level, the
 	expect(document.body.textContent).not.toContain("Pikachu Lv60→");
 	expect(JSON.parse(localStorage.getItem("pscalc.levelScale") ?? "null")).toBe(60);
 
-	// The box itself is untouched.
+	// The saved box itself is untouched.
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].level).toBe(10);
-	fireEvent.click(screen.getByText("Box (2)"));
-	expect(section("Your box").querySelector("tbody tr")?.textContent).toContain("Bulbasaur");
-	expect(section("Your box").querySelectorAll("tbody tr")[0].querySelectorAll(".ing-icons .locked")).toHaveLength(2);
 
 	// Off restores real levels.
 	fireEvent.click(screen.getByText("Slot solver"));
@@ -522,10 +525,16 @@ test("level scaling: solvers treat lower-level Pokémon as the chosen level, the
 	expect(nameCell().textContent).toMatch(/^Bulbasaur Lv10(?!→)/);
 });
 
-test("final evolution: solvers evolve every Pokémon, the box keeps the real ones", () => {
+test("final evolution: every Pokémon counts as its final form, the box marks it and keeps the real ones", () => {
 	localStorage.setItem("pscalc.box.v1", JSON.stringify([entry("bulba", "Bulbasaur", "AAA"), entry("pika", "Pikachu", "AAA")]));
 	render(<App />);
-	expect(screen.queryByLabelText(/Final evolution/)).toBeNull(); // solver tabs only
+	// Also on the Box tab: the real Pokémon, with its final form and skill level under it.
+	fireEvent.click(screen.getByLabelText(/Final evolution/));
+	const bulba = rowOf(section("Your box"), "Bulbasaur");
+	expect(bulba.textContent).toContain("→ Venusaur");
+	expect(bulba.querySelectorAll("td")[3].textContent).toMatch(/^\d+→\d+$/);
+	fireEvent.click(screen.getByLabelText(/Final evolution/));
+	expect(rowOf(section("Your box"), "Bulbasaur").textContent).not.toContain("Venusaur");
 	fireEvent.click(screen.getByText("Slot solver"));
 	expect(document.body.textContent).not.toContain("Venusaur");
 	fireEvent.click(screen.getByLabelText(/Final evolution/));

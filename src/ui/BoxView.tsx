@@ -99,12 +99,18 @@ function comboLabel(pokemonName: string, combo: IngredientType): string {
 
 export default function BoxView(props: {
 	box: BoxEntry[];
+	/**
+	 * The box as the numbers see it: evolved, level-scaled and seeded when those options are on (same ids).
+	 * The table shows the real Pokémon and marks what changed.
+	 */
+	adjusted: BoxEntry[];
 	setBox: (box: BoxEntry[]) => void;
 	details: Map<string, YieldDetail>;
 	/** Each Pokémon's rating for its role; missing while still being worked out, null if it can't be rated. */
 	ratings: Map<string, Rating | null>;
 }) {
-	const { box, setBox, details, ratings } = props;
+	const { box, adjusted, setBox, details, ratings } = props;
+	const adjustedById = useMemo(() => new Map(adjusted.map((e) => [e.id, e])), [adjusted]);
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
 	const [nameInput, setNameInput] = useState("");
@@ -329,7 +335,9 @@ export default function BoxView(props: {
 							</tr>
 						</thead>
 						<tbody>
-							{sortedBox.map((e) => (
+							{sortedBox.map((e) => {
+								const a = adjustedById.get(e.id) ?? e;
+								return (
 								<tr key={e.id}>
 									<PokemonIconCell name={e.pokemonName} />
 									<td title={entryTooltip(e)}>
@@ -342,12 +350,21 @@ export default function BoxView(props: {
 											pokemonLabel(e.pokemonName)
 										)}
 										{duplicateNumber(labels.get(e.id)) && <span className="tag">{duplicateNumber(labels.get(e.id))}</span>}
+										{a.evolvedFrom && (
+											<div className="muted small" title={t("finalEvolution")}>
+												→ {pokemonLabel(a.pokemonName)}
+											</div>
+										)}
 										<div>
-											<IngredientIcons entry={e} />
+											<IngredientIcons entry={a} />
 										</div>
 									</td>
-									<td>{e.level}</td>
-									<td>{e.skillLevel ?? "–"}</td>
+									<td>{a.scaledFrom !== undefined ? `${e.level}→${a.level}` : e.level}</td>
+									<td>
+										{a.skillLevel !== e.skillLevel
+											? `${e.skillLevel ?? defaultSkillLevel(e.pokemonName)}→${a.skillLevel}`
+											: (e.skillLevel ?? "–")}
+									</td>
 									<td>
 										{natureLabel(e.nature)}
 										<div>
@@ -355,7 +372,7 @@ export default function BoxView(props: {
 										</div>
 									</td>
 									<td>
-										<SubSkillIcons entry={e} />
+										<SubSkillIcons entry={a} />
 									</td>
 									<td>
 										<RatingCell rating={ratings.get(e.id)} />
@@ -390,7 +407,8 @@ export default function BoxView(props: {
 										</button>
 									</td>
 								</tr>
-							))}
+								);
+							})}
 						</tbody>
 					</table>
 				)}

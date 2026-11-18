@@ -10,6 +10,12 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 - **Slot solver:** the smallest team whose ingredient output covers the dish, and how many slots a particular
   Pokémon (e.g. a multi-ingredient gatherer like Sandslash) saves compared with the best team without it.
 
+Three options change the Pokémon the numbers are worked out for, on the Box tab and in both solvers, without
+changing the saved box: **Final evolution** (every Pokémon as its final form, main skill +1 per evolution;
+branching lines stay), **Max Sub Skill Seeds** (unlocked subskills upgraded S → M → L as far as they go) and
+**Level scaling** (lower-level Pokémon counted at the chosen level). The Box table keeps showing the real Pokémon
+and marks what changed (e.g. "→ Venusaur", "10→60", upgraded subskill icons).
+
 Both solvers count **Helping Bonus**: each slot filled by Pokémon with it makes everyone else on the team help 5%
 faster (pokesleep-tool's model, including the 35% cap with speed subskills). Since that makes each Pokémon's output
 depend on the team, the solvers try team Helping Bonus totals of 0, ½, 1, … (up to 5): for each, everyone's output is
@@ -23,8 +29,8 @@ best combinations found and refines them.
 The Box table rates each Pokémon's nature and subskills by where they rank among all possible rolls of the same
 Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
 as odds too ("1 in 33 rolls is better"). Grades: S top 5%, A top 20%, B top 50%, C top 80%, D the rest. The box can
-be sorted by it, and both solvers' bench lists show it too, for the Pokémon as the solvers see it (after final
-evolution and Sub Skill Seeds, if on). The tooltip also gives the share of the best possible nature and subskills,
+be sorted by it, and both solvers' bench lists show it too. It's for the Pokémon after final evolution, if that
+option is on. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.
 
 A roll is a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
@@ -33,7 +39,7 @@ random rolls, the same on every load, so odds are resolved down to about 1 in 2,
 Lv80, where every subskill and ingredient slot is unlocked, with the same yield model and settings as the solvers.
 The Pokémon and every roll it's compared with are benchmarked fully invested:
 
-- Sub Skill Seeds are used as far as they go (S → M → L, never the same subskill twice), as in the solvers' option.
+- Sub Skill Seeds are used as far as they go (S → M → L, never the same subskill twice), as in the Max Sub Skill Seeds option.
 - The main skill is at its max level, except for Ingredients specialists rated on ingredients alone (e.g.
   Blastoise or Venusaur with Ingredient Magnet S): players tend to save Main Skill Seeds for other Pokémon, so
   these keep the skill level entered, plus Skill Level Up from their (seeded) subskills. Skills specialists

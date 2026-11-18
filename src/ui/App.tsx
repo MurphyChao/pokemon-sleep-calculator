@@ -56,8 +56,8 @@ export default function App() {
 		() => maxSubSkillSeeds(scaleLevels(evolveToFinal(box, finalEvolution), levelScale), subSkillSeeds),
 		[box, finalEvolution, levelScale, subSkillSeeds],
 	);
-	/** The box the numbers below are computed for: as entered on the Box tab, level-scaled in the solvers. */
-	const mathBox = tab === "box" ? box : solverBox;
+	/** The box the numbers below are computed for, on every tab: evolved, level-scaled and seeded if on. */
+	const mathBox = solverBox;
 
 	const details = useMemo(() => {
 		const map = new Map<string, YieldDetail>();
@@ -215,75 +215,69 @@ export default function App() {
 						/>
 						<span className="muted small">{t("sleepScoreHint")}</span>
 					</label>
-					{tab !== "box" && (
-						<label className="check">
-							<input
-								type="checkbox"
-								checked={finalEvolution}
-								onChange={(e) => setFinalEvolution(e.target.checked)}
-							/>
-							{t("finalEvolution")}
-							<span className="muted small">{t("finalEvolutionHint")}</span>
+					<label className="check">
+						<input
+							type="checkbox"
+							checked={finalEvolution}
+							onChange={(e) => setFinalEvolution(e.target.checked)}
+						/>
+						{t("finalEvolution")}
+						<span className="muted small">{t("finalEvolutionHint")}</span>
+					</label>
+					<label className="check">
+						<input
+							type="checkbox"
+							checked={subSkillSeeds}
+							onChange={(e) => setSubSkillSeeds(e.target.checked)}
+						/>
+						{t("maxSubSkillSeeds")}
+						<span className="muted small">{t("maxSubSkillSeedsHint")}</span>
+					</label>
+					<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
+						<label id="level-scale-label" htmlFor="level-scale-input">
+							{t("levelScaling")}
 						</label>
-					)}
-					{tab !== "box" && (
-						<label className="check">
-							<input
-								type="checkbox"
-								checked={subSkillSeeds}
-								onChange={(e) => setSubSkillSeeds(e.target.checked)}
-							/>
-							{t("maxSubSkillSeeds")}
-							<span className="muted small">{t("maxSubSkillSeedsHint")}</span>
-						</label>
-					)}
-					{tab !== "box" && (
-						<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
-							<label id="level-scale-label" htmlFor="level-scale-input">
-								{t("levelScaling")}
-							</label>
-							<input
-								id="level-scale-input"
-								type="number"
-								min={1}
-								max={100}
-								className="narrow"
-								placeholder={t("levelScalingOff")}
-								value={levelScale ?? ""}
-								onChange={(e) => {
-									const v = Math.round(Number(e.target.value));
-									setLevelScale(e.target.value === "" || !v || v <= 1 ? null : Math.min(100, v));
-								}}
-							/>
-							<div className="key-levels">
+						<input
+							id="level-scale-input"
+							type="number"
+							min={1}
+							max={100}
+							className="narrow"
+							placeholder={t("levelScalingOff")}
+							value={levelScale ?? ""}
+							onChange={(e) => {
+								const v = Math.round(Number(e.target.value));
+								setLevelScale(e.target.value === "" || !v || v <= 1 ? null : Math.min(100, v));
+							}}
+						/>
+						<div className="key-levels">
+							<button
+								type="button"
+								className={levelScale === null ? "" : "secondary"}
+								aria-pressed={levelScale === null}
+								onClick={() => setLevelScale(null)}
+							>
+								{t("levelScalingOff")}
+							</button>
+							{keyLevels.map((lv) => (
 								<button
 									type="button"
-									className={levelScale === null ? "" : "secondary"}
-									aria-pressed={levelScale === null}
-									onClick={() => setLevelScale(null)}
+									key={lv}
+									className={levelScale === lv ? "" : "secondary"}
+									aria-pressed={levelScale === lv}
+									onClick={() => setLevelScale(lv)}
 								>
-									{t("levelScalingOff")}
+									{lv}
 								</button>
-								{keyLevels.map((lv) => (
-									<button
-										type="button"
-										key={lv}
-										className={levelScale === lv ? "" : "secondary"}
-										aria-pressed={levelScale === lv}
-										onClick={() => setLevelScale(lv)}
-									>
-										{lv}
-									</button>
-								))}
-							</div>
-							<span className="muted small">{t("levelScalingHint")}</span>
+							))}
 						</div>
-					)}
+						<span className="muted small">{t("levelScalingHint")}</span>
+					</div>
 				</div>
 			</header>
 			<main>
 				{tab === "box" ? (
-					<BoxView box={box} setBox={setBox} details={details} ratings={ratings} />
+					<BoxView box={box} adjusted={solverBox} setBox={setBox} details={details} ratings={ratings} />
 				) : (
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />
