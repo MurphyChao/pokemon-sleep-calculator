@@ -1019,19 +1019,52 @@ button.icon-select-button {
 	.settings-bar.collapsed {
 		display: none;
 	}
+	/* Two columns, small explanations under each option; level scaling across the bottom. */
 	.settings-bar {
-		flex-direction: column;
-		gap: 10px;
-		padding: 10px 12px;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: start;
+		gap: 8px 10px;
+		padding: 8px 10px;
 		border: 1px solid var(--border);
 		border-radius: 10px;
 		background: var(--card);
 	}
+	.settings-bar > * {
+		min-width: 0;
+	}
 	.settings-bar .check {
 		flex-wrap: wrap;
+		align-items: center;
+		align-content: flex-start;
+		gap: 2px 6px;
+		font-size: 0.85rem;
+	}
+	.settings-bar .check > .muted.small {
+		flex-basis: 100%;
+		font-size: 0.7rem;
+		line-height: 1.25;
+	}
+	.settings-bar select,
+	.settings-bar input:not([type="checkbox"]) {
+		max-width: 100%;
+		min-width: 0;
+		padding: 2px 4px;
+		font-size: 0.85rem;
 	}
 	.settings-bar select {
-		max-width: 100%;
+		flex: 1;
+	}
+	.settings-bar > .level-scale {
+		grid-column: 1 / -1;
+	}
+	/* The buttons are enough on phones; the number box would only repeat the chosen level. */
+	.settings-bar .level-scale > input {
+		display: none;
+	}
+	.settings-bar .level-scale .key-levels button {
+		padding: 1px 8px;
+		font-size: 0.8rem;
 	}
 
 	.card {
