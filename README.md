@@ -116,6 +116,13 @@ checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 name. The screenshots aren't committed: put them in `screenshots/`
 to run it (it's skipped otherwise).
 
+## Visit statistics
+
+The site counts visits anonymously with [GoatCounter](https://www.goatcounter.com/) (no cookies, no personal data;
+the script tag is at the end of `index.html`). The numbers are at
+[pokemasterchef.goatcounter.com](https://pokemasterchef.goatcounter.com). Visits from `localhost` aren't counted.
+The privacy policy (`public/privacy.html`) describes what it collects.
+
 ## Google Drive sync
 
 Users can sign in with their own Google account from the header ("Sign in with Google"); the header then shows
