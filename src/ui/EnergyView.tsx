@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
-import type { Rating } from "../core/rating";
+import type { Rank } from "../core/rank";
 import {
 	type BestTeam,
 	bestEnergyTeam,
@@ -27,7 +27,7 @@ import { EntryLabel, InlineEntry } from "./EntryLabel";
 import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
-import RatingCell from "./RatingCell";
+import RankCell from "./RankCell";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -59,12 +59,12 @@ export default function EnergyView(props: {
 	healedDetail?: (id: string, heal: Heal | undefined, helpers?: number) => YieldDetail;
 	/** Yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus. */
 	helpedDetail: (id: string, helpers: number) => YieldDetail;
-	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
-	ratings: Map<string, Rating | null>;
+	/** Each Pokémon's cross-species rank (see core/rank.ts). */
+	ranks: Map<string, Rank | undefined>;
 	settings: EnergySettings;
 	setSettings: (s: EnergySettings) => void;
 }) {
-	const { box, recipe, details, healedDetail, helpedDetail, ratings, settings, setSettings } = props;
+	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings, setSettings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -331,8 +331,8 @@ export default function EnergyView(props: {
 										))}
 										<th>{t("colBerries")}</th>
 										<th>{t("colSkill")}</th>
-										{/* Phone cards: just the grade (no label, no odds), and a short label (App.css). */}
-										<th className="nolabel brief">{t("colRating")}</th>
+										{/* Phone cards: just the grade and "Top x%" (no category), and a short label (App.css). */}
+										<th className="brief" data-short={t("colRank")}>{t("colRank")}</th>
 										<th data-short={t("colBestWithItShort")}>{t("colBestWithIt")}</th>
 										<th />
 									</tr>
@@ -361,7 +361,7 @@ export default function EnergyView(props: {
 												<td>{formatStrength(m.berry)}</td>
 												<td>{m.skill > 0 ? formatStrength(m.skill) : "–"}</td>
 												<td>
-													<RatingCell rating={ratings.get(id)} />
+													<RankCell rank={ranks.get(id)} />
 												</td>
 												<td>{w && <Diff value={w.energy.total - e.total} />}</td>
 												<td className="row-actions">

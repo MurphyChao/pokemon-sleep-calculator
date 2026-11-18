@@ -99,11 +99,16 @@ export interface YieldDetail {
 	skillStrength: number;
 	/** Main skill triggers per day. */
 	skillsPerDay: number;
+	/**
+	 * What the main skill gives per day in its own unit (energy restored, Extra Tasty chance, dream shards,
+	 * strength…), as pokesleep-tool computes it.
+	 */
+	skillValue: number;
 	/** Set if the Pokémon has an unlocked Helping Bonus subskill (teammates help 5% faster). */
 	helpingBonus?: boolean;
 }
 
-export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0, skillsPerDay: 0 };
+export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0, skillsPerDay: 0, skillValue: 0 };
 
 /** Skills whose strength comes from ingredients or the pot; their value is counted through the dish instead. */
 function isCookingSkill(skill: string): boolean {
@@ -226,6 +231,7 @@ export function dailyIngredientYieldDetail(
 		berryStrength: result.berryTotalStrength,
 		skillStrength: isCookingSkill(iv.versatileSkill) ? 0 : result.skillStrength + result.skillStrength2,
 		skillsPerDay: result.skillCount,
+		skillValue: result.skillValue,
 		...(iv.hasHelpingBonusInActiveSubSkills && { helpingBonus: true }),
 	};
 }
@@ -285,6 +291,7 @@ export function withHelpers(at: (helpers: number) => YieldDetail, helpers: numbe
 		berryStrength: mix(a.berryStrength, b.berryStrength),
 		skillStrength: mix(a.skillStrength, b.skillStrength),
 		skillsPerDay: mix(a.skillsPerDay, b.skillsPerDay),
+		skillValue: mix(a.skillValue, b.skillValue),
 		...(a.tasty && { tasty: lerpTriggers(a.tasty, b.tasty, t) }),
 		...(a.heal && { heal: lerpTriggers(a.heal, b.heal, t) }),
 	};

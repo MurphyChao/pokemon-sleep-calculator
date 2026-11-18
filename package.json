@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "sync-upstream": "node scripts/sync-upstream.mjs",
     "fetch-pokemon-icons": "node scripts/fetch-pokemon-icons.ts",
-    "build-sleep-icons": "node scripts/build-sleep-icons.mjs"
+    "build-sleep-icons": "node scripts/build-sleep-icons.mjs",
+    "build-rank-tables": "node scripts/build-rank-tables.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/chi_tra": "^1.0.0",

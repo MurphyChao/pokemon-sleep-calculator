@@ -24,12 +24,12 @@ result wins. Partial slots are interpolated between whole numbers of helpers. In
 combination of Extra Tasty and healer shares is tried without Helping Bonus; with it, the search starts from the
 best combinations found and refines them.
 
-## Box rating
+## Rarity
 
-The Box table rates each Pokémon's nature and subskills by where they rank among all possible rolls of the same
-Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
+The Box table's **Rarity** rates each Pokémon's nature and subskills by where they rank among all possible rolls of the
+same Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
 as odds too ("1 in 33 rolls is better"). Grades: S top 3%, A top 15%, B top 50%, C top 80%, D the rest. The box can
-be sorted by it, and both solvers' bench lists show it too. It's for the Pokémon after final evolution, if that
+be sorted by it (the solvers' benches show the Rank below instead). It's for the Pokémon after final evolution, if that
 option is on. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.
 
@@ -71,6 +71,27 @@ For the hybrid, each measure is taken relative to the same Pokémon with a neutr
 two can be added up. The best build (for the tooltip) is found by a local search (`searchBest` in `src/core/rating.ts`); checked
 against an exhaustive search over every Pokémon, it finds the same optimum. Code: `src/core/rating.ts`,
 `src/ui/useRatings.ts`.
+
+## Rank
+
+Rarity only compares a Pokémon with other rolls of its own species. **Rank** compares it across species: its daily
+output against random rolls of every non-mythical fully evolved Pokémon doing the same job, e.g. "S · Top 2% ·
+Strength". It's shown next to Rarity in the Box table (which can be sorted by either) and on its own in both solvers'
+benches. The job decides what's measured, in a unit all species share:
+
+- **Strength:** berry strength + strength-skill strength per day.
+- **Ingredients:** ingredient strength per day: each ingredient's base strength × count, skill ingredients included, so
+  ingredient type and combination count.
+- **Skill: <kind>:** what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream shards…),
+  only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind).
+- Ingredients specialists with a support skill (Chansey, Drampa) are ranked in both their lists; the better rank shows.
+
+Everything is measured the same way so ranks compare across users and settings: at Lv80, with Sub Skill Seeds used
+and the main skill maxed except for Ingredients specialists (as for rarity), Helping Bonus counted for the team, and
+standard settings (the app's defaults, not your own). That makes the comparison population fixed, so it's computed
+once by `npm run build-rank-tables` (600 random rolls per species; about 5 seconds) into `src/data/rank-tables.json`
+as quantiles per category; the app only looks values up. Rerun it after syncing new Pokémon or changing how ranks are
+measured. Code: `src/core/rank.ts`, `scripts/build-rank-tables.mjs`.
 
 ## Box filters
 

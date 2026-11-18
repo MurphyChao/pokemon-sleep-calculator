@@ -23,6 +23,8 @@ import { NatureEffects } from "./NatureEffects";
 import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
 import RatingCell from "./RatingCell";
+import RankCell from "./RankCell";
+import type { Rank } from "../core/rank";
 import { type BoxFilter, matchesFilter, noFilter, toggleChoice, unlockedIngredients } from "./boxFilter";
 import { TypeIcon } from "./TypeIcon";
 import { comboFromIcons } from "../ocr/combo";
@@ -57,10 +59,10 @@ function slotIngredients(pokemonName: string): Record<"A" | "B" | "C", Ingredien
 	return { A: p?.ing1?.name, B: p?.ing2?.name, C: p?.ing3?.name };
 }
 
-type SortBy = "added" | "dex" | "level" | "name" | "rating";
+type SortBy = "added" | "dex" | "level" | "name" | "rating" | "rank";
 interface BoxSort {
 	by: SortBy;
-	/** Opposite of the natural direction (added: oldest first; dex and name: A→Z; level and rating: highest first). */
+	/** Opposite of the natural direction (added: oldest first; dex and name: A→Z; level, rarity, rank: highest first). */
 	reversed: boolean;
 }
 const sortOptions: { by: SortBy; label: Key }[] = [
@@ -69,19 +71,27 @@ const sortOptions: { by: SortBy; label: Key }[] = [
 	{ by: "level", label: "sortLevel" },
 	{ by: "name", label: "sortName" },
 	{ by: "rating", label: "sortRating" },
+	{ by: "rank", label: "sortRank" },
 ];
 
 /** Position in pokesleep-tool's list: Pokédex order, with a species' forms after its base form. */
 const dexOrder = new Map(pokemons.map((p, i) => [p.name, i]));
 
 /** The box in display order. Ties keep the order the Pokémon were added; unrated Pokémon sort last by rating. */
-function sortBox(box: BoxEntry[], sort: BoxSort, ratings: Map<string, Rating | null>): BoxEntry[] {
+function sortBox(
+	box: BoxEntry[],
+	sort: BoxSort,
+	ratings: Map<string, Rating | null>,
+	ranks: Map<string, Rank | undefined>,
+): BoxEntry[] {
 	const collator = new Intl.Collator(getLang());
 	const dex = (e: BoxEntry) => dexOrder.get(e.pokemonName) ?? Number.MAX_SAFE_INTEGER;
 	const name = (e: BoxEntry) => pokemonLabel(e.pokemonName);
 	/** Share of random rolls that beat it (lower is better); unrated last. */
 	const better = (e: BoxEntry) => ratings.get(e.id)?.better ?? 2;
 	const ofBest = (e: BoxEntry) => ratings.get(e.id)?.ofBest ?? 0;
+	const rankBetter = (e: BoxEntry) => ranks.get(e.id)?.better ?? 2;
+	const rankValue = (e: BoxEntry) => ranks.get(e.id)?.value ?? 0;
 	const compare: Record<SortBy, (a: BoxEntry, b: BoxEntry) => number> = {
 		added: () => 0,
 		dex: (a, b) => dex(a) - dex(b) || b.level - a.level,
@@ -91,6 +101,7 @@ function sortBox(box: BoxEntry[], sort: BoxSort, ratings: Map<string, Rating | n
 			collator.compare(a.nickname ?? "", b.nickname ?? "") ||
 			b.level - a.level,
 		rating: (a, b) => better(a) - better(b) || ofBest(b) - ofBest(a) || dex(a) - dex(b),
+		rank: (a, b) => rankBetter(a) - rankBetter(b) || rankValue(b) - rankValue(a) || dex(a) - dex(b),
 	};
 	const sorted = box
 		.map((e, i) => ({ e, i }))
@@ -120,10 +131,12 @@ export default function BoxView(props: {
 	/** Whether the pop-up with the screenshot import and the add/edit form is open (opened from the tab bar). */
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
-	/** Each Pokémon's rating for its role; missing while still being worked out, null if it can't be rated. */
+	/** Each Pokémon's rarity for its role; missing while still being worked out, null if it can't be rated. */
 	ratings: Map<string, Rating | null>;
+	/** Each Pokémon's cross-species rank (see core/rank.ts). */
+	ranks: Map<string, Rank | undefined>;
 }) {
-	const { box, adjusted, setBox, details, ratings, panelOpen, setPanelOpen } = props;
+	const { box, adjusted, setBox, details, ratings, ranks, panelOpen, setPanelOpen } = props;
 	const adjustedById = useMemo(() => new Map(adjusted.map((e) => [e.id, e])), [adjusted]);
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
@@ -165,7 +178,11 @@ export default function BoxView(props: {
 	const [storedSort, setSort] = useStoredState<BoxSort>("pscalc.boxSort", { by: "added", reversed: false });
 	const sort: BoxSort = sortOptions.some((o) => o.by === storedSort.by) ? storedSort : { by: "added", reversed: false };
 	const sortRatings = sort.by === "rating" ? ratings : noRatings;
-	const sortedBox = useMemo(() => sortBox(box, sort, sortRatings), [box, sort.by, sort.reversed, sortRatings]);
+	const sortRanks = sort.by === "rank" ? ranks : noRanks;
+	const sortedBox = useMemo(
+		() => sortBox(box, sort, sortRatings, sortRanks),
+		[box, sort.by, sort.reversed, sortRatings, sortRanks],
+	);
 	const [storedFilter, setFilter] = useStoredState<BoxFilter>("pscalc.boxFilter", noFilter);
 	/** Ingredients some Pokémon in the box has unlocked, in the game's order: the ingredient filter's choices. */
 	const ingredientChoices = useMemo(() => {
@@ -421,7 +438,8 @@ export default function BoxView(props: {
 								<th>{t("colSkillLv")}</th>
 								<th className="nolabel">{t("colNature")}</th>
 								<th className="line nolabel">{t("colSubskills")}</th>
-								<th className="line nolabel">{t("colRating")}</th>
+								<th className="line">{t("colRating")}</th>
+								<th className="line">{t("colRank")}</th>
 								<th className="line nolabel yield">{t("colIngPerDay")}</th>
 								<th />
 							</tr>
@@ -470,6 +488,9 @@ export default function BoxView(props: {
 										<RatingCell rating={ratings.get(e.id)} />
 									</td>
 									<td>
+										<RankCell rank={ranks.get(e.id)} />
+									</td>
+									<td>
 										<YieldSummary detail={details.get(e.id)} />
 									</td>
 									<td className="row-actions">
@@ -511,6 +532,7 @@ export default function BoxView(props: {
 }
 
 const noRatings = new Map<string, Rating | null>();
+const noRanks = new Map<string, Rank | undefined>();
 
 /**
  * Once a screenshot's reading is confirmed as `pokemonName`, its icon is learned for that Pokémon unless the

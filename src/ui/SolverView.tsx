@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { BoxEntry } from "../core/box";
-import type { Rating } from "../core/rating";
+import type { Rank } from "../core/rank";
 import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
 import {
 	achievableDemand,
@@ -24,7 +24,7 @@ import { PokemonIcon, PokemonIconCell } from "./PokemonIcon";
 import { EntryName } from "./EntryLabel";
 import { IngredientIcon } from "./IngredientIcons";
 import { MinusIcon, PlusIcon } from "./icons";
-import RatingCell from "./RatingCell";
+import RankCell from "./RankCell";
 
 export const teamSize = 5;
 
@@ -37,10 +37,10 @@ export default function SolverView(props: {
 	/** Yields with `helpers` teammates' worth of Helping Bonus (0–4, can be fractional). */
 	helpedDetail: (id: string, helpers: number) => YieldDetail;
 	tasty: Map<string, TastySource>;
-	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
-	ratings: Map<string, Rating | null>;
+	/** Each Pokémon's cross-species rank (see core/rank.ts). */
+	ranks: Map<string, Rank | undefined>;
 }) {
-	const { box, recipe, yields, details, helpedDetail, tasty, ratings } = props;
+	const { box, recipe, yields, details, helpedDetail, tasty, ranks } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.pinned", []);
 	/** Team per recipe; a recipe without an entry gets the auto-filled team. */
 	const [teams, setTeams] = useStoredState<Record<string, string[]>>("pscalc.teams", {});
@@ -229,7 +229,7 @@ export default function SolverView(props: {
 							shortLabels={shortLabels}
 							yields={yields}
 							helpingBonus={helpingBonus}
-							ratings={ratings}
+							ranks={ranks}
 							onMove={moveToTeam}
 						/>
 					</section>
@@ -363,10 +363,10 @@ function BenchTable(props: {
 	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
 	helpingBonus: Set<string>;
-	ratings: Map<string, Rating | null>;
+	ranks: Map<string, Rank | undefined>;
 	onMove: (id: string) => void;
 }) {
-	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, helpingBonus, ratings, onMove } = props;
+	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, helpingBonus, ranks, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
@@ -380,8 +380,8 @@ function BenchTable(props: {
 							<IngredientIcon name={i} className="header" />
 						</th>
 					))}
-					{/* Phone cards: just the grade (no label, no odds), and short labels (App.css). */}
-					<th className="nolabel brief">{t("colRating")}</th>
+					{/* Phone cards: just the grade and "Top x%" (no category), and short labels (App.css). */}
+					<th className="brief" data-short={t("colRank")}>{t("colRank")}</th>
 					<th data-short={t("savesCurrentShort")}>{t("savesCurrent")}</th>
 					<th data-short={t("savesVsBestShort")}>{t("savesVsBest")}</th>
 					<th data-short={t("colExtraTastyShort")}>{t("colExtraTasty")}</th>
@@ -399,7 +399,7 @@ function BenchTable(props: {
 						</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
 						<td>
-							<RatingCell rating={ratings.get(s.id)} />
+							<RankCell rank={ranks.get(s.id)} />
 						</td>
 						<td>{reductionLabel(s)}</td>
 						<td>{vsBestLabel(vsBest.get(s.id))}</td>

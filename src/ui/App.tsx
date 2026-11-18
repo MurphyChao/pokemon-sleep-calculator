@@ -20,8 +20,13 @@ import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 import SyncControl from "./SyncControl";
 import { useRatings } from "./useRatings";
+import rankTables from "../data/rank-tables.json";
+import { type Rank, rankEntry, type RankTables } from "../core/rank";
 
 type Tab = "box" | "slots" | "energy";
+
+/** A stable empty box, so hooks keyed on the box don't rerun every render. */
+const noEntries: BoxEntry[] = [];
 
 
 const tabs: { tab: Tab; label: Key }[] = [
@@ -124,8 +129,20 @@ export default function App() {
 		};
 		return (id: string, heal: Heal | undefined, helpers = 0) => withHelpers((k) => at(id, heal, k), helpers);
 	}, [details, helpedDetail]);
-	/** Each Pokémon's rating for its role: as entered on the Box tab, as the solvers see it on theirs. */
-	const ratings = useRatings(mathBox, options, energy);
+	/** Box tab only (benches show the rank): each Pokémon's rarity among rolls of its species. */
+	const ratings = useRatings(tab === "box" ? mathBox : noEntries, options, energy);
+	/** Each Pokémon's cross-species rank (quick: standard settings and precomputed tables). */
+	const ranks = useMemo(() => {
+		const map = new Map<string, Rank | undefined>();
+		for (const e of mathBox) {
+			try {
+				map.set(e.id, rankEntry(e, rankTables as RankTables));
+			} catch {
+				map.set(e.id, undefined);
+			}
+		}
+		return map;
+	}, [mathBox]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],
@@ -310,6 +327,7 @@ export default function App() {
 						setBox={setBox}
 						details={details}
 						ratings={ratings}
+						ranks={ranks}
 						panelOpen={addOpen}
 						setPanelOpen={setAddOpen}
 					/>
@@ -324,7 +342,7 @@ export default function App() {
 								helpedDetail={helpedDetail}
 								details={details}
 								tasty={tasty}
-								ratings={ratings}
+								ranks={ranks}
 							/>
 						) : (
 							<EnergyView
@@ -333,7 +351,7 @@ export default function App() {
 								details={details}
 								healedDetail={healedDetail}
 								helpedDetail={helpedDetail}
-								ratings={ratings}
+								ranks={ranks}
 								settings={energy}
 								setSettings={setEnergy}
 							/>

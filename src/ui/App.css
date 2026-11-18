@@ -1285,6 +1285,10 @@ button.icon-select-button {
 	table.stack .rating > .muted.small {
 		display: none;
 	}
+	/* The rank's category stays on Box cards ("S Top 2% Strength"); benches keep it brief. */
+	table.stack td[data-col~="line"] .rank > .muted.small {
+		display: inline;
+	}
 	/* Ingredients per day: "🎃 47  🥔 28", without the "(incl. … from skill)" notes. */
 	table.stack td[data-col~="yield"] > div {
 		display: inline-block;
