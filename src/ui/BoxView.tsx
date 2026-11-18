@@ -433,13 +433,13 @@ export default function BoxView(props: {
 							<tr>
 								<th className="icon-cell" />
 								<th>{t("pokemon")}</th>
-								{/* Classes only shape the phone cards (App.css): "nolabel" hides the label, "line" gets its own line. */}
+								{/* Classes only shape the phone cards (App.css): "nolabel" hides the label, "line" gets its own line, "brief" shows just the grade. */}
 								<th>{t("colLv")}</th>
 								<th>{t("colSkillLv")}</th>
 								<th className="nolabel">{t("colNature")}</th>
 								<th className="line nolabel">{t("colSubskills")}</th>
-								<th className="line">{t("colRating")}</th>
-								<th className="line">{t("colRank")}</th>
+								<th className="brief">{t("colRating")}</th>
+								<th>{t("colRank")}</th>
 								<th className="line nolabel yield">{t("colIngPerDay")}</th>
 								<th />
 							</tr>

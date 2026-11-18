@@ -1285,9 +1285,16 @@ button.icon-select-button {
 	table.stack .rating > .muted.small {
 		display: none;
 	}
-	/* The rank's category stays on Box cards ("S Top 2% Strength"); benches keep it brief. */
-	table.stack td[data-col~="line"] .rank > .muted.small {
+	/* The rank's category stays ("S Top 2% Strength") unless the column is brief (benches). */
+	table.stack td:not([data-col~="brief"]) .rank > .muted.small {
 		display: inline;
+		margin-left: 3px;
+		font-size: 0.65rem;
+	}
+	/* Rarity and rank small enough to share a line on Box cards. */
+	table.stack td:has(> .rating) {
+		padding-right: 6px;
+		font-size: 0.78rem;
 	}
 	/* Ingredients per day: "🎃 47  🥔 28", without the "(incl. … from skill)" notes. */
 	table.stack td[data-col~="yield"] > div {

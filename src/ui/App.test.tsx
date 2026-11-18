@@ -404,7 +404,7 @@ test("Box shows each Pokémon's rating for its role and can be sorted by it", as
 	);
 	render(<App />);
 	const box = section("Your box");
-	await waitFor(() => expect(within(box).queryByText("Rating…")).toBeNull());
+	await waitFor(() => expect(within(box).queryByText("Rarity…")).toBeNull());
 	const cell = (label: string) => rowOf(box, label).querySelector(".rating") as HTMLElement;
 	// Grade, rank among random rolls, odds of a better roll, and what it's rated for.
 	expect(cell("Strong").textContent).toMatch(/^[SABCD] Top [\d.]+%(1 in [\d,]+ rolls is better|[\d.]+% of rolls are better)Strength/);
