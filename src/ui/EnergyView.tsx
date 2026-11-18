@@ -412,7 +412,7 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 		setSettings({ ...settings, recipeLevel: Math.min(maxRecipeLevel, Math.max(1, Math.round(n) || 1)) });
 	const custom: PokemonType[] = Array.isArray(settings.favorites) ? settings.favorites : ["normal", "fire", "water"];
 	return (
-		<section className="card">
+		<section className="card island-card">
 			<h2>{t("island")}</h2>
 			<div className="form-grid">
 				<label>

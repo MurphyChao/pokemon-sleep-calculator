@@ -1265,6 +1265,45 @@ button.icon-select-button {
 		color: var(--muted);
 	}
 
+	/*
+	 * Island card: favorite berries on their own row, island bonus and recipe level side by side (the
+	 * level shortcuts smaller, under the stepper), and the three chosen berry types in one row.
+	 */
+	.island-card .form-grid {
+		grid-template-columns: 1fr 1.6fr;
+		gap: 6px 10px;
+	}
+	.island-card .form-grid > :first-child {
+		grid-column: 1 / -1;
+	}
+	.island-card .form-grid + .form-grid {
+		grid-template-columns: repeat(3, 1fr);
+		margin-top: 6px;
+	}
+	.island-card .form-grid + .form-grid > :first-child {
+		grid-column: auto;
+	}
+	.island-card .form-grid > * {
+		min-width: 0;
+	}
+	.island-card .form-grid select,
+	.island-card .form-grid input {
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+	.island-card .stepper button {
+		padding: 2px 8px;
+	}
+	.island-card .key-levels {
+		gap: 3px;
+		margin-top: 4px;
+	}
+	.island-card .key-levels button {
+		padding: 1px 0;
+		font-size: 0.8rem;
+	}
+
 	/* The add/edit pop-up uses the whole screen width. */
 	.modal-backdrop {
 		padding: 0.5rem;
