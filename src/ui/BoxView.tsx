@@ -82,7 +82,7 @@ function sortBox(
 	box: BoxEntry[],
 	sort: BoxSort,
 	ratings: Map<string, Rating | null>,
-	ranks: Map<string, Rank | undefined>,
+	ranks: Map<string, Rank | null>,
 ): BoxEntry[] {
 	const collator = new Intl.Collator(getLang());
 	const dex = (e: BoxEntry) => dexOrder.get(e.pokemonName) ?? Number.MAX_SAFE_INTEGER;
@@ -134,7 +134,7 @@ export default function BoxView(props: {
 	/** Each Pokémon's rarity for its role; missing while still being worked out, null if it can't be rated. */
 	ratings: Map<string, Rating | null>;
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
-	ranks: Map<string, Rank | undefined>;
+	ranks: Map<string, Rank | null>;
 }) {
 	const { box, adjusted, setBox, details, ratings, ranks, panelOpen, setPanelOpen } = props;
 	const adjustedById = useMemo(() => new Map(adjusted.map((e) => [e.id, e])), [adjusted]);
@@ -532,7 +532,7 @@ export default function BoxView(props: {
 }
 
 const noRatings = new Map<string, Rating | null>();
-const noRanks = new Map<string, Rank | undefined>();
+const noRanks = new Map<string, Rank | null>();
 
 /**
  * Once a screenshot's reading is confirmed as `pokemonName`, its icon is learned for that Pokémon unless the

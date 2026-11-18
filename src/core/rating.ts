@@ -137,7 +137,7 @@ function candidateSubSkills(role: RatingRole, skillCounts: boolean, options: Yie
  * What a nature does in the yield model: EXP gains never matter here, and energy recovery only with
  * simulated energy. Natures with the same class give the same yields.
  */
-function natureClass(n: Nature, options: YieldOptions): string {
+export function natureClass(n: Nature, options: YieldOptions): string {
 	const relevant = (effect: NatureEffect) =>
 		effect !== "EXP gains" && effect !== "No effect" && (effect !== "Energy recovery" || options.energy === "simulated");
 	return `${relevant(n.upEffect) ? n.upEffect : "-"}/${relevant(n.downEffect) ? n.downEffect : "-"}`;
@@ -158,7 +158,7 @@ function candidateNatures(options: YieldOptions): string[] {
  * Level Up and inventory add up (Inventory Up S + M = L), the rest are on or off. Sets with the same key
  * give the same yields.
  */
-function subSkillsKey(subSkills: SubSkill[]): string {
+export function subSkillsKey(subSkills: SubSkill[]): string {
 	let speed = 0;
 	let ing = 0;
 	let trigger = 0;
@@ -176,7 +176,7 @@ function subSkillsKey(subSkills: SubSkill[]): string {
 }
 
 /** A small deterministic random number generator (mulberry32), so samples are the same on every load. */
-function seededRandom(seed: number): () => number {
+export function seededRandom(seed: number): () => number {
 	let a = seed >>> 0;
 	return () => {
 		a = (a + 0x6d2b79f5) >>> 0;

@@ -61,7 +61,7 @@ export default function EnergyView(props: {
 	/** Yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus. */
 	helpedDetail: (id: string, helpers: number) => YieldDetail;
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
-	ranks: Map<string, Rank | undefined>;
+	ranks: Map<string, Rank | null>;
 	settings: EnergySettings;
 	setSettings: (s: EnergySettings) => void;
 }) {

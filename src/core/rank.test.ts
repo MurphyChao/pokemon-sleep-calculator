@@ -1,7 +1,9 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import tables from "../data/rank-tables.json";
 import type { BoxEntry, SubSkillLevel } from "./box";
-import { type RankTable, type RankTables, rankEntry, shareAbove, skillKind } from "./rank";
+import { buildRankTables, type RankTable, type RankTables, rankEntry, shareAbove, skillKind } from "./rank";
+import { rateEntry } from "./rating";
+import { defaultStrengthOptions, defaultYieldOptions } from "./yield";
 
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
 const e = (pokemonName: string, nature = "Serious", subSkills: SubSkillType[] = [], extra: Partial<BoxEntry> = {}): BoxEntry => ({
@@ -77,4 +79,21 @@ describe("rankEntry", () => {
 	it("doesn't depend on the level entered (always Lv80)", () => {
 		expect(rank(e("Sceptile", "Serious", [], { level: 20 }))?.value).toBeCloseTo(rank(e("Sceptile"))?.value ?? 0, 9);
 	});
+});
+
+describe("with the user's settings", () => {
+	it("rarity and rank agree in conditions: with the inventory limit off, a top Skeledirge without Inventory Up ranks S", () => {
+		const off = { ...defaultYieldOptions, inventoryLimit: false };
+		const tablesOff = buildRankTables(off, defaultStrengthOptions, 150, "test");
+		const skeledirge = e(
+			"Skeledirge",
+			"Docile",
+			["Ingredient Finder M", "Berry Finding S", "Helping Speed M", "Ingredient Finder S", "Helping Speed S"],
+			{ ingredient: "AAA" },
+		);
+		expect(rateEntry(skeledirge, off).grade).toBe("S");
+		const r = rankEntry(skeledirge, tablesOff, off, defaultStrengthOptions);
+		expect(r?.category).toBe("ingredient:apple");
+		expect(r?.grade).toBe("S");
+	}, 60_000);
 });

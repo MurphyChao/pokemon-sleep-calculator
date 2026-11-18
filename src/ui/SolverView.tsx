@@ -39,7 +39,7 @@ export default function SolverView(props: {
 	helpedDetail: (id: string, helpers: number) => YieldDetail;
 	tasty: Map<string, TastySource>;
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
-	ranks: Map<string, Rank | undefined>;
+	ranks: Map<string, Rank | null>;
 }) {
 	const { box, recipe, yields, details, helpedDetail, tasty, ranks } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.pinned", []);
@@ -364,7 +364,7 @@ function BenchTable(props: {
 	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
 	helpingBonus: Set<string>;
-	ranks: Map<string, Rank | undefined>;
+	ranks: Map<string, Rank | null>;
 	onMove: (id: string) => void;
 }) {
 	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, helpingBonus, ranks, onMove } = props;

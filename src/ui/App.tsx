@@ -20,8 +20,8 @@ import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 import SyncControl from "./SyncControl";
 import { useRatings } from "./useRatings";
-import rankTables from "../data/rank-tables.json";
-import { type Rank, rankEntry, type RankTables } from "../core/rank";
+import { type Rank, rankEntry } from "../core/rank";
+import { useRankTables } from "./useRankTables";
 
 type Tab = "box" | "slots" | "energy";
 
@@ -131,18 +131,24 @@ export default function App() {
 	}, [details, helpedDetail]);
 	/** Box tab only (benches show the rank): each Pokémon's rarity among rolls of its species. */
 	const ratings = useRatings(tab === "box" ? mathBox : noEntries, options, energy);
-	/** Each Pokémon's cross-species rank (quick: standard settings and precomputed tables). */
+	/** The rank's comparison population for these settings (built in the browser unless they're the defaults). */
+	const rankTables = useRankTables(options, energy);
+	/**
+	 * Each Pokémon's cross-species rank with these settings; missing while the population is being built,
+	 * null if it can't be ranked.
+	 */
 	const ranks = useMemo(() => {
-		const map = new Map<string, Rank | undefined>();
+		const map = new Map<string, Rank | null>();
+		if (!rankTables) return map;
 		for (const e of mathBox) {
 			try {
-				map.set(e.id, rankEntry(e, rankTables as RankTables));
+				map.set(e.id, rankEntry(e, rankTables, options, energy) ?? null);
 			} catch {
-				map.set(e.id, undefined);
+				map.set(e.id, null);
 			}
 		}
 		return map;
-	}, [mathBox]);
+	}, [mathBox, rankTables]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],

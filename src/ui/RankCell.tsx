@@ -18,11 +18,13 @@ export function rankCategoryLabel(category: string): string {
 
 /**
  * Grade and rank against random rolls of every fully evolved Pokémon in the same category, e.g.
- * "S Top 2% · Strength", with the daily value and the population's median in the tooltip.
+ * "S Top 2% · Strength", with the daily value and the population's median in the tooltip. Undefined: the
+ * population is still being built ("Rank…"); null: can't be ranked.
  */
-export default function RankCell(props: { rank: Rank | undefined }) {
+export default function RankCell(props: { rank: Rank | null | undefined }) {
 	const { rank } = props;
-	if (!rank) return <span className="muted">–</span>;
+	if (rank === undefined) return <span className="muted">{t("rankPending")}</span>;
+	if (rank === null) return <span className="muted">–</span>;
 	const unit =
 		rank.category === "strength"
 			? t("rankUnitStrength")

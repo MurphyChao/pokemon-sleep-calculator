@@ -107,6 +107,7 @@ const en = {
 	colRating: "Rarity",
 	ratingPending: "Rarity…",
 	colRank: "Rank",
+	rankPending: "Rank…",
 	rankStrength: "Strength",
 	rankIngredient: "Ingredients: {ing}",
 	rankIngredientStrength: "Ingredient strength of everything it gathers: {n} per day.",
@@ -114,7 +115,7 @@ const en = {
 	rankUnitStrength: "strength",
 	rankUnitSkill: "in the skill's own unit: energy, Extra Tasty chance, dream shards…",
 	rankTooltip:
-		"{value} per day ({unit}); the median is {median}.\nRanked against random rolls of the {species} fully evolved Pokémon in this category, at Lv80 with Sub Skill Seeds used and standard settings (not your own).",
+		"{value} per day ({unit}); the median is {median}.\nRanked against random rolls of the {species} fully evolved Pokémon in this category, at Lv80 with Sub Skill Seeds used and your settings.",
 	roleStrength: "Strength (berries + skill)",
 	roleIngredients: "Ingredients (incl. from skill)",
 	roleHybrid: "Ingredients + skill (half each)",
@@ -400,6 +401,7 @@ const zh: Record<Key, string> = {
 	colRating: "稀有度",
 	ratingPending: "稀有度計算中…",
 	colRank: "排名",
+	rankPending: "排名計算中…",
 	rankStrength: "能量",
 	rankIngredient: "食材：{ing}",
 	rankIngredientStrength: "它收集的所有食材合計食材能量：每日 {n}。",
@@ -407,7 +409,7 @@ const zh: Record<Key, string> = {
 	rankUnitStrength: "能量",
 	rankUnitSkill: "以技能本身的單位計算：活力、大成功機率、夢之碎片…",
 	rankTooltip:
-		"每日 {value}（{unit}）；中位數為 {median}。\n與這個類別中 {species} 種最終進化寶可夢的隨機結果比較，以 Lv80、使用副技能種子、標準設定（不是你的設定）計算。",
+		"每日 {value}（{unit}）；中位數為 {median}。\n與這個類別中 {species} 種最終進化寶可夢的隨機結果比較，以 Lv80、使用副技能種子、你的設定計算。",
 	roleStrength: "能量（樹果＋技能）",
 	roleIngredients: "食材（含技能）",
 	roleHybrid: "食材＋技能（各半）",
