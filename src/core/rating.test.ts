@@ -1,5 +1,5 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
-import type { BoxEntry, SubSkillLevel } from "./box";
+import { type BoxEntry, maxSubSkillSeeds, scaleLevels, type SubSkillLevel } from "./box";
 import { gradeOf, rateEntry, ratingProblem, searchBest } from "./rating";
 
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
@@ -57,6 +57,17 @@ describe("rateEntry", () => {
 		expect(lv30.score).toBeGreaterThan(withoutLevelUp.score);
 	});
 
+	it("rates the solvers' copies from the skill level as entered: level scaling changes nothing, seeds count", () => {
+		const subs: SubSkillType[] = ["Helping Speed S", "Berry Finding S", "Skill Level Up S"];
+		const real = e("Sceptile", "Serious", subs, { level: 30, skillLevel: 2 });
+		const score = rateEntry(real).score;
+		// Lv60 unlocks Skill Level Up S, which the entered skill level doesn't include yet.
+		const [scaled] = scaleLevels([real], 60);
+		expect(rateEntry(scaled).score).toBeCloseTo(score, 6);
+		const [seeded] = maxSubSkillSeeds([real], true);
+		expect(rateEntry(seeded).score).toBeGreaterThan(score);
+	});
+
 	it("ignores subskills that don't help the role", () => {
 		const base: SubSkillType[] = ["Helping Speed M"];
 		const score = rateEntry(e("Dragonite", "Serious", base)).score;
@@ -71,8 +82,8 @@ describe("searchBest", () => {
 		for (let i = start; i < items.length; i++) yield* subsets(items, max, i + 1, [...cur, items[i]]);
 	}
 
-	// Hawlucha and Sandshrew need the nature and a subskill changed together to reach the optimum.
-	it.each(["Sceptile", "Chansey", "Sandslash", "Drampa", "Hawlucha", "Sandshrew"])("finds the exhaustive optimum for %s", (name) => {
+	// Hawlucha and Sandshrew need the nature and a subskill changed together to reach the optimum, Psyduck two subskills.
+	it.each(["Sceptile", "Chansey", "Sandslash", "Drampa", "Hawlucha", "Sandshrew", "Psyduck"])("finds the exhaustive optimum for %s", (name) => {
 		const p = ratingProblem(e(name, "Serious", [], { ingredient: "ABC" }));
 		let best = -Infinity;
 		for (const nature of p.natures) for (const s of subsets(p.candidates, 5)) best = Math.max(best, p.valueOf(nature, s));

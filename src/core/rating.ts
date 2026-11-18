@@ -29,8 +29,8 @@ const roleWeights: Record<RatingRole, Partial<Record<Measure, number>>> = {
 	support: { skill: 1 },
 };
 
-/** Level the rating is computed at: every subskill and ingredient slot unlocked (the Pokémon's potential). */
-export const ratingLevel = 100;
+/** Level the rating is computed at: Lv80, where every subskill and ingredient slot is unlocked (the Pokémon's potential). */
+export const ratingLevel = 80;
 
 export const grades = ["S", "A", "B", "C", "D"] as const;
 export type Grade = (typeof grades)[number];
@@ -92,11 +92,16 @@ function skillLevelUp(names: (SubSkillType | null | undefined)[]): number {
 
 /**
  * The entry's main skill level without its subskills' Skill Level Up: the level entered (as shown in the
- * game) already includes the subskills unlocked at the entry's level. Older entries without one get
- * pokesleep-tool's default for the species, which doesn't.
+ * game) already includes the subskills unlocked at the entry's real level, before the solvers' level
+ * scaling and Sub Skill Seeds. Older entries without one get pokesleep-tool's default for the species,
+ * which doesn't.
  */
 function baseSkillLevel(entry: BoxEntry): number {
-	const iv = toPokemonIv(entry);
+	const iv = toPokemonIv({
+		...entry,
+		level: entry.scaledFrom ?? entry.level,
+		subSkills: { ...entry.subSkills, ...entry.seededFrom },
+	});
 	if (entry.skillLevel === undefined) return iv.skillLevel;
 	return Math.max(1, iv.skillLevel - skillLevelUp(iv.activeSubSkills.map((s) => s.name)));
 }
@@ -215,9 +220,9 @@ const maxSubSkills = subSkillLevels.length;
 /**
  * Local search, with the nature as one more thing to change: starting from a neutral nature and no
  * subskills, repeatedly make the single change (add a subskill, replace one, or change the nature) that
- * helps most; when none does, also try changing the nature together with one subskill. Exhaustive search
- * is too slow to run for a whole box; on every Pokémon this finds the same best value (checked once
- * against an exhaustive search, and for a few Pokémon in rating.test.ts).
+ * helps most; when none does, also try changing the nature together with one subskill, then replacing two
+ * subskills at once. Exhaustive search is too slow to run for a whole box; on every Pokémon this finds the
+ * same best value (checked once against an exhaustive search, and for a few Pokémon in rating.test.ts).
  */
 export function searchBest(
 	valueOf: (nature: string, subSkills: SubSkillType[]) => number,
@@ -248,6 +253,19 @@ export function searchBest(
 					if (current.subSkills.length < maxSubSkills) consider(n, [...current.subSkills, s]);
 					for (let i = 0; i < current.subSkills.length; i++) {
 						consider(n, current.subSkills.map((x, j) => (j === i ? s : x)));
+					}
+				}
+			}
+		}
+		if (next === current) {
+			// Still stuck: try replacing two subskills at once.
+			const free = candidates.filter((s) => !current.subSkills.includes(s));
+			for (let i = 0; i < current.subSkills.length; i++) {
+				for (let j = i + 1; j < current.subSkills.length; j++) {
+					for (let a = 0; a < free.length; a++) {
+						for (let b = a + 1; b < free.length; b++) {
+							consider(current.nature, current.subSkills.map((x, k) => (k === i ? free[a] : k === j ? free[b] : x)));
+						}
 					}
 				}
 			}

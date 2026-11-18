@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { BoxEntry } from "../core/box";
+import type { Rating } from "../core/rating";
 import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
 import {
 	achievableDemand,
@@ -22,6 +23,7 @@ import { PokemonIcon, PokemonIconCell } from "./PokemonIcon";
 import { EntryName } from "./EntryLabel";
 import { IngredientIcon } from "./IngredientIcons";
 import { MinusIcon, PlusIcon } from "./icons";
+import RatingCell from "./RatingCell";
 
 export const teamSize = 5;
 
@@ -30,8 +32,10 @@ export default function SolverView(props: {
 	recipe: Recipe;
 	yields: Map<string, IngredientYield>;
 	tasty: Map<string, TastySource>;
+	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
+	ratings: Map<string, Rating | null>;
 }) {
-	const { box, recipe, yields, tasty } = props;
+	const { box, recipe, yields, tasty, ratings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.pinned", []);
 	/** Team per recipe; a recipe without an entry gets the auto-filled team. */
 	const [teams, setTeams] = useStoredState<Record<string, string[]>>("pscalc.teams", {});
@@ -198,6 +202,7 @@ export default function SolverView(props: {
 							labels={labels}
 							shortLabels={shortLabels}
 							yields={yields}
+							ratings={ratings}
 							onMove={moveToTeam}
 						/>
 					</section>
@@ -328,9 +333,10 @@ function BenchTable(props: {
 	/** Labels without ingredient letters, shown above the ingredient icons. */
 	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
+	ratings: Map<string, Rating | null>;
 	onMove: (id: string) => void;
 }) {
-	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, onMove } = props;
+	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, ratings, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
@@ -344,6 +350,7 @@ function BenchTable(props: {
 							<IngredientIcon name={i} className="header" />
 						</th>
 					))}
+					<th>{t("colRating")}</th>
 					<th>{t("savesCurrent")}</th>
 					<th>{t("savesVsBest")}</th>
 					<th>{t("colExtraTasty")}</th>
@@ -359,6 +366,9 @@ function BenchTable(props: {
 							<EntryName entry={byId.get(s.id)} parts={shortLabels.get(s.id)} />
 						</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
+						<td>
+							<RatingCell rating={ratings.get(s.id)} />
+						</td>
 						<td>{reductionLabel(s)}</td>
 						<td>{vsBestLabel(vsBest.get(s.id))}</td>
 						<TastyCell value={tastyValue.get(s.id)} />

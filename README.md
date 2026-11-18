@@ -13,8 +13,9 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 ## Box rating
 
 The Box table rates each Pokémon's nature and subskills from 0 to 100 (grades S ≥ 90, A ≥ 75, B ≥ 60, C ≥ 40, D),
-and can be sorted by it. 100 is the best nature and subskills that Pokémon could have, for the same species,
-ingredients and main skill level. The rating is computed at full potential (Lv100, every subskill unlocked) with
+and can be sorted by it. Both solvers' bench lists show the rating too, for the Pokémon as the solvers see it
+(after final evolution and Sub Skill Seeds, if on). 100 is the best nature and subskills that Pokémon could have, for the same species,
+ingredients and main skill level. The rating is computed at full potential (Lv80, every subskill unlocked) with
 the same yield model and settings as the solvers. What it measures depends on what the Pokémon is kept for, not
 just its specialty:
 

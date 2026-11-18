@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
+import type { Rating } from "../core/rating";
 import {
 	type BestTeam,
 	bestEnergyTeam,
@@ -26,6 +27,7 @@ import { EntryLabel, InlineEntry } from "./EntryLabel";
 import IconSelect from "./IconSelect";
 import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { BanIcon, PlusIcon, UndoIcon } from "./icons";
+import RatingCell from "./RatingCell";
 
 export interface EnergySettings extends StrengthOptions {
 	recipeLevel: number;
@@ -55,10 +57,12 @@ export default function EnergyView(props: {
 	details: Map<string, YieldDetail>;
 	/** With simulated energy: yields when healed by the team's healers. */
 	healedDetail?: (id: string, heal: Heal | undefined) => YieldDetail;
+	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
+	ratings: Map<string, Rating | null>;
 	settings: EnergySettings;
 	setSettings: (s: EnergySettings) => void;
 }) {
-	const { box, recipe, details, healedDetail, settings, setSettings } = props;
+	const { box, recipe, details, healedDetail, ratings, settings, setSettings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -311,6 +315,7 @@ export default function EnergyView(props: {
 										))}
 										<th>{t("colBerries")}</th>
 										<th>{t("colSkill")}</th>
+										<th>{t("colRating")}</th>
 										<th>{t("colBestWithIt")}</th>
 										<th />
 									</tr>
@@ -337,6 +342,9 @@ export default function EnergyView(props: {
 												))}
 												<td>{formatStrength(m.berry)}</td>
 												<td>{m.skill > 0 ? formatStrength(m.skill) : "–"}</td>
+												<td>
+													<RatingCell rating={ratings.get(id)} />
+												</td>
 												<td>{w && <Diff value={w.energy.total - e.total} />}</td>
 												<td className="row-actions">
 													<button

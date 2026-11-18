@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
-import type { Rating, RatingRole } from "../core/rating";
+import type { Rating } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, subSkillLabel, t } from "./i18n";
+import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel } from "./names";
 import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
@@ -16,6 +16,7 @@ import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { NatureEffects } from "./NatureEffects";
 import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
+import RatingCell from "./RatingCell";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -397,31 +398,6 @@ export default function BoxView(props: {
 }
 
 const noRatings = new Map<string, Rating | null>();
-
-const roleLabels: Record<RatingRole, Key> = {
-	strength: "roleStrength",
-	ingredients: "roleIngredients",
-	hybrid: "roleHybrid",
-	support: "roleSupport",
-};
-
-/** Grade and score, e.g. "A 82", with what the rating measures and the best build in the tooltip. */
-function RatingCell(props: { rating: Rating | null | undefined }) {
-	const { rating } = props;
-	if (rating === undefined) return <span className="muted">{t("ratingPending")}</span>;
-	if (rating === null) return <span className="muted">–</span>;
-	const best = [natureLabel(rating.best.nature), ...rating.best.subSkills.map(subSkillLabel)].join(" · ");
-	const score = Math.floor(rating.score);
-	return (
-		<div
-			className={`rating rating-${rating.grade.toLowerCase()}`}
-			title={t("ratingTooltip", { role: t(roleLabels[rating.role]), score, best })}
-		>
-			<strong>{rating.grade}</strong> {score}
-			<div className="muted small">{t(roleLabels[rating.role])}</div>
-		</div>
-	);
-}
 
 /** Help ingredients first, then skill-only ingredients, e.g. "Soft Potato 16 (+3.1 skill)". */
 function YieldSummary(props: { detail: YieldDetail | undefined }) {

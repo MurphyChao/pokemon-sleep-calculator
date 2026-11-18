@@ -363,13 +363,39 @@ test("Box shows each Pokémon's rating for its role and can be sorted by it", as
 	const cell = (label: string) => rowOf(box, label).querySelector(".rating") as HTMLElement;
 	expect(cell("Strong").textContent).toMatch(/^[SABCD] \d+Strength/);
 	expect(cell("Chansey").textContent).toContain("Ingredients + skill");
-	expect(cell("Strong").getAttribute("title")).toMatch(/full potential/);
+	expect(cell("Strong").getAttribute("title")).toMatch(/Lv80/);
 	const score = (label: string) => Number(cell(label).textContent?.match(/\d+/)?.[0]);
 	expect(score("Strong")).toBeGreaterThan(score("Weak"));
 
 	fireEvent.change(within(box).getByLabelText("Sort by"), { target: { value: "rating" } });
 	const order = [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector(".rating")?.textContent?.match(/\d+/)?.[0]);
 	expect(order.map(Number)).toEqual(order.map(Number).sort((a, b) => b - a));
+});
+
+test("both solvers' bench lists show each Pokémon's rating, for the Pokémon as the solvers see it", async () => {
+	localStorage.setItem("pscalc.finalEvolution", "true");
+	renderSolver([
+		entry("sandslash", "Sandslash", "ABC", 6),
+		entry("gourgeist", "Gourgeist (Jumbo)", "AAA"),
+		entry("meow", "Meowscarada", "AAA"),
+		entry("drag", "Dragonite", "ABB"),
+		entry("spirit", "Spiritomb", "AAA"),
+		entry("amoon", "Amoonguss", "AAA"),
+		entry("quag", "Quagsire", "AAA"),
+		entry("charmander", "Charmander", "AAA"),
+	]);
+	const ratingOf = async (label: string) => {
+		await waitFor(() => expect(rowOf(section("Bench"), label).querySelector(".rating")).not.toBeNull());
+		return rowOf(section("Bench"), label).querySelector(".rating")?.textContent ?? "";
+	};
+	expect(within(section("Bench")).getByText("Rating")).toBeTruthy();
+	// Evolved to Charizard for the solvers, and rated as one.
+	expect(await ratingOf("Charmander→Charizard")).toMatch(/^[SABCD] \d+Ingredients/);
+
+	fireEvent.click(screen.getByText("Energy solver"));
+	expect(within(section("Bench")).getByText("Rating")).toBeTruthy();
+	const benchRow = section("Bench").querySelector("tbody tr") as HTMLElement;
+	await waitFor(() => expect(benchRow.querySelector(".rating")?.textContent).toMatch(/^[SABCD] \d+/));
 });
 
 test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {

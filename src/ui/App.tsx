@@ -22,8 +22,6 @@ import { useRatings } from "./useRatings";
 
 type Tab = "box" | "slots" | "energy";
 
-/** A stable empty box, so hooks keyed on the box don't rerun every render. */
-const noEntries: BoxEntry[] = [];
 
 const tabs: { tab: Tab; label: Key }[] = [
 	{ tab: "energy", label: "tabEnergy" },
@@ -92,8 +90,8 @@ export default function App() {
 			return d;
 		};
 	}, [details]);
-	/** Box tab only: each Pokémon's rating for its role, on the box as entered. */
-	const ratings = useRatings(tab === "box" ? box : noEntries, options, energy);
+	/** Each Pokémon's rating for its role: as entered on the Box tab, as the solvers see it on theirs. */
+	const ratings = useRatings(mathBox, options, energy);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],
@@ -260,13 +258,14 @@ export default function App() {
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />
 						{tab === "slots" ? (
-							<SolverView box={solverBox} recipe={dish.recipe} yields={yields} tasty={tasty} />
+							<SolverView box={solverBox} recipe={dish.recipe} yields={yields} tasty={tasty} ratings={ratings} />
 						) : (
 							<EnergyView
 								box={solverBox}
 								recipe={dish.recipe}
 								details={details}
 								healedDetail={healedDetail}
+								ratings={ratings}
 								settings={energy}
 								setSettings={setEnergy}
 							/>

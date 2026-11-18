@@ -26,7 +26,17 @@ export function useRatings(box: BoxEntry[], options: YieldOptions, strength: Str
 
 	useEffect(() => {
 		const keyOf = (e: BoxEntry) =>
-			JSON.stringify([settingsKey, e.pokemonName, e.level, e.skillLevel, e.ingredient, e.nature, e.subSkills]);
+			JSON.stringify([
+				settingsKey,
+				e.pokemonName,
+				e.level,
+				e.skillLevel,
+				e.ingredient,
+				e.nature,
+				e.subSkills,
+				e.scaledFrom,
+				e.seededFrom,
+			]);
 		const settings = { options, strength };
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const step = () => {
