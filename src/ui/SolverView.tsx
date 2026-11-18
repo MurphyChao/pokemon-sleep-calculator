@@ -25,6 +25,7 @@ import { EntryName } from "./EntryLabel";
 import { IngredientIcon } from "./IngredientIcons";
 import { MinusIcon, PlusIcon } from "./icons";
 import RankCell from "./RankCell";
+import TableHelp from "./TableHelp";
 
 export const teamSize = 5;
 
@@ -209,16 +210,16 @@ export default function SolverView(props: {
 							onPin={togglePin}
 							onMove={moveToBench}
 						/>
-						<p className="muted small">
+						<TableHelp>
 							<Rich text={t("slotHelp")} />
-						</p>
+						</TableHelp>
 					</section>
 
 					<section className="card">
 						<h2>{t("bench")}</h2>
-						<p className="muted small">
+						<TableHelp>
 							<Rich text={t("benchHelp")} />
-						</p>
+						</TableHelp>
 						<BenchTable
 							scores={bench.scores}
 							tastyValue={bench.tastyValue}

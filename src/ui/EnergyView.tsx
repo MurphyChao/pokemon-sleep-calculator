@@ -314,9 +314,9 @@ export default function EnergyView(props: {
 
 					<section className="card">
 						<h2>{t("bench")}</h2>
-						<p className="muted small">
+						<TableHelp>
 							<Rich text={t("energyBenchHelp")} />
-						</p>
+						</TableHelp>
 						{bench.length === 0 ? (
 							<p className="muted">{t("allOnTeam")}</p>
 						) : (
