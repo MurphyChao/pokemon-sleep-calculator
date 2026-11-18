@@ -10,6 +10,14 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 - **Slot solver:** the smallest team whose ingredient output covers the dish, and how many slots a particular
   Pokémon (e.g. a multi-ingredient gatherer like Sandslash) saves compared with the best team without it.
 
+Both solvers count **Helping Bonus**: each slot filled by Pokémon with it makes everyone else on the team help 5%
+faster (pokesleep-tool's model, including the 35% cap with speed subskills). Since that makes each Pokémon's output
+depend on the team, the solvers try team Helping Bonus totals of 0, ½, 1, … (up to 5): for each, everyone's output is
+counted with that much Helping Bonus, the Helping Bonus Pokémon must fill at least that many slots, and the best
+result wins. Partial slots are interpolated between whole numbers of helpers. In the energy solver, every
+combination of Extra Tasty and healer shares is tried without Helping Bonus; with it, the search starts from the
+best combinations found and refines them.
+
 ## Box rating
 
 The Box table rates each Pokémon's nature and subskills by where they rank among all possible rolls of the same
@@ -31,10 +39,17 @@ The Pokémon and every roll it's compared with are benchmarked fully invested:
   these keep the skill level entered, plus Skill Level Up from their (seeded) subskills. Skills specialists
   with an ingredient skill (Sandslash, Crustle) are maxed.
 
+Ingredients specialists (including hybrids like Chansey) are ranked for each ingredient they can gather: how
+much of that one ingredient they gather per day (half of the value for a hybrid, the other half being skill
+triggers), against 2,000 random rolls with any ingredient combination that can gather it (each equally likely).
+Their best rank counts, and the cell names that ingredient. So the combination matters: an AAA Charizard ranks top
+for Bean Sausage, an ABB one for Ginger, and an AAC one is compared only with other Charizards that gather Fiery
+Herb.
+
 Helping Bonus also counts the rest of the team: besides its own 5% faster helping (which the yield model
 includes), the 4 teammates help 5% faster, i.e. about 5.3% more helps each. That adds 4 × 5.3% ≈ 21% of the
 Pokémon's output with a neutral nature and no subskills, assuming teammates produce about as much and ignoring
-the 35% cap on helping speed bonuses. (The solvers don't count this team effect yet.)
+the 35% cap on helping speed bonuses.
 
 Rolls that end up doing the same in the yield model (e.g. Inventory Up S + L and M + L both become M + L) share one
 calculation. What is measured depends on what the Pokémon is kept for, not just its specialty:

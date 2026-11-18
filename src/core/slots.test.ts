@@ -2,11 +2,14 @@ import {
 	achievableDemand,
 	autoTeam,
 	benchScores,
+	helpedYield,
 	type Member,
 	minSlots,
 	savingsVsBestWithout,
 	simplexMax,
+	simplexMaxGeneral,
 } from "./slots";
+import { helpingBonusRate } from "./yield";
 
 const demand = { pumpkin: 60, potato: 90, corn: 54, mushroom: 81 };
 
@@ -133,5 +136,72 @@ describe("savingsVsBestWithout", () => {
 
 	test("infinite when the box cannot cover the dish without it", () => {
 		expect(savingsVsBestWithout(box, demand, [], ["mushroom"]).get("mushroom")).toBe(Number.POSITIVE_INFINITY);
+	});
+});
+
+describe("simplexMaxGeneral", () => {
+	it("handles at-least constraints (negative right-hand sides)", () => {
+		// max x + 2y  s.t.  x + y ≤ 4,  x ≥ 1,  y ≤ 2
+		const r = simplexMaxGeneral([1, 2], [[1, 1], [-1, 0], [0, 1]], [4, -1, 2], 2);
+		expect(r?.value).toBeCloseTo(6, 9);
+		expect(r?.solution[0]).toBeCloseTo(2, 9);
+		expect(r?.solution[1]).toBeCloseTo(2, 9);
+		// min x + y  s.t.  x + 2y ≥ 3,  x ≥ 1  →  x = 1, y = 1
+		const m = simplexMaxGeneral([-1, -1], [[-1, -2], [-1, 0]], [-3, -1], 2);
+		expect(m?.value).toBeCloseTo(-2, 9);
+		expect(m?.solution[0]).toBeCloseTo(1, 9);
+	});
+
+	it("reports infeasible constraints", () => {
+		expect(simplexMaxGeneral([1], [[1], [-1]], [1, -2], 1)).toBeUndefined();
+	});
+
+	it("agrees with simplexMax when the origin is feasible", () => {
+		let seed = 3;
+		const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+		for (let k = 0; k < 50; k++) {
+			const n = 3;
+			const A = Array.from({ length: 4 }, () => Array.from({ length: n }, () => rnd() * 2));
+			const b = A.map(() => 1 + rnd() * 5);
+			const c = Array.from({ length: n }, () => rnd() - 0.2);
+			expect(simplexMaxGeneral(c, A, b, n)?.value).toBeCloseTo(simplexMax(c, A, b, n).value, 7);
+		}
+	});
+});
+
+describe("minSlots with Helping Bonus", () => {
+	/** Pumpkin gatherers whose output rises with teammates' Helping Bonus (5% faster helping each). */
+	const gatherer = (id: string, pumpkin: number, helpingBonus = false): Member => ({
+		id,
+		yield: { pumpkin },
+		...(helpingBonus && { helpingBonus: true }),
+		yieldAt: (helpers) => ({ pumpkin: pumpkin * (1 + helpingBonusRate * helpers) }),
+	});
+	const box = [gatherer("a1", 10), gatherer("a2", 10), gatherer("a3", 10), gatherer("a4", 10), gatherer("hb", 9, true)];
+
+	it("uses a Helping Bonus Pokémon when the team's faster helping saves more than it costs", () => {
+		const without = minSlots(box.slice(0, 4), { pumpkin: 38 });
+		expect(without.slots).toBeCloseTo(3.8, 9);
+		const r = minSlots(box, { pumpkin: 38 });
+		expect(r.slots).toBeLessThan(without.slots - 0.01);
+		expect(r.helpers).toBeGreaterThan(0);
+		expect(r.usage.get("hb")).toBeGreaterThanOrEqual(r.helpers - 1e-9);
+		// Achievable: with the Helping Bonus actually on the team, the supply covers the demand.
+		const onTeam = r.usage.get("hb") ?? 0;
+		const supply = box.reduce((a, m) => a + (r.usage.get(m.id) ?? 0) * (helpedYield(m, onTeam).pumpkin ?? 0), 0);
+		expect(supply).toBeGreaterThanOrEqual(38 - 1e-6);
+	});
+
+	it("doesn't use one that gathers too little to pay for its slot", () => {
+		const weak = [...box.slice(0, 4), gatherer("hb", 1, true)];
+		const r = minSlots(weak, { pumpkin: 38 });
+		expect(r.slots).toBeCloseTo(3.8, 9);
+		expect(r.usage.get("hb")).toBe(0);
+	});
+
+	it("counts only the others' Helping Bonus for a Pokémon that has it", () => {
+		expect(helpedYield(box[4], 1).pumpkin).toBeCloseTo(9, 9);
+		expect(helpedYield(box[4], 2).pumpkin).toBeCloseTo(9 * (1 + helpingBonusRate), 9);
+		expect(helpedYield(box[0], 1).pumpkin).toBeCloseTo(10 * (1 + helpingBonusRate), 9);
 	});
 });

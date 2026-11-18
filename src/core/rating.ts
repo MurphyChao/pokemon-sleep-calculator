@@ -1,5 +1,7 @@
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import Nature, { type NatureEffect } from "../vendor/pokesleep-tool/util/Nature";
+import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
+import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import SubSkill from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, type SubSkillLevel, subSkillLevels, toPokemonIv } from "./box";
@@ -74,8 +76,16 @@ export interface Rating {
 	grade: Grade;
 	/** 0–100: the Pokémon's value as a share of the best nature and subskills it could have. */
 	ofBest: number;
-	/** The best nature and subskills found (as rolled, before Sub Skill Seeds), which score 100. */
-	best: { nature: string; subSkills: SubSkillType[] };
+	/**
+	 * For Ingredients specialists: the ingredient their best rank is for. They're ranked for each
+	 * ingredient they can gather, against rolls with any ingredient combination that can gather it.
+	 */
+	ingredient?: IngredientName;
+	/**
+	 * The best nature and subskills found (as rolled, before Sub Skill Seeds), which score 100; for
+	 * Ingredients specialists also the best ingredient combination for `ingredient`.
+	 */
+	best: { nature: string; subSkills: SubSkillType[]; combo?: IngredientType };
 	/** Main skill level the Pokémon was rated at. */
 	skillLevel: number;
 	/** Whether the main skill is rated at its max level ({@link maxesSkill}). */
@@ -178,33 +188,36 @@ function seededRandom(seed: number): () => number {
 }
 
 /**
- * Values of {@link rollSampleSize} random rolls, sorted: a nature and 5 different subskills, each equally
- * likely (the game doesn't publish the real odds), all unlocked as at the rating level and upgraded with
- * Sub Skill Seeds like the Pokémon being rated.
+ * Values of {@link rollSampleSize} random rolls for each of the problem's goals, sorted: a nature and 5
+ * different subskills, each equally likely (the game doesn't publish the real odds), all unlocked as at the
+ * rating level and upgraded with Sub Skill Seeds like the Pokémon being rated, and an ingredient
+ * combination from the goal's {@link RatingGoal.combos}, each equally likely. Rolls that do the same in
+ * the yield model share one calculation.
  */
-export function sampleRolls(problem: RatingProblem, options: YieldOptions, count = rollSampleSize): Float64Array {
-	const random = seededRandom(20261118);
+export function sampleRolls(problem: RatingProblem, options: YieldOptions, count = rollSampleSize): Float64Array[] {
 	const natures = Nature.allNatures;
 	const subSkills = SubSkill.allSubSkills;
-	const memo = new Map<string, number>();
-	const values = new Float64Array(count);
-	for (let i = 0; i < count; i++) {
-		const nature = natures[Math.floor(random() * natures.length)];
-		const pool = [...subSkills];
-		const roll: SubSkill[] = [];
-		while (roll.length < maxSubSkills) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
-		const key = `${natureClass(nature, options)}|${subSkillsKey(seedSubSkills(roll.map((s) => s.name)).map((n) => new SubSkill(n)))}`;
-		let value = memo.get(key);
-		if (value === undefined) {
-			value = problem.valueOf(
-				nature.name,
-				roll.map((s) => s.name),
-			);
-			memo.set(key, value);
+	const memo = new Map<string, YieldDetail>();
+	return problem.goals.map((goal) => {
+		const random = seededRandom(20261118);
+		const values = new Float64Array(count);
+		for (let i = 0; i < count; i++) {
+			const combo = goal.combos[Math.floor(random() * goal.combos.length)];
+			const nature = natures[Math.floor(random() * natures.length)];
+			const pool = [...subSkills];
+			const roll: SubSkill[] = [];
+			while (roll.length < maxSubSkills) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
+			const names = roll.map((s) => s.name);
+			const key = `${combo}|${natureClass(nature, options)}|${subSkillsKey(seedSubSkills(names).map((n) => new SubSkill(n)))}`;
+			let detail = memo.get(key);
+			if (detail === undefined) {
+				detail = problem.detailOf(nature.name, names, combo);
+				memo.set(key, detail);
+			}
+			values[i] = goal.value(detail, names);
 		}
-		values[i] = value;
-	}
-	return values.sort();
+		return values.sort();
+	});
 }
 
 /** The share of sorted `values` that are better than `value` (ignoring rounding differences). */
@@ -269,22 +282,51 @@ export function ratingRole(specialty: string, detail: YieldDetail): RatingRole {
 	return detail.skillStrength > 0 ? "strength" : "support";
 }
 
-/** What the search for a Pokémon's best nature and subskills works with. */
+/**
+ * Something a Pokémon is ranked on. Most Pokémon have one goal, their role's value; Ingredients specialists
+ * have one per ingredient they can gather (see {@link ratingProblem}), and their best rank counts.
+ */
+export interface RatingGoal {
+	/** For Ingredients specialists: the one ingredient this goal counts. */
+	ingredient?: IngredientName;
+	/** The value of a build with this yield detail and these subskills as rolled. */
+	value: (detail: YieldDetail, subSkills: SubSkillType[]) => number;
+	/** Ingredient combination of the best build searched for (the Pokémon's own, or the best for `ingredient`). */
+	combo: IngredientType;
+	/**
+	 * Ingredient combinations of the random rolls it's ranked against: the Pokémon's own, or for an
+	 * ingredient every combination that can gather it.
+	 */
+	combos: IngredientType[];
+}
+
+/** What the rating of one Pokémon works with. */
 export interface RatingProblem {
 	role: RatingRole;
 	/**
-	 * The role's value of the Pokémon at the rating level with this nature and these subskills as rolled
-	 * (Sub Skill Seeds are applied, see {@link seedSubSkills}).
+	 * Yield detail of the Pokémon at the rating level with this nature and these subskills as rolled
+	 * (Sub Skill Seeds are applied, see {@link seedSubSkills}), and this ingredient combination.
 	 */
-	valueOf: (nature: string, subSkills: SubSkillType[]) => number;
+	detailOf: (nature: string, subSkills: SubSkillType[], combo?: IngredientType) => YieldDetail;
+	goals: RatingGoal[];
 	/** Main skill level for these subskills as rolled. */
 	skillLevelOf: (subSkills: SubSkillType[]) => number;
 	/** Whether the main skill is at its max level ({@link maxesSkill}). */
 	skillMaxed: boolean;
 	natures: string[];
 	candidates: SubSkillType[];
-	/** Identifies the best build: species, ingredients, base skill level and settings. */
+	/** Identifies the best builds and rolls: species, base skill level, settings (and ingredients if fixed). */
 	key: string;
+}
+
+/** A goal's value as a function of nature and subskills, at its own combination (or `combo`). */
+export function goalValue(problem: RatingProblem, goal: RatingGoal, combo = goal.combo) {
+	return (nature: string, subSkills: SubSkillType[]) => goal.value(problem.detailOf(nature, subSkills, combo), subSkills);
+}
+
+/** Ingredient combinations a species can have: B needs a second ingredient, C a third. */
+function speciesCombos(ing2: unknown, ing3: unknown): IngredientType[] {
+	return IngredientTypes.filter((c) => (ing2 || !c.includes("B")) && (ing3 || !c.includes("C")));
 }
 
 export function ratingProblem(
@@ -293,44 +335,87 @@ export function ratingProblem(
 	strength: StrengthOptions = defaultStrengthOptions,
 ): RatingProblem {
 	const iv = toPokemonIv(entry);
-	const maxSkill = getMaxSkillLevel(iv.pokemon.skill);
+	const pokemon = iv.pokemon;
+	const maxSkill = getMaxSkillLevel(pokemon.skill);
 	const base = baseSkillLevel(entry);
-	const detailAt = (skillLevel: number, nature: string, seeded: SubSkillType[]) =>
-		soloYieldDetail(build(entry, skillLevel, nature, seeded), options, strength);
+	const detailAt = (skillLevel: number, nature: string, seeded: SubSkillType[], combo: IngredientType) =>
+		soloYieldDetail(build({ ...entry, ingredient: combo }, skillLevel, nature, seeded), options, strength);
 	// What the main skill does doesn't depend on its level, so the role can be found at any level.
-	const role = ratingRole(iv.pokemon.specialty, detailAt(base, "Serious", []));
-	const skillMaxed = maxesSkill(role, iv.pokemon.specialty);
+	const role = ratingRole(pokemon.specialty, detailAt(base, "Serious", [], entry.ingredient));
+	const skillMaxed = maxesSkill(role, pokemon.specialty);
 	const seededSkillLevel = (seeded: SubSkillType[]) =>
 		skillMaxed ? maxSkill : Math.min(maxSkill, base + skillLevelUp(seeded));
-	const detailOf = (nature: string, subSkills: SubSkillType[]) => {
+	const detailOf = (nature: string, subSkills: SubSkillType[], combo: IngredientType = entry.ingredient) => {
 		const seeded = seedSubSkills(subSkills);
-		return detailAt(seededSkillLevel(seeded), nature, seeded);
+		return detailAt(seededSkillLevel(seeded), nature, seeded, combo);
 	};
+	const bonus = (subSkills: SubSkillType[]) => (subSkills.includes("Helping Bonus") ? helpingBonusTeamValue : 0);
 	const baseline = detailOf("Serious", []);
-	const weights = Object.entries(roleWeights[role]) as [Measure, number][];
-	const baseMeasures = measures(baseline);
-	const valueOf = (nature: string, subSkills: SubSkillType[]) => {
-		const m = measures(detailOf(nature, subSkills));
-		const own = weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
-		return own + (subSkills.includes("Helping Bonus") ? helpingBonusTeamValue : 0);
-	};
 	const skillCounts =
 		role === "hybrid" ||
 		role === "support" ||
 		(role === "strength" ? baseline.skillStrength > 0 : Object.keys(baseline.skill).length > 0);
-	return {
+	const common = {
 		role,
-		valueOf,
-		skillLevelOf: (subSkills) => seededSkillLevel(seedSubSkills(subSkills)),
+		detailOf,
+		skillLevelOf: (subSkills: SubSkillType[]) => seededSkillLevel(seedSubSkills(subSkills)),
 		skillMaxed,
 		natures: candidateNatures(options),
 		candidates: candidateSubSkills(role, skillCounts, options),
-		key: [entry.pokemonName, entry.ingredient, base, JSON.stringify(options), JSON.stringify(strength)].join("|"),
+	};
+	const settingsKey = [base, JSON.stringify(options), JSON.stringify(strength)].join("|");
+
+	if (pokemon.specialty === "Ingredients" && (role === "ingredients" || role === "hybrid")) {
+		// One goal per ingredient: how much of it the Pokémon gathers (half of the value for a hybrid, the
+		// other half being skill triggers), against rolls with any ingredient combination that can gather it.
+		// Each ingredient is measured against the most of it a neutral Pokémon of this species can gather.
+		const combos = speciesCombos(pokemon.ing2, pokemon.ing3);
+		const baselines = combos.map((combo) => ({ combo, detail: detailOf("Serious", [], combo) }));
+		const names = [...new Set([pokemon.ing1?.name, pokemon.ing2?.name, pokemon.ing3?.name])].filter(
+			(n): n is IngredientName => !!n,
+		);
+		const baseSkills = baseline.skillsPerDay;
+		const slotOf = { A: pokemon.ing1?.name, B: pokemon.ing2?.name, C: pokemon.ing3?.name } as Record<string, string | undefined>;
+		const goals = names.map((ingredient): RatingGoal => {
+			const top = baselines.reduce((a, b) => ((b.detail.total[ingredient] ?? 0) > (a.detail.total[ingredient] ?? 0) ? b : a));
+			const norm = top.detail.total[ingredient] ?? 0;
+			const amount = (d: YieldDetail) => (norm > 0 ? (d.total[ingredient] ?? 0) / norm : 0);
+			const skills = (d: YieldDetail) => (baseSkills > 0 ? d.skillsPerDay / baseSkills : 0);
+			return {
+				ingredient,
+				combo: top.combo,
+				combos: combos.filter((c) => [...c].some((slot) => slotOf[slot] === ingredient)),
+				value:
+					role === "hybrid"
+						? (d, subSkills) => 0.5 * amount(d) + 0.5 * skills(d) + bonus(subSkills)
+						: (d, subSkills) => amount(d) + bonus(subSkills),
+			};
+		});
+		return { ...common, goals, key: [entry.pokemonName, "any", settingsKey].join("|") };
+	}
+
+	const weights = Object.entries(roleWeights[role]) as [Measure, number][];
+	const baseMeasures = measures(baseline);
+	const goal: RatingGoal = {
+		combo: entry.ingredient,
+		combos: [entry.ingredient],
+		value: (d, subSkills) => {
+			const m = measures(d);
+			const own = weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
+			return own + bonus(subSkills);
+		},
+	};
+	return {
+		...common,
+		goals: [goal],
+		key: [entry.pokemonName, entry.ingredient, settingsKey].join("|"),
 	};
 }
 
-/** Best builds and sampled rolls by {@link RatingProblem.key}. */
-const speciesCache = new Map<string, { best: { value: number; nature: string; subSkills: SubSkillType[] }; rolls: Float64Array }>();
+type BestBuild = { value: number; nature: string; subSkills: SubSkillType[] };
+
+/** Best builds and sampled rolls of each goal, by {@link RatingProblem.key}. */
+const speciesCache = new Map<string, { best: BestBuild[]; rolls: Float64Array[] }>();
 
 /**
  * Rates a Pokémon's nature and subskills for its role, at its potential (every subskill unlocked, see
@@ -340,6 +425,10 @@ const speciesCache = new Map<string, { best: { value: number; nature: string; su
  * subskills, so a hybrid's ingredients and skill triggers can be added up. Every build is benchmarked with
  * Sub Skill Seeds used as far as they go, and with the main skill at its max level except for pure
  * ingredient specialists, which keep their own skill level plus Skill Level Up ({@link maxesSkill}).
+ *
+ * Ingredients specialists are ranked for each ingredient they can gather, against rolls with any
+ * ingredient combination that can gather it, and their best rank counts: an AAA Charizard ranks high for
+ * Bean Sausage.
  */
 export function rateEntry(
 	entry: BoxEntry,
@@ -350,21 +439,35 @@ export function rateEntry(
 	let species = speciesCache.get(problem.key);
 	if (!species) {
 		species = {
-			best: searchBest(problem.valueOf, problem.natures, problem.candidates),
+			best: problem.goals.map((g) => searchBest(goalValue(problem, g), problem.natures, problem.candidates)),
 			rolls: sampleRolls(problem, options),
 		};
 		speciesCache.set(problem.key, species);
 	}
-	const { best, rolls } = species;
 	const own = subSkillLevels.map((lv) => entry.subSkills[lv]).filter((n): n is SubSkillType => !!n);
-	const current = problem.valueOf(entry.nature, own);
-	const better = shareBetter(rolls, current);
+	const detail = problem.detailOf(entry.nature, own);
+	const ranked = problem.goals.map((goal, i) => {
+		const current = goal.value(detail, own);
+		const best = (species as { best: BestBuild[] }).best[i];
+		return {
+			goal,
+			best,
+			better: shareBetter((species as { rolls: Float64Array[] }).rolls[i], current),
+			ofBest: best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0,
+		};
+	});
+	const top = ranked.reduce((a, b) => (b.better < a.better || (b.better === a.better && b.ofBest > a.ofBest) ? b : a));
 	return {
 		role: problem.role,
-		better,
-		grade: gradeOf(better),
-		ofBest: best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0,
-		best: { nature: best.nature, subSkills: best.subSkills },
+		...(top.goal.ingredient && { ingredient: top.goal.ingredient }),
+		better: top.better,
+		grade: gradeOf(top.better),
+		ofBest: top.ofBest,
+		best: {
+			nature: top.best.nature,
+			subSkills: top.best.subSkills,
+			...(top.goal.ingredient && { combo: top.goal.combo }),
+		},
 		skillLevel: problem.skillLevelOf(own),
 		skillMaxed: problem.skillMaxed,
 	};

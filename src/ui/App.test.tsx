@@ -363,7 +363,9 @@ test("Box shows each Pokémon's rating for its role and can be sorted by it", as
 	const cell = (label: string) => rowOf(box, label).querySelector(".rating") as HTMLElement;
 	// Grade, rank among random rolls, odds of a better roll, and what it's rated for.
 	expect(cell("Strong").textContent).toMatch(/^[SABCD] Top [\d.]+%(1 in [\d,]+ rolls is better|[\d.]+% of rolls are better)Strength/);
-	expect(cell("Chansey").textContent).toContain("Ingredients + skill");
+	// Ingredients specialists are ranked for their best ingredient, against any ingredient combination.
+	expect(cell("Chansey").textContent).toContain("Fancy Egg + skill (half each)");
+	expect(cell("Chansey").getAttribute("title")).toMatch(/Ranked for its best ingredient, Fancy Egg, against rolls of any ingredient combination that has it \(best for it: A[AB][ABC]\)/);
 	expect(cell("Strong").getAttribute("title")).toMatch(/random rolls of this Pokémon at Lv80[^]*% of the best nature and subskills/);
 	const top = (row: Element) => Number(row.querySelector(".rating")?.textContent?.match(/Top ([\d.]+)%/)?.[1]);
 	expect(top(rowOf(box, "Strong"))).toBeLessThan(top(rowOf(box, "Weak")));
@@ -420,7 +422,8 @@ test("solver labels tell identical Pokémon apart with subskill icons, not abbre
 	);
 	expect(cells).toHaveLength(2);
 	for (const td of cells) {
-		expect(td.textContent).toMatch(/^Meowscarada Lv60 · Serious · $/);
+		// The one with Helping Bonus is also tagged.
+		expect(td.textContent).toMatch(/^Meowscarada Lv60 · Serious · (Helping Bonus)?$/);
 		expect(td.querySelectorAll(".subskill-icon")).toHaveLength(1);
 	}
 	expect(cells.map((td) => td.querySelector(".subskill-icon")?.getAttribute("aria-label")).sort()).toEqual([

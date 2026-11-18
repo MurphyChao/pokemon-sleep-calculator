@@ -55,14 +55,16 @@ export default function EnergyView(props: {
 	box: BoxEntry[];
 	recipe: Recipe;
 	details: Map<string, YieldDetail>;
-	/** With simulated energy: yields when healed by the team's healers. */
-	healedDetail?: (id: string, heal: Heal | undefined) => YieldDetail;
+	/** With simulated energy: yields when healed by the team's healers, with `helpers` teammates' Helping Bonus. */
+	healedDetail?: (id: string, heal: Heal | undefined, helpers?: number) => YieldDetail;
+	/** Yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus. */
+	helpedDetail: (id: string, helpers: number) => YieldDetail;
 	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
 	ratings: Map<string, Rating | null>;
 	settings: EnergySettings;
 	setSettings: (s: EnergySettings) => void;
 }) {
-	const { box, recipe, details, healedDetail, ratings, settings, setSettings } = props;
+	const { box, recipe, details, healedDetail, helpedDetail, ratings, settings, setSettings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -72,7 +74,8 @@ export default function EnergyView(props: {
 	const excluded = excludedRaw.filter((id) => byId.has(id) && !pinned.includes(id));
 
 	const members: EnergyMember[] = useMemo(() => {
-		const toMember = (id: string, d: YieldDetail | undefined): EnergyMember => {
+		/** `heal`: healing received on the team, or "solo" for the Pokémon on its own (as in `details`). */
+		const toMember = (id: string, d: YieldDetail | undefined, heal: Heal | undefined | "solo"): EnergyMember => {
 			const m: EnergyMember = {
 				id,
 				yield: d?.total ?? {},
@@ -80,12 +83,19 @@ export default function EnergyView(props: {
 				skill: d?.skillStrength ?? 0,
 				...(d?.tasty && { tasty: d.tasty }),
 				...(d?.heal && { heal: d.heal }),
+				...(d?.helpingBonus && { helpingBonus: true }),
 			};
-			if (healedDetail) m.at = (heal) => toMember(id, healedDetail(id, heal));
+			if (healedDetail) m.at = (h) => toMember(id, healedDetail(id, h), h);
+			m.withHelpers = (helpers) =>
+				toMember(
+					id,
+					heal === "solo" || !healedDetail ? helpedDetail(id, helpers) : healedDetail(id, heal, helpers),
+					heal,
+				);
 			return m;
 		};
-		return box.map((e) => toMember(e.id, details.get(e.id)));
-	}, [box, details, healedDetail]);
+		return box.map((e) => toMember(e.id, details.get(e.id), "solo"));
+	}, [box, details, healedDetail, helpedDetail]);
 	const problem: EnergyProblem = useMemo(
 		() => ({ recipe, dishStrength: dishStrength(recipe, settings.recipeLevel, settings.fieldBonus) }),
 		[recipe, settings.recipeLevel, settings.fieldBonus],
@@ -176,6 +186,11 @@ export default function EnergyView(props: {
 						<p className="muted">
 							{t("breakdown", { b: formatStrength(e.berry), s: formatStrength(e.skill), d: formatStrength(e.dish) })}
 						</p>
+						{best.helpers > 0 && (
+							<p className="muted">
+								{t("helpingBonusLine", { n: best.helpers.toFixed(1), pct: formatPercent(0.05 * Math.min(4, best.helpers)) })}
+							</p>
+						)}
 						<p className="muted">
 							{t("dishLineStart", { per: formatStrength(problem.dishStrength), meals: mealsPerDay })}{" "}
 							<strong className={e.coverage < 1 - 1e-9 ? "warn" : "ok"}>{formatPercent(e.coverage)}</strong>{" "}
@@ -223,6 +238,7 @@ export default function EnergyView(props: {
 												<EntryLabel entry={byId.get(id)} parts={shortLabels.get(id)} />
 												{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
+													{m.helpingBonus && <span className="tag">{t("tagHelpingBonus")}</span>}
 												<div>
 													<IngredientIcons entry={byId.get(id) as BoxEntry} />
 												</div>
@@ -332,6 +348,7 @@ export default function EnergyView(props: {
 													<EntryLabel entry={byId.get(id)} parts={shortLabels.get(id)} />
 													{m.tasty && <span className="tag">{t("tagExtraTasty")}</span>}
 {m.heal && <span className="tag">{t("tagHealer")}</span>}
+													{m.helpingBonus && <span className="tag">{t("tagHelpingBonus")}</span>}
 													{isExcluded && <span className="tag">{t("tagExcluded")}</span>}
 													<div>
 														<IngredientIcons entry={byId.get(id) as BoxEntry} />

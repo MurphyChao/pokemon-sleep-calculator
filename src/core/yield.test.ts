@@ -1,5 +1,5 @@
 import type { BoxEntry } from "./box";
-import { dailyIngredientYield, dailyIngredientYieldDetail, healFor } from "./yield";
+import { dailyIngredientYield, dailyIngredientYieldDetail, healFor, withHelpers } from "./yield";
 
 const entry = (pokemonName: string, level: number, ingredient: BoxEntry["ingredient"]): BoxEntry => ({
 	id: pokemonName,
@@ -136,5 +136,33 @@ describe("energy", () => {
 		expect(healFor([])).toBeUndefined();
 		expect(healFor([{ team: 18, self: 0, triggersPerDay: 2.6 }])).toEqual({ count: 3, energy: (18 * 2.6) / 3 });
 		expect(healFor([], { team: 0, self: 30, triggersPerDay: 1.2 })).toEqual({ count: 1, energy: 36 });
+	});
+});
+
+describe("Helping Bonus", () => {
+	const raichu = (subSkills: BoxEntry["subSkills"] = {}): BoxEntry => ({
+		id: "r",
+		pokemonName: "Raichu",
+		level: 60,
+		ingredient: "AAA",
+		nature: "Serious",
+		subSkills,
+	});
+
+	it("teammates' Helping Bonus makes a Pokémon help faster; its own unlocked one is flagged", () => {
+		const alone = dailyIngredientYieldDetail(raichu());
+		const helped = dailyIngredientYieldDetail(raichu(), undefined, undefined, undefined, 2);
+		expect(helped.berryStrength / alone.berryStrength).toBeCloseTo(1 / 0.9, 2);
+		expect(alone.helpingBonus).toBeUndefined();
+		expect(dailyIngredientYieldDetail(raichu({ lv10: "Helping Bonus" })).helpingBonus).toBe(true);
+		// Not unlocked yet at Lv60.
+		expect(dailyIngredientYieldDetail(raichu({ lv70: "Helping Bonus" })).helpingBonus).toBeUndefined();
+	});
+
+	it("withHelpers interpolates between whole numbers of helpers", () => {
+		const at = (k: number) => dailyIngredientYieldDetail(raichu(), undefined, undefined, undefined, k);
+		const half = withHelpers(at, 1.5);
+		expect(half.berryStrength).toBeCloseTo((at(1).berryStrength + at(2).berryStrength) / 2, 6);
+		expect(withHelpers(at, 9).berryStrength).toBeCloseTo(at(4).berryStrength, 6);
 	});
 });

@@ -1,5 +1,6 @@
 import { type Rating, type RatingRole, rollSampleSize } from "../core/rating";
 import { getLang, type Key, natureLabel, subSkillLabel, t } from "./i18n";
+import { ingredientLabel } from "./names";
 
 const roleLabels: Record<RatingRole, Key> = {
 	strength: "roleStrength",
@@ -36,7 +37,10 @@ export default function RatingCell(props: { rating: Rating | null | undefined })
 	const { rating } = props;
 	if (rating === undefined) return <span className="muted">{t("ratingPending")}</span>;
 	if (rating === null) return <span className="muted">–</span>;
-	const role = t(roleLabels[rating.role]);
+	const ing = rating.ingredient && ingredientLabel(rating.ingredient);
+	const role = ing
+		? t(rating.role === "hybrid" ? "roleHybridOne" : "roleIngredientOne", { ing })
+		: t(roleLabels[rating.role]);
 	const odds = oddsLabel(rating.better);
 	const best = [natureLabel(rating.best.nature), ...rating.best.subSkills.map(subSkillLabel)].join(" · ");
 	return (
@@ -48,6 +52,7 @@ export default function RatingCell(props: { rating: Rating | null | undefined })
 				n: new Intl.NumberFormat(getLang()).format(rollSampleSize),
 				ofBest: Math.floor(rating.ofBest),
 				best,
+				ingredientNote: ing ? `${t("ratingIngredient", { ing, combo: rating.best.combo ?? "" })}\n` : "",
 				helpingBonus: t("ratingHelpingBonus"),
 				benchmark: t(rating.skillMaxed ? "ratingBenchmarkMax" : "ratingBenchmarkOwn", { n: rating.skillLevel }),
 			})}

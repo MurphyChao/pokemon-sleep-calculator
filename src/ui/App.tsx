@@ -9,6 +9,7 @@ import {
 	soloYieldDetail,
 	type YieldDetail,
 	type YieldOptions,
+	withHelpers,
 } from "../core/yield";
 import BoxView, { keyLevels } from "./BoxView";
 import type { TastySource } from "../core/tasty";
@@ -70,18 +71,21 @@ export default function App() {
 		return map;
 	}, [mathBox, options.inventoryLimit, options.campTicket, options.energy, options.sleepScore, JSON.stringify(energy.favorites), energy.fieldBonus]);
 
-	/** With simulated energy: a Pokémon's yields when healed by `heal` (cached). */
-	const healedDetail = useMemo(() => {
-		if (options.energy !== "simulated") return undefined;
+	/**
+	 * A Pokémon's yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus
+	 * (0–4, can be fractional; cached).
+	 */
+	const helpedDetail = useMemo(() => {
 		const cache = new Map<string, YieldDetail>();
 		const byId = new Map(mathBox.map((e) => [e.id, e]));
-		return (id: string, heal: Heal | undefined): YieldDetail => {
-			const key = heal ? `${id}|${heal.count}|${heal.energy.toFixed(3)}` : id;
+		const at = (id: string, helpers: number): YieldDetail => {
+			if (helpers === 0) return details.get(id) ?? emptyYieldDetail;
+			const key = `${id}|${helpers}`;
 			let d = cache.get(key);
 			if (d === undefined) {
 				const e = byId.get(id);
 				try {
-					d = e ? { ...dailyIngredientYieldDetail(e, options, energy, heal), heal: details.get(id)?.heal } : emptyYieldDetail;
+					d = e ? soloYieldDetail(e, options, energy, helpers) : emptyYieldDetail;
 				} catch {
 					d = emptyYieldDetail;
 				}
@@ -89,7 +93,33 @@ export default function App() {
 			}
 			return d;
 		};
+		return (id: string, helpers: number) => withHelpers((k) => at(id, k), helpers);
 	}, [details]);
+
+	/** With simulated energy: a Pokémon's yields when healed by `heal`, with `helpers` as above (cached). */
+	const healedDetail = useMemo(() => {
+		if (options.energy !== "simulated") return undefined;
+		const cache = new Map<string, YieldDetail>();
+		const byId = new Map(mathBox.map((e) => [e.id, e]));
+		const at = (id: string, heal: Heal | undefined, helpers: number): YieldDetail => {
+			const key = `${id}|${helpers}|${heal ? `${heal.count}|${heal.energy.toFixed(3)}` : "-"}`;
+			let d = cache.get(key);
+			if (d === undefined) {
+				const e = byId.get(id);
+				try {
+					// The heal it gives others is the one worked out on its own (with its own healing).
+					d = e
+						? { ...dailyIngredientYieldDetail(e, options, energy, heal, helpers), heal: helpedDetail(id, helpers).heal }
+						: emptyYieldDetail;
+				} catch {
+					d = emptyYieldDetail;
+				}
+				cache.set(key, d);
+			}
+			return d;
+		};
+		return (id: string, heal: Heal | undefined, helpers = 0) => withHelpers((k) => at(id, heal, k), helpers);
+	}, [details, helpedDetail]);
 	/** Each Pokémon's rating for its role: as entered on the Box tab, as the solvers see it on theirs. */
 	const ratings = useRatings(mathBox, options, energy);
 	const yields = useMemo(
@@ -258,13 +288,22 @@ export default function App() {
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />
 						{tab === "slots" ? (
-							<SolverView box={solverBox} recipe={dish.recipe} yields={yields} tasty={tasty} ratings={ratings} />
+							<SolverView
+								box={solverBox}
+								recipe={dish.recipe}
+								yields={yields}
+								helpedDetail={helpedDetail}
+								details={details}
+								tasty={tasty}
+								ratings={ratings}
+							/>
 						) : (
 							<EnergyView
 								box={solverBox}
 								recipe={dish.recipe}
 								details={details}
 								healedDetail={healedDetail}
+								helpedDetail={helpedDetail}
 								ratings={ratings}
 								settings={energy}
 								setSettings={setEnergy}

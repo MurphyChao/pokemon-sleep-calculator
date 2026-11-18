@@ -1,7 +1,7 @@
 import { type BoxEntry } from "./box";
 import { bestEnergyTeam, dishStrength, type EnergyMember, type EnergyProblem, resolveMembers, resolveTeam, swapAnalysis, teamEnergy, weightedEnergy, weightedHealSources } from "./energy";
 import { type Recipe, recipes } from "./recipes";
-import { dailyIngredientYieldDetail } from "./yield";
+import { dailyIngredientYieldDetail, helpingBonusRate } from "./yield";
 
 const salad = recipes.find((r) => r.id === "scald_chunky_salad") as Recipe;
 
@@ -254,4 +254,54 @@ test("the best team is never beaten by 'best 4-slot team without A and B, plus B
 			}
 		}
 	}
+});
+
+describe("Helping Bonus", () => {
+	const problem = { recipe: salad, dishStrength: 0 };
+	/** A berry Pokémon whose strength rises 5.3% per teammate's Helping Bonus. */
+	const berries = (id: string, berry: number, helpingBonus = false): EnergyMember => {
+		const at = (helpers: number): EnergyMember => ({
+			id,
+			yield: {},
+			berry: berry * (1 + helpingBonusRate * helpers),
+			skill: 0,
+			...(helpingBonus && { helpingBonus: true }),
+			withHelpers: at,
+		});
+		return at(0);
+	};
+	const box = [
+		berries("a1", 1000),
+		berries("a2", 1000),
+		berries("a3", 1000),
+		berries("a4", 1000),
+		berries("a5", 1000),
+		berries("hb", 900, true),
+		berries("a6", 950),
+	];
+
+	it("puts a Helping Bonus Pokémon on the team when the others' faster helping is worth it", () => {
+		const best = bestEnergyTeam(box, problem);
+		// Without Helping Bonus the five 1000s win (5000); with "hb" on board: 900 + 4 × 1000 × 1.0526 ≈ 5110.
+		expect(best.ids).toContain("hb");
+		expect(best.helpers).toBe(1);
+		expect(best.energy.total).toBeCloseTo(900 + 4000 * (1 + helpingBonusRate), 6);
+		// Counted as the members actually perform: the total matches their shares and outputs.
+		expect(weightedEnergy(best.entries, problem).total).toBeCloseTo(best.energy.total, 6);
+	});
+
+	it("leaves it out when it's too weak to pay for its slot", () => {
+		const weak = box.map((m) => (m.id === "hb" ? berries("hb", 100, true) : m));
+		const best = bestEnergyTeam(weak, problem);
+		expect(best.ids).not.toContain("hb");
+		expect(best.helpers).toBe(0);
+		expect(best.energy.total).toBeCloseTo(5000, 6);
+	});
+
+	it("respects Exclude and Pin", () => {
+		expect(bestEnergyTeam(box, problem, [], ["hb"]).ids).not.toContain("hb");
+		const pinned = bestEnergyTeam(box.map((m) => (m.id === "hb" ? berries("hb", 100, true) : m)), problem, ["hb"]);
+		expect(pinned.ids).toContain("hb");
+		expect(pinned.helpers).toBe(1);
+	});
 });

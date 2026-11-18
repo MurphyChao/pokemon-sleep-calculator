@@ -99,6 +99,8 @@ export interface YieldDetail {
 	skillStrength: number;
 	/** Main skill triggers per day. */
 	skillsPerDay: number;
+	/** Set if the Pokémon has an unlocked Helping Bonus subskill (teammates help 5% faster). */
+	helpingBonus?: boolean;
 }
 
 export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0, skillsPerDay: 0 };
@@ -174,15 +176,17 @@ function healSource(iv: PokemonIv, result: StrengthResult): HealSource | undefin
 }
 
 /**
- * Expected ingredients and strength per day, using pokesleep-tool's model (no Helping Bonus)
- * plus the given options. `heal` is the energy restored by healers during
- * the day; it only matters with simulated energy.
+ * Expected ingredients and strength per day, using pokesleep-tool's model plus the given options.
+ * `heal` is the energy restored by healers during the day; it only matters with simulated energy.
+ * `helpers` is how many teammates (0–4, whole numbers) have Helping Bonus; the Pokémon's own Helping
+ * Bonus is always counted. See {@link withHelpers} for shares of the time.
  */
 export function dailyIngredientYieldDetail(
 	entry: BoxEntry,
 	options: YieldOptions = defaultYieldOptions,
 	strength: StrengthOptions = defaultStrengthOptions,
 	heal?: Heal,
+	helpers = 0,
 ): YieldDetail {
 	const iv = toPokemonIv(entry);
 	const favorites = strength.favorites;
@@ -194,6 +198,7 @@ export function dailyIngredientYieldDetail(
 		e4eCount: heal?.count ?? 0,
 		e4eEnergy: heal?.energy ?? 0,
 		addHelpingBonusEffect: false,
+		helpBonusCount: Math.min(maxHelpers, Math.max(0, Math.round(helpers))) as 0 | 1 | 2 | 3 | 4,
 		fieldBonus: strength.fieldBonus,
 		// Field 0 (Greengrass Isle) lets the favorite berries be chosen freely.
 		fieldIndex: favorites === "none" ? noFavoriteFieldIndex : favorites === "all" ? allFavoriteFieldIndex : 0,
@@ -221,6 +226,7 @@ export function dailyIngredientYieldDetail(
 		berryStrength: result.berryTotalStrength,
 		skillStrength: isCookingSkill(iv.versatileSkill) ? 0 : result.skillStrength + result.skillStrength2,
 		skillsPerDay: result.skillCount,
+		...(iv.hasHelpingBonusInActiveSubSkills && { helpingBonus: true }),
 	};
 }
 
@@ -232,11 +238,56 @@ export function soloYieldDetail(
 	entry: BoxEntry,
 	options: YieldOptions = defaultYieldOptions,
 	strength: StrengthOptions = defaultStrengthOptions,
+	helpers = 0,
 ): YieldDetail {
-	const d = dailyIngredientYieldDetail(entry, options, strength);
+	const d = dailyIngredientYieldDetail(entry, options, strength, undefined, helpers);
 	if (options.energy !== "simulated" || !d.heal) return d;
 	const heal = healFor([d.heal], d.heal);
-	return heal ? { ...dailyIngredientYieldDetail(entry, options, strength, heal), heal: d.heal } : d;
+	return heal ? { ...dailyIngredientYieldDetail(entry, options, strength, heal, helpers), heal: d.heal } : d;
+}
+
+/** Most teammates with Helping Bonus a Pokémon can have. */
+export const maxHelpers = 4;
+
+/** Helping Bonus helps each teammate 5% faster: 1/0.95 − 1 ≈ 5.3% more helps (before the 35% speed cap). */
+export const helpingBonusRate = 1 / 0.95 - 1;
+
+function lerpYield(a: IngredientYield, b: IngredientYield, t: number): IngredientYield {
+	const out: IngredientYield = {};
+	for (const name of new Set([...Object.keys(a), ...Object.keys(b)]) as Set<IngredientName>) {
+		out[name] = (a[name] ?? 0) * (1 - t) + (b[name] ?? 0) * t;
+	}
+	return out;
+}
+
+function lerpTriggers<T extends { triggersPerDay: number }>(a: T | undefined, b: T | undefined, t: number): T | undefined {
+	return a && b ? { ...a, triggersPerDay: a.triggersPerDay * (1 - t) + b.triggersPerDay * t } : a;
+}
+
+/**
+ * A Pokémon's output with `helpers` teammates' worth of Helping Bonus (0–4, possibly fractional when
+ * those teammates are on the team only part of the time): interpolated between the whole numbers either
+ * side, as the time-average of having one more or one fewer. `at(k)` gives the output for k helpers.
+ */
+export function withHelpers(at: (helpers: number) => YieldDetail, helpers: number): YieldDetail {
+	const h = Math.min(maxHelpers, Math.max(0, helpers));
+	const lo = Math.floor(h + 1e-9);
+	const t = h - lo;
+	const a = at(lo);
+	if (t < 1e-9) return a;
+	const b = at(Math.min(maxHelpers, lo + 1));
+	const mix = (x: number, y: number) => x * (1 - t) + y * t;
+	return {
+		...a,
+		help: lerpYield(a.help, b.help, t),
+		skill: lerpYield(a.skill, b.skill, t),
+		total: lerpYield(a.total, b.total, t),
+		berryStrength: mix(a.berryStrength, b.berryStrength),
+		skillStrength: mix(a.skillStrength, b.skillStrength),
+		skillsPerDay: mix(a.skillsPerDay, b.skillsPerDay),
+		...(a.tasty && { tasty: lerpTriggers(a.tasty, b.tasty, t) }),
+		...(a.heal && { heal: lerpTriggers(a.heal, b.heal, t) }),
+	};
 }
 
 export function dailyIngredientYield(entry: BoxEntry, options: YieldOptions = defaultYieldOptions): IngredientYield {

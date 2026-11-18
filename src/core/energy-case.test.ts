@@ -6,7 +6,7 @@
 import type { BoxEntry } from "./box";
 import { bestEnergyTeam, dishStrength, type EnergyMember, resolveMembers, weightedEnergy, weightedHealSources } from "./energy";
 import { type Recipe, recipes } from "./recipes";
-import { dailyIngredientYieldDetail, type Heal, soloYieldDetail, type YieldDetail } from "./yield";
+import { dailyIngredientYieldDetail, type Heal, soloYieldDetail, withHelpers, type YieldDetail } from "./yield";
 
 const box = [
 	{"id": "p0", "pokemonName": "Sandslash", "level": 50, "ingredient": "AAA", "nature": "Serious", "subSkills": {"lv10": "Ingredient Finder M", "lv25": "Helping Speed M", "lv50": "Skill Trigger S", "lv70": "Ingredient Finder S", "lv80": "Skill Trigger M"}, "skillLevel": 7},
@@ -32,20 +32,27 @@ const box = [
 const options = { inventoryLimit: false, campTicket: true, energy: "simulated" as const, sleepScore: 100 };
 const strength = { favorites: "none" as const, fieldBonus: 0 };
 
-/** Members as the Energy solver page builds them, with healing recomputed on demand. */
-function buildMembers(): EnergyMember[] {
-	const solo = new Map(box.map((e) => [e.id, soloYieldDetail(e, options, strength)]));
+/**
+ * Members as the Energy solver page builds them, with healing recomputed on demand, and with
+ * `helpingBonus` also teammates' Helping Bonus.
+ */
+function buildMembers(helpingBonus = false): EnergyMember[] {
 	const cache = new Map<string, YieldDetail>();
-	const healed = (e: BoxEntry, heal: Heal | undefined) => {
-		const key = heal ? `${e.id}|${heal.count}|${heal.energy.toFixed(3)}` : e.id;
+	const cached = (key: string, f: () => YieldDetail) => {
 		let d = cache.get(key);
 		if (!d) {
-			d = { ...dailyIngredientYieldDetail(e, options, strength, heal), heal: solo.get(e.id)?.heal };
+			d = f();
 			cache.set(key, d);
 		}
 		return d;
 	};
-	const toMember = (e: BoxEntry, d: YieldDetail): EnergyMember => {
+	const solo = (e: BoxEntry, k: number) => cached(`s|${e.id}|${k}`, () => soloYieldDetail(e, options, strength, k));
+	const healed = (e: BoxEntry, heal: Heal | undefined, k: number) =>
+		cached(`h|${e.id}|${k}|${heal ? `${heal.count}|${heal.energy.toFixed(3)}` : "-"}`, () => ({
+			...dailyIngredientYieldDetail(e, options, strength, heal, k),
+			heal: solo(e, k).heal,
+		}));
+	const toMember = (e: BoxEntry, d: YieldDetail, heal: Heal | undefined | "solo"): EnergyMember => {
 		const m: EnergyMember = {
 			id: e.id,
 			yield: d.total,
@@ -53,11 +60,16 @@ function buildMembers(): EnergyMember[] {
 			skill: d.skillStrength,
 			...(d.tasty && { tasty: d.tasty }),
 			...(d.heal && { heal: d.heal }),
+			...(helpingBonus && d.helpingBonus && { helpingBonus: true }),
 		};
-		m.at = (h) => toMember(e, healed(e, h));
+		m.at = (h) => toMember(e, healed(e, h, 0), h);
+		if (helpingBonus) {
+			m.withHelpers = (c) =>
+				toMember(e, withHelpers((k) => (heal === "solo" ? solo(e, k) : healed(e, heal, k)), c), heal);
+		}
 		return m;
 	};
-	return box.map((e) => toMember(e, solo.get(e.id) as YieldDetail));
+	return box.map((e) => toMember(e, solo(e, 0), "solo"));
 }
 
 test("best team beats 'best 4 slots without Dedenne and Sceptile, plus Sceptile full time'", () => {
@@ -78,4 +90,17 @@ test("best team beats 'best 4 slots without Dedenne and Sceptile, plus Sceptile 
 		problem,
 	).total;
 	expect(alwaysSceptile).toBeLessThanOrEqual(best.energy.total + 1e-6);
+});
+
+test("counting Helping Bonus finds a stronger team (Torterra's Helping Bonus at half a slot)", () => {
+	const recipe = recipes.find((r) => r.id === "apple_acid_yogurt_dressed_salad") as Recipe;
+	const problem = { recipe, dishStrength: dishStrength(recipe, 60, 0) };
+	const without = bestEnergyTeam(buildMembers(), problem);
+	const best = bestEnergyTeam(buildMembers(true), problem);
+	expect(best.slots).toBeLessThanOrEqual(5 + 1e-9);
+	expect(best.helpers).toBeGreaterThan(0);
+	expect(best.energy.total).toBeGreaterThan(without.energy.total);
+	const torterra = best.entries.find((e) => e.member.id === "p11");
+	expect(torterra?.member.helpingBonus).toBe(true);
+	expect(torterra?.share).toBeGreaterThanOrEqual(best.helpers - 1e-9);
 });

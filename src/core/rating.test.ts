@@ -1,8 +1,10 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, scaleLevels, type SubSkillLevel } from "./box";
 import { defaultYieldOptions } from "./yield";
-import { gradeOf, helpingBonusTeamValue, rateEntry, ratingProblem, rollSampleSize, sampleRolls, searchBest, shareBetter } from "./rating";
+import { goalValue, gradeOf, helpingBonusTeamValue, type RatingProblem, rateEntry, ratingProblem, rollSampleSize, sampleRolls, searchBest, shareBetter } from "./rating";
 
+/** The value of a problem's first goal, at that goal's own ingredient combination. */
+const valueOf = (p: RatingProblem) => goalValue(p, p.goals[0]);
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
 const e = (pokemonName: string, nature = "Serious", subSkills: SubSkillType[] = [], extra: Partial<BoxEntry> = {}): BoxEntry => ({
 	id: pokemonName,
@@ -44,16 +46,40 @@ describe("rateEntry", () => {
 	it("ranks Pokémon among random rolls of their species: the best build beats them all, a plain one few", () => {
 		for (const name of ["Sceptile", "Chansey"]) {
 			const { best } = rateEntry(e(name));
-			const top = rateEntry(e(name, best.nature, best.subSkills));
+			const top = rateEntry(e(name, best.nature, best.subSkills, best.combo && { ingredient: best.combo }));
 			expect(top.better).toBe(0);
 			expect(top.grade).toBe("S");
 			const good = rateEntry(e(name, best.nature, best.subSkills.slice(0, 3)));
 			const plain = rateEntry(e(name, "Serious", ["Sleep EXP Bonus"]));
 			expect(good.better).toBeGreaterThan(0);
 			expect(good.better).toBeLessThan(plain.better);
-			expect(plain.better).toBeGreaterThan(0.8);
-			expect(plain.grade).toBe("D");
 		}
+		const plain = rateEntry(e("Sceptile", "Serious", ["Sleep EXP Bonus"]));
+		expect(plain.better).toBeGreaterThan(0.8);
+		expect(plain.grade).toBe("D");
+	});
+
+	it("ranks Ingredients specialists for their best single ingredient, against rolls of any combination", () => {
+		const subs: SubSkillType[] = ["Ingredient Finder M", "Helping Speed M", "Ingredient Finder S"];
+		const charizard = (ingredient: BoxEntry["ingredient"]) => rateEntry(e("Charizard", "Quiet", subs, { ingredient }));
+		// Bean Sausage is in every slot of AAA, so that Charizard ranks for it, and better than any other combo.
+		const aaa = charizard("AAA");
+		expect(aaa.ingredient).toBe("sausage");
+		expect(aaa.best.combo).toBe("AAA");
+		for (const combo of ["AAB", "AAC", "ABA", "ABB", "ABC"] as const) expect(charizard(combo).better).toBeGreaterThan(aaa.better);
+		// ABB is best at Ginger (in two slots), ranked against Charizards of any combination.
+		expect(charizard("ABB").ingredient).toBe("ginger");
+		// The same nature and subskills rank differently with different combinations.
+		expect(charizard("ABC").better).not.toBe(aaa.better);
+		// Fiery Herb only comes from the Lv60 slot: a plain AAC Charizard is compared only with Charizards that
+		// gather it, not with the two thirds that can't, so it doesn't rank well for it (or anything).
+		const plain = rateEntry(e("Charizard", "Serious", ["Sleep EXP Bonus"], { ingredient: "AAC" }));
+		expect(plain.better).toBeGreaterThan(0.5);
+		expect(["C", "D"]).toContain(plain.grade);
+		// Hybrids too (Chansey: half ingredients, half skill triggers); other roles have no ingredient.
+		expect(rateEntry(e("Chansey", "Serious", subs, { ingredient: "AAA" })).ingredient).toBe("egg");
+		expect(rateEntry(e("Sandslash")).ingredient).toBeUndefined();
+		expect(rateEntry(e("Sceptile")).ingredient).toBeUndefined();
 	});
 
 	it("rewards a nature that helps the role and penalises one that hurts it", () => {
@@ -110,11 +136,11 @@ describe("rateEntry", () => {
 		expect(helpingBonusTeamValue).toBeCloseTo(0.2105, 4);
 		for (const name of ["Raichu", "Dragonite", "Chansey", "Wigglytuff"]) {
 			const p = ratingProblem(e(name));
-			const base = p.valueOf("Serious", []);
-			expect(base).toBeCloseTo(1, 9);
-			const gain = p.valueOf("Serious", ["Helping Bonus"]) - base;
+			const base = valueOf(p)("Serious", []);
+			expect(base).toBeCloseTo(1, 2); // a hybrid's skill triggers vary a little with the combination
+			const gain = valueOf(p)("Serious", ["Helping Bonus"]) - base;
 			expect(gain).toBeGreaterThan(helpingBonusTeamValue + 0.03); // + its own ~4–5% faster helping
-			expect(gain).toBeGreaterThan(p.valueOf("Serious", ["Helping Speed M"]) - base);
+			expect(gain).toBeGreaterThan(valueOf(p)("Serious", ["Helping Speed M"]) - base);
 			expect(rateEntry(e(name)).best.subSkills).toContain("Helping Bonus");
 		}
 	});
@@ -137,25 +163,25 @@ describe("searchBest", () => {
 	it.each(["Sceptile", "Chansey", "Sandslash", "Drampa", "Hawlucha", "Sandshrew", "Psyduck"])("finds the exhaustive optimum for %s", (name) => {
 		const p = ratingProblem(e(name, "Serious", [], { ingredient: "ABC" }));
 		let best = -Infinity;
-		for (const nature of p.natures) for (const s of subsets(p.candidates, 5)) best = Math.max(best, p.valueOf(nature, s));
-		expect(searchBest(p.valueOf, p.natures, p.candidates).value).toBeCloseTo(best, 9);
+		for (const nature of p.natures) for (const s of subsets(p.candidates, 5)) best = Math.max(best, valueOf(p)(nature, s));
+		expect(searchBest(valueOf(p), p.natures, p.candidates).value).toBeCloseTo(best, 9);
 	});
 });
 
 describe("sampleRolls", () => {
 	it("is the same on every run, sorted, and of the sample size", () => {
 		const p = ratingProblem(e("Sceptile"));
-		const a = sampleRolls(p, defaultYieldOptions);
+		const [a] = sampleRolls(p, defaultYieldOptions);
 		expect(a).toHaveLength(rollSampleSize);
 		expect([...a]).toEqual([...a].sort((x, y) => x - y));
-		expect([...sampleRolls(ratingProblem(e("Sceptile")), defaultYieldOptions)]).toEqual([...a]);
+		expect([...sampleRolls(ratingProblem(e("Sceptile")), defaultYieldOptions)[0]]).toEqual([...a]);
 	});
 
 	it("shares one calculation between rolls that do the same after seeds; unused subskills don't matter", () => {
 		const p = ratingProblem(e("Dragonite"));
 		// Inventory Up S + L and M + L both end as M + L.
-		const sl = p.valueOf("Quiet", ["Inventory Up S", "Inventory Up L", "Helping Speed M", "Sleep EXP Bonus", "Dream Shard Bonus"]);
-		const ml = p.valueOf("Quiet", ["Inventory Up M", "Inventory Up L", "Helping Speed M", "Research EXP Bonus", "Sleep EXP Bonus"]);
+		const sl = valueOf(p)("Quiet", ["Inventory Up S", "Inventory Up L", "Helping Speed M", "Sleep EXP Bonus", "Dream Shard Bonus"]);
+		const ml = valueOf(p)("Quiet", ["Inventory Up M", "Inventory Up L", "Helping Speed M", "Research EXP Bonus", "Sleep EXP Bonus"]);
 		expect(sl).toBeCloseTo(ml, 12);
 	});
 });

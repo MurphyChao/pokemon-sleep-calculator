@@ -8,13 +8,14 @@ import {
 	type BenchScore,
 	type Demand,
 	fullSupply,
+	helpedYield,
 	type Member,
 	minSlots,
 	benchScores,
 	savingsVsBestWithout,
 } from "../core/slots";
 import { extraTasty, type TastySlotValue, type TastySource, tastySlotValue } from "../core/tasty";
-import type { IngredientYield } from "../core/yield";
+import type { IngredientYield, YieldDetail } from "../core/yield";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { Rich, t } from "./i18n";
 import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent, ingredientLabel } from "./names";
@@ -31,18 +32,31 @@ export default function SolverView(props: {
 	box: BoxEntry[];
 	recipe: Recipe;
 	yields: Map<string, IngredientYield>;
+	/** Each Pokémon on its own; `helpingBonus` marks those with Helping Bonus. */
+	details: Map<string, YieldDetail>;
+	/** Yields with `helpers` teammates' worth of Helping Bonus (0–4, can be fractional). */
+	helpedDetail: (id: string, helpers: number) => YieldDetail;
 	tasty: Map<string, TastySource>;
 	/** Each Pokémon's rating for its role (see BoxView); missing while still being worked out. */
 	ratings: Map<string, Rating | null>;
 }) {
-	const { box, recipe, yields, tasty, ratings } = props;
+	const { box, recipe, yields, details, helpedDetail, tasty, ratings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.pinned", []);
 	/** Team per recipe; a recipe without an entry gets the auto-filled team. */
 	const [teams, setTeams] = useStoredState<Record<string, string[]>>("pscalc.teams", {});
 
 	const demand = useMemo(() => dailyDemand(recipe), [recipe]);
 
-	const members: Member[] = useMemo(() => box.map((e) => ({ id: e.id, yield: yields.get(e.id) ?? {} })), [box, yields]);
+	const members: Member[] = useMemo(
+		() =>
+			box.map((e) => ({
+				id: e.id,
+				yield: yields.get(e.id) ?? {},
+				...(details.get(e.id)?.helpingBonus && { helpingBonus: true }),
+				yieldAt: (helpers: number) => helpedDetail(e.id, helpers).total,
+			})),
+		[box, yields, details, helpedDetail],
+	);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const shortLabels = useMemo(() => buildEntryLabelParts(box, { ingredients: false }), [box]);
@@ -58,6 +72,12 @@ export default function SolverView(props: {
 
 	const teamMembers = members.filter((m) => team.includes(m.id));
 	const result = useMemo(() => minSlots(teamMembers, target.demand, pinned), [teamMembers, target, pinned.join(",")]);
+	/** Team members' yields with the Helping Bonus the result counts on. */
+	const teamYields = useMemo(
+		() => new Map(teamMembers.map((m) => [m.id, helpedYield(m, Number.isFinite(result.slots) ? result.helpers : 0)])),
+		[teamMembers, result],
+	);
+	const helpingBonus = useMemo(() => new Set(members.filter((m) => m.helpingBonus).map((m) => m.id)), [members]);
 	const teamTasty = team.flatMap((id) => (tasty.has(id) ? [{ id, source: tasty.get(id) as TastySource }] : []));
 	const tastyNow = useMemo(() => extraTasty(teamTasty.map((t) => t.source)), [teamTasty.map((t) => t.id).join(",")]);
 	// Extra Tasty value in slot-equivalents, relative to the slots this team needs for its ingredients.
@@ -157,6 +177,11 @@ export default function SolverView(props: {
 								<strong className="big warn">{t("cantCover")}</strong>
 							)}
 						</p>
+						{Number.isFinite(result.slots) && result.helpers > 0 && (
+							<p className="muted">
+								{t("helpingBonusLine", { n: result.helpers.toFixed(1), pct: formatPercent(0.05 * Math.min(4, result.helpers)) })}
+							</p>
+						)}
 						<p className="muted">
 							<Rich
 								text={t("tastyChanceLine", {
@@ -176,7 +201,8 @@ export default function SolverView(props: {
 							byId={byId}
 							labels={labels}
 							shortLabels={shortLabels}
-							yields={yields}
+							yields={teamYields}
+							helpingBonus={helpingBonus}
 							usage={Number.isFinite(result.slots) ? result.usage : undefined}
 							tastyValue={memberTastyValue}
 							pinned={pinned}
@@ -202,6 +228,7 @@ export default function SolverView(props: {
 							labels={labels}
 							shortLabels={shortLabels}
 							yields={yields}
+							helpingBonus={helpingBonus}
 							ratings={ratings}
 							onMove={moveToTeam}
 						/>
@@ -231,13 +258,14 @@ function TeamTable(props: {
 	/** Labels without ingredient letters, shown above the ingredient icons. */
 	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
+	helpingBonus: Set<string>;
 	usage: Map<string, number> | undefined;
 	tastyValue: Map<string, TastySlotValue>;
 	pinned: string[];
 	onPin: (id: string) => void;
 	onMove: (id: string) => void;
 }) {
-	const { ids, demand, byId, shortLabels, yields, usage, tastyValue, pinned, onPin, onMove } = props;
+	const { ids, demand, byId, shortLabels, yields, helpingBonus, usage, tastyValue, pinned, onPin, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	const supply = fullSupply(
 		ids.map((id) => ({ id, yield: yields.get(id) ?? {} })),
@@ -267,6 +295,7 @@ function TeamTable(props: {
 							<PokemonIconCell name={byId.get(id)?.pokemonName} />
 							<td title={entryTooltip(byId.get(id) as BoxEntry)}>
 								<EntryName entry={byId.get(id)} parts={shortLabels.get(id)} />
+								{helpingBonus.has(id) && <span className="tag">{t("tagHelpingBonus")}</span>}
 							</td>
 							<YieldCells id={id} ings={ings} yields={yields} />
 							<td>{u === undefined ? "–" : u > 1e-7 ? u.toFixed(2) : <span className="muted">{t("notNeeded")}</span>}</td>
@@ -333,10 +362,11 @@ function BenchTable(props: {
 	/** Labels without ingredient letters, shown above the ingredient icons. */
 	shortLabels: Map<string, EntryLabelParts>;
 	yields: Map<string, IngredientYield>;
+	helpingBonus: Set<string>;
 	ratings: Map<string, Rating | null>;
 	onMove: (id: string) => void;
 }) {
-	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, ratings, onMove } = props;
+	const { scores, tastyValue, vsBest, demand, byId, labels, shortLabels, yields, helpingBonus, ratings, onMove } = props;
 	const ings = Object.keys(demand) as IngredientName[];
 	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
@@ -364,6 +394,7 @@ function BenchTable(props: {
 						<PokemonIconCell name={byId.get(s.id)?.pokemonName} />
 						<td title={entryTooltip(byId.get(s.id) as BoxEntry)}>
 							<EntryName entry={byId.get(s.id)} parts={shortLabels.get(s.id)} />
+							{helpingBonus.has(s.id) && <span className="tag">{t("tagHelpingBonus")}</span>}
 						</td>
 						<YieldCells id={s.id} ings={ings} yields={yields} />
 						<td>
