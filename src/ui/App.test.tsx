@@ -102,6 +102,14 @@ test("adds a Pokémon from the pop-up the Add Pokémon button opens", () => {
 	fireEvent.click(screen.getByLabelText("Close"));
 	expect(screen.queryByRole("dialog")).toBeNull();
 	expect(screen.getByText("Box (1)")).toBeTruthy();
+
+	// The button is in the tab bar, last; from a solver tab it goes to the Box tab and opens the pop-up.
+	const nav = document.querySelector("nav") as HTMLElement;
+	expect([...nav.querySelectorAll("button")].at(-1)?.textContent).toBe("+ Add Pokémon");
+	fireEvent.click(screen.getByText("Energy solver"));
+	fireEvent.click(screen.getByText("+ Add Pokémon"));
+	expect(screen.getByRole("dialog", { name: "Add Pokémon" })).toBeTruthy();
+	expect(section("Your box")).toBeTruthy();
 });
 
 test("the edit button opens the pop-up with the Pokémon, without the screenshot import", () => {

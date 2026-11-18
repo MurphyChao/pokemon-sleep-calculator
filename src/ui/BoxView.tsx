@@ -114,10 +114,13 @@ export default function BoxView(props: {
 	adjusted: BoxEntry[];
 	setBox: (box: BoxEntry[]) => void;
 	details: Map<string, YieldDetail>;
+	/** Whether the pop-up with the screenshot import and the add/edit form is open (opened from the tab bar). */
+	panelOpen: boolean;
+	setPanelOpen: (open: boolean) => void;
 	/** Each Pokémon's rating for its role; missing while still being worked out, null if it can't be rated. */
 	ratings: Map<string, Rating | null>;
 }) {
-	const { box, adjusted, setBox, details, ratings } = props;
+	const { box, adjusted, setBox, details, ratings, panelOpen, setPanelOpen } = props;
 	const adjustedById = useMemo(() => new Map(adjusted.map((e) => [e.id, e])), [adjusted]);
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
@@ -132,8 +135,6 @@ export default function BoxView(props: {
 	const [reviewingId, setReviewingId] = useState<string | undefined>();
 	const reviewing = imports.find((i) => i.id === reviewingId);
 	const formRef = useRef<HTMLElement>(null);
-	/** The pop-up with the screenshot import and the add/edit form. */
-	const [panelOpen, setPanelOpen] = useState(false);
 	/** Closes the pop-up; screenshots still waiting to be checked stay for next time. */
 	const closePanel = () => {
 		setPanelOpen(false);
@@ -351,15 +352,6 @@ export default function BoxView(props: {
 			<section className="card">
 				<div className="box-header">
 					<h2>{t("yourBox")}</h2>
-					<button
-						type="button"
-						onClick={() => {
-							startDraft(emptyDraft());
-							setPanelOpen(true);
-						}}
-					>
-						{t("addPokemonButton")}
-					</button>
 					{box.length > 1 && (
 						<div className="box-sort">
 							<label>

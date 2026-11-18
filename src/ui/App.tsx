@@ -31,6 +31,8 @@ const tabs: { tab: Tab; label: Key }[] = [
 
 export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
+	/** The Box tab's pop-up with the screenshot import and the add/edit form. */
+	const [addOpen, setAddOpen] = useState(false);
 	const [storedLang, setStoredLang] = useStoredState<Lang>("pscalc.lang", "en");
 	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
 	// Text helpers read the language from a module-level value; the page below is re-mounted when it changes.
@@ -168,6 +170,16 @@ export default function App() {
 							{t(x.label)}
 						</button>
 					))}
+					<button
+						type="button"
+						className="nav-add"
+						onClick={() => {
+							setTab("box");
+							setAddOpen(true);
+						}}
+					>
+						{t("addPokemonButton")}
+					</button>
 				</nav>
 				<div className="settings-bar">
 					<label className="check">
@@ -277,7 +289,15 @@ export default function App() {
 			</header>
 			<main>
 				{tab === "box" ? (
-					<BoxView box={box} adjusted={solverBox} setBox={setBox} details={details} ratings={ratings} />
+					<BoxView
+						box={box}
+						adjusted={solverBox}
+						setBox={setBox}
+						details={details}
+						ratings={ratings}
+						panelOpen={addOpen}
+						setPanelOpen={setAddOpen}
+					/>
 				) : (
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />

@@ -84,6 +84,13 @@ nav button.active {
 	color: #fff;
 }
 
+/* "+ Add Pokémon" at the right end of the tab bar. */
+nav button.nav-add {
+	margin-left: auto;
+	background: var(--accent);
+	color: #fff;
+}
+
 button.icon-button {
 	display: inline-flex;
 	align-items: center;

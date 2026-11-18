@@ -82,7 +82,7 @@ selected ingredient. The filters are remembered.
 
 ## Screenshot import
 
-The Box tab's **+ Add Pokémon** button opens a pop-up with the form and a screenshot importer, which reads
+The **+ Add Pokémon** button (right end of the tab bar) opens a pop-up with the form and a screenshot importer, which reads
 Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills and nature are visible),
 in Traditional Chinese, Japanese or English. Text is read with
 [Tesseract.js](https://github.com/naptha/tesseract.js) in the browser and fuzzy-matched against the game's names.
