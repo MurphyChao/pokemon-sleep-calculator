@@ -1,8 +1,8 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import tables from "../data/rank-tables.json";
 import type { BoxEntry, SubSkillLevel } from "./box";
-import { buildRankTables, type RankTable, type RankTables, rankEntry, shareAbove, skillKind } from "./rank";
-import { rateEntry } from "./rating";
+import { buildRankTables, type RankTable, type RankTables, rankEntry, rankValue, shareAbove, skillKind } from "./rank";
+import { rateEntry, ratingProblem } from "./rating";
 import { defaultStrengthOptions, defaultYieldOptions } from "./yield";
 
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
@@ -96,4 +96,17 @@ describe("with the user's settings", () => {
 		expect(r?.category).toBe("ingredient:apple");
 		expect(r?.grade).toBe("S");
 	}, 60_000);
+});
+
+it("Helping Bonus adds the same to an ingredient's rank whatever the roll's combination, as for Rarity", () => {
+	const bonusFor = (combo: "AAA" | "ABA" | "ABB") => {
+		const problem = ratingProblem(e("Whimsicott", "Serious", [], { ingredient: combo }));
+		const subs: SubSkillType[] = ["Helping Bonus", "Helping Speed S", "Skill Trigger S"];
+		const detail = problem.detailOf("Serious", subs, combo);
+		// The team's part: on top of what the Pokémon gathers itself (which Helping Bonus speeds up too).
+		return rankValue(problem, "ingredient:nuts", "Serious", subs, combo, detail) - (detail.total.nuts ?? 0);
+	};
+	expect(bonusFor("AAA")).toBeGreaterThan(0);
+	expect(bonusFor("ABA")).toBeCloseTo(bonusFor("AAA"), 6);
+	expect(bonusFor("ABB")).toBeCloseTo(bonusFor("AAA"), 6);
 });

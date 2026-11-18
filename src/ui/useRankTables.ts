@@ -11,8 +11,8 @@ import {
 } from "../core/rank";
 import type { StrengthOptions, YieldOptions } from "../core/yield";
 
-/** Random rolls per species and category when built in the browser (the shipped tables use more). */
-const browserRolls = 250;
+/** Random rolls per species and category when built in the browser, as many as the shipped tables. */
+const browserRolls = 600;
 /** Time spent building per slice before letting the page update. */
 const sliceMs = 30;
 /**
@@ -22,7 +22,7 @@ const sliceMs = 30;
 const cacheKey = "pscalc-rank-tables";
 const cacheSize = 3;
 /** Bump when how ranks are measured changes, so old cached tables are dropped. */
-const cacheVersion = 2;
+const cacheVersion = 3;
 
 const standardKey = rankSettingsKey(rankOptions, rankStrengthOptions);
 const memory = new Map<string, RankTables>([[standardKey, shippedTables as RankTables]]);

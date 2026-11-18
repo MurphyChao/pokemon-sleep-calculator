@@ -91,12 +91,13 @@ benches. The job decides what's measured, in a unit all species share:
 - Ingredients specialists with a support skill (Chansey, Drampa) are ranked in both their lists; the better rank shows.
 
 Everything, the Pokémon and the comparison population alike, is measured the same way as for Rarity: as the final form,
-at Lv80, with Sub Skill Seeds used and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team,
+at Lv80, with Sub Skill Seeds used and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team (for an ingredient, as
+much whatever the roll's ingredient combination),
 and **your settings** (inventory limit, sleep score, energy, camp ticket, favorite berries, island bonus), so Rarity and
 Rank never disagree because of a setting. The population therefore depends on the settings: for the app's defaults
 it's shipped, built by `npm run build-rank-tables` (600 random rolls per species and category, about 8 seconds) into
-`src/data/rank-tables.json`; for any other settings the browser builds it with the same code (250 rolls each, about
-1–6 seconds depending on the settings; simulated energy is the slowest), a slice at a time so the page stays usable,
+`src/data/rank-tables.json`; for any other settings the browser builds it with the same code and as many rolls (about
+3–13 seconds once, depending on the settings; simulated energy is the slowest), a slice at a time so the page stays usable,
 showing "Rank…" meanwhile. Built tables are kept in the browser for the last three settings (`pscalc-rank-tables`,
 not synced). Rerun the script after syncing new Pokémon or changing how ranks are measured (and bump `cacheVersion` in
 `src/ui/useRankTables.ts`). Code: `src/core/rank.ts`, `src/ui/useRankTables.ts`, `scripts/build-rank-tables.mjs`.

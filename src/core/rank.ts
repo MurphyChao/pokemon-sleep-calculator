@@ -126,7 +126,23 @@ export function rankValue(
 ): number {
 	const value = categoryValue(category, detail);
 	if (!subSkills.includes("Helping Bonus")) return value;
-	return value + helpingBonusTeamValue * categoryValue(category, problem.detailOf("Serious", [], combo));
+	return value + helpingBonusTeamValue * helpingBonusBase(problem, category, combo);
+}
+
+/**
+ * What Helping Bonus's team value is measured in: a neutral Pokémon of the species. For an ingredient, as
+ * for Rarity, the one with the combination gathering the most of it, so the bonus is the same whatever the
+ * roll's own combination (it speeds up teammates, not this Pokémon); otherwise with the roll's combination.
+ */
+function helpingBonusBase(problem: RatingProblem, category: RankCategory, combo?: IngredientType): number {
+	const ingredient = category.startsWith("ingredient:") ? category.slice("ingredient:".length) : undefined;
+	const top = ingredient ? problem.goals.find((g) => g.ingredient === ingredient)?.combo : undefined;
+	return categoryValue(category, problem.detailOf("Serious", [], top ?? combo));
+}
+
+/** Values are stored with 4 significant digits; a Pokémon's value is rounded the same way before looking it up. */
+function roundValue(v: number): number {
+	return Number(v.toPrecision(4));
 }
 
 export interface RankTable {
@@ -196,7 +212,9 @@ export function rankEntry(
 		const table = tables.categories[category];
 		if (!table) continue;
 		const value = rankValue(problem, category, entry.nature, own);
-		const better = shareAbove(table, value);
+		// Rounded like the table, so a value tied with many rolls (subskills that don't change it) isn't
+		// put just below them by the rounding.
+		const better = shareAbove(table, roundValue(value));
 		if (!best || better < best.better || (better === best.better && value > best.value)) {
 			best = {
 				category,
@@ -298,7 +316,7 @@ export class RankTableBuilder {
 	}
 
 	build(note: string): RankTables {
-		const round = (v: number) => Number(v.toPrecision(4));
+		const round = roundValue;
 		const categories: Record<RankCategory, RankTable> = {};
 		for (const [category, list] of [...this.values].sort((x, y) => x[0].localeCompare(y[0]))) {
 			list.sort((x, y) => x - y);

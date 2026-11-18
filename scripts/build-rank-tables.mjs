@@ -1,7 +1,7 @@
 /**
  * Builds the comparison population of the cross-species rank (src/core/rank.ts) for the app's default
  * settings into src/data/rank-tables.json, so ranks with those settings show up instantly. For other settings
- * the browser builds the same population itself (ui/useRankTables.ts), with the same code but fewer rolls.
+ * the browser builds the same population itself (ui/useRankTables.ts), with the same code and as many rolls.
  *
  * Run after syncing new Pokémon from upstream or changing how the rank measures: npm run build-rank-tables
  * Runs the app's TypeScript through Vite's module loader, so it uses exactly the app's code.
