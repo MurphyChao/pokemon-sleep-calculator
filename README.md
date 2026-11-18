@@ -89,11 +89,31 @@ in Traditional Chinese, Japanese or English. Text is read with
 Screenshots are never uploaded. The OCR worker, engine and language data (`@tesseract.js-data/*`) are served from
 this site under `tesseract/` (copied from `node_modules` by a small plugin in `vite.config.ts`), not from a CDN;
 the first import downloads about 6 MB.
+The Pokémon is recognized by its icon first: the round icon on the name card is compared with reference icons
+(`src/ocr/pokemonIcon.ts`), and only if none matches confidently is the name read (which also gives the level). So a
+nicknamed Pokémon is still recognized, and when icon and name disagree the review form says so. The reference icons
+come from two places:
+
+- **Built in:** `src/data/sleep-icons/`, cut from screenshots in `screenshots/` by `npm run build-sleep-icons`. It
+  uses the Pokémon listed in `src/ocr/__fixtures__/screenshots.expected.json` for those screenshots and reads the
+  name (with the importer's OCR) for others; check its output, since a misread name would teach a wrong icon.
+  Different-looking icons of the same Pokémon (shiny, costumes) are kept as extra icons.
+- **Learned:** when a reading is confirmed with "Add to box" and its icon wasn't already recognized as that
+  Pokémon, the icon is saved in the browser (`pscalc.learnedIcons`, synced with Google Drive like the rest), up to
+  5 per Pokémon.
+
+Icons are compared shrunk to 48×48, inside the circle, allowing a 2-pixel shift. A match needs an average colour
+difference under 0.04, at least 0.03 better than any other Pokémon: the same icon at other screen sizes stays within
+about 0.016, while different Pokémon in the screenshots so far are 0.08 or more apart. Forms that share a name (e.g.
+Pumpkaboo sizes) count as one; the ingredient icons tell them apart. When the Pokémon is picked or changed in the
+review form, the ingredient combination is filled in from the recognized ingredient icons.
+
 Ingredients are recognized by comparing the Lv30/Lv60 icons with `src/data/ingredient-icons`. Every reading is
 checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 
 `src/ocr/screenshots.test.ts` checks the importer against real screenshots listed in
-`src/ocr/__fixtures__/screenshots.expected.json`. The screenshots aren't committed: put them in `screenshots/`
+`src/ocr/__fixtures__/screenshots.expected.json`, three ways: by name, by icon, and with a nickname in place of the
+name. The screenshots aren't committed: put them in `screenshots/`
 to run it (it's skipped otherwise).
 
 ## Google Drive sync

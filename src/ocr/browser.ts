@@ -1,6 +1,8 @@
 /** Browser-only helpers for the screenshot importer: decoding images and loading reference icons. */
-import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
+import { sleepIconSlug, slugOfIconFile } from "../data/sleepIconSlug";
+import pokemons, { type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import type { RgbaImage } from "./image";
+import type { IconReference } from "./pokemonIcon";
 import { createOcrEngine, type OcrEngine, type ScreenshotLang } from "./tesseract";
 
 function toImageData(source: CanvasImageSource, width: number, height: number): RgbaImage {
@@ -57,4 +59,30 @@ export function loadIngredientIcons(): Promise<Partial<Record<IngredientName, Rg
 		}),
 	).then(Object.fromEntries);
 	return icons;
+}
+
+const pokemonIconUrls = import.meta.glob("../data/sleep-icons/*.png", {
+	eager: true,
+	query: "?url",
+	import: "default",
+}) as Record<string, string>;
+const nameBySlug = new Map(pokemons.map((p) => [sleepIconSlug(p.name), p.name]));
+
+let pokemonIcons: Promise<IconReference[]> | undefined;
+
+/** Built-in reference icons of Pokémon (src/data/sleep-icons), loaded once. */
+export function loadPokemonIcons(): Promise<IconReference[]> {
+	pokemonIcons ??= Promise.all(
+		Object.entries(pokemonIconUrls).flatMap(([path, url]) => {
+			const pokemonName = nameBySlug.get(slugOfIconFile(path));
+			if (!pokemonName) return [];
+			return [
+				(async (): Promise<IconReference> => {
+					const blob = await (await fetch(url)).blob();
+					return { pokemonName, icon: await decodeImage(blob) };
+				})(),
+			];
+		}),
+	);
+	return pokemonIcons;
 }

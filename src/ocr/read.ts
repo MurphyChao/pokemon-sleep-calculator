@@ -16,6 +16,7 @@ import { binarizeText, crop, type RgbaImage } from "./image";
 import { type IconMatch, matchIngredientIcon } from "./ingredients";
 import { boxRarity, detectLayout, LayoutError, type Rarity } from "./layout";
 import { bestMatch, type Candidate } from "./match";
+import { type IconReference, matchPokemonIcon, normalizeIcon } from "./pokemonIcon";
 
 /** Reads one line of text from a prepared (black on white) image. */
 export interface TextReader {
@@ -27,6 +28,8 @@ export type ImportWarning =
 	| "pokemon"
 	/** Several forms share the name shown in the game (e.g. Pumpkaboo sizes) and the icons didn't tell them apart. */
 	| "form"
+	/** The icon and the name point to different Pokémon (the icon was used); see iconPokemon / namePokemon. */
+	| "iconName"
 	| "level"
 	| "skillLevel"
 	| "nature"
@@ -42,6 +45,12 @@ export interface ScreenshotReading {
 	ingredientIcons?: { lv30?: IngredientName; lv60?: IngredientName };
 	/** Raw OCR text, for debugging. */
 	raw: Record<string, string>;
+	/** The Pokémon's icon from the name card, normalized (see pokemonIcon.ts), to learn from once confirmed. */
+	pokemonIcon?: RgbaImage;
+	/** Pokémon recognized from the icon, if any. */
+	iconPokemon?: string;
+	/** Pokémon recognized from the name, if any (a nickname or a misreading gives none). */
+	namePokemon?: string;
 }
 
 type Translations = { subskill: Record<string, string>; natures: Record<string, string> };
@@ -73,7 +82,7 @@ const pokemonCandidates: (Candidate<string> & { shown: string[] })[] = pokemons
 	});
 
 /** Pokémon (forms) shown in the game under the same name as `name`, base form first. */
-function formsSharingName(name: string): string[] {
+export function formsSharingName(name: string): string[] {
 	const shown = pokemonCandidates.find((c) => c.key === name)?.shown ?? [];
 	return pokemonCandidates.filter((c) => c.shown.some((n) => shown.includes(n))).map((c) => c.key);
 }
@@ -93,10 +102,16 @@ function slotLetter(slots: (IngredientName | undefined)[], ingredient: Ingredien
 	return "ABC"[slots.indexOf(ingredient)];
 }
 
+/**
+ * Reads a "Pokémon details" screenshot. The species comes from the icon on the name card when one of
+ * `pokemonIcons` matches it confidently, otherwise from the name (which also gives the level); a form
+ * sharing the name (e.g. Pumpkaboo sizes) is then chosen by the ingredient icons.
+ */
 export async function readScreenshot(
 	img: RgbaImage,
 	reader: TextReader,
 	ingredientIcons: Partial<Record<IngredientName, RgbaImage>>,
+	pokemonIcons: IconReference[] = [],
 ): Promise<ScreenshotReading> {
 	const warnings: ImportWarning[] = [];
 	const raw: Record<string, string> = {};
@@ -117,10 +132,18 @@ export async function readScreenshot(
 	const level = readLevel(raw.name);
 	if (level) entry.level = level;
 	else warnings.push("level");
-	const pokemon = bestMatch(withoutLevel(raw.name), pokemonCandidates, { partial: true });
-	const forms = pokemon ? formsSharingName(pokemon.key) : [];
-	if (pokemon) entry.pokemonName = forms[0];
+	const namePokemon = bestMatch(withoutLevel(raw.name), pokemonCandidates, { partial: true })?.key;
+	// Forms that share a name look alike: their references count as one Pokémon (the ingredients decide).
+	const pokemonIcon = normalizeIcon(img, layout.nameIcon);
+	const iconPokemon = matchPokemonIcon(
+		pokemonIcon,
+		pokemonIcons.map((r) => ({ ...r, pokemonName: formsSharingName(r.pokemonName)[0] ?? r.pokemonName })),
+	)?.pokemonName;
+	const found = iconPokemon ?? namePokemon;
+	const forms = found ? formsSharingName(found) : [];
+	if (found) entry.pokemonName = forms[0];
 	else warnings.push("pokemon");
+	if (iconPokemon && namePokemon && !forms.includes(namePokemon)) warnings.push("iconName");
 	// Choose among same-named forms by their ingredients (below); the main skill level check uses the first.
 	let species = pokemons.find((p) => p.name === entry.pokemonName);
 
@@ -190,5 +213,13 @@ export async function readScreenshot(
 		entry.skillLevel = undefined;
 		warnings.push("skillLevel");
 	}
-	return { entry, warnings, ingredientIcons: icons, raw };
+	return {
+		entry,
+		warnings,
+		ingredientIcons: icons,
+		raw,
+		pokemonIcon,
+		...(iconPokemon && { iconPokemon }),
+		...(namePokemon && { namePokemon }),
+	};
 }

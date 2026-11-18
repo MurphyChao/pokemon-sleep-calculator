@@ -12,6 +12,8 @@ import type { SubSkillLevel } from "../core/box";
 export interface Layout {
 	/** Line with "Lv. 22 <species name>" on the name card. */
 	nameLine: Rect;
+	/** Square around the Pokémon's round icon at the left of the name card. */
+	nameIcon: Rect;
 	/** "Lv.1" next to the main skill name. */
 	skillLevel: Rect;
 	/** Text area of each subskill box, plus a patch of its background to tell gold/blue/white apart. */
@@ -109,6 +111,7 @@ export function detectLayout(img: RgbaImage): Layout {
 	const iconY = skills.top - W * 0.431;
 	return {
 		nameLine: band(cardTop + W * 0.112, 0.2, 0.56, 0.06),
+		nameIcon: band(cardTop + W * 0.0804, 0.124 - 0.065, 0.124 + 0.065, 0.13),
 		skillLevel: band(skills.top + W * 0.185, 0.8, 0.935, 0.06),
 		subSkills,
 		nature: band(details.top + W * 0.19, 0.12, 0.43, 0.07),

@@ -25,6 +25,9 @@ import { PencilIcon, TrashIcon } from "./icons";
 import RatingCell from "./RatingCell";
 import { type BoxFilter, matchesFilter, noFilter, toggleChoice, unlockedIngredients } from "./boxFilter";
 import { TypeIcon } from "./TypeIcon";
+import { comboFromIcons } from "../ocr/combo";
+import type { ScreenshotReading } from "../ocr/read";
+import { learnIcon } from "./learnedIcons";
 
 // Mythical Pokémon choose their own ingredients, which is not supported yet.
 /** pokesleep-tool's Pokémon model accepts levels 1–100. */
@@ -190,6 +193,7 @@ export default function BoxView(props: {
 		if (reviewing) {
 			// Done with this screenshot: drop it and move on to the next one that's been read. The pop-up
 			// stays open while other screenshots are waiting.
+			learnFromReading(reviewing.reading, draft.pokemonName);
 			URL.revokeObjectURL(reviewing.url);
 			const rest = imports.filter((i) => i.id !== reviewing.id);
 			setImports(rest);
@@ -256,7 +260,9 @@ export default function BoxView(props: {
 										onChange={(e) => {
 											setNameInput(e.target.value);
 											const name = pokemonFromLabel(e.target.value, pokemonNames) ?? e.target.value;
-											setDraft({ ...draft, pokemonName: name, skillLevel: undefined });
+											// While reviewing a screenshot, the recognized ingredient icons fill in the combination.
+											const combo = reviewing?.reading && comboFromIcons(name, reviewing.reading.ingredientIcons);
+											setDraft({ ...draft, pokemonName: name, skillLevel: undefined, ...(combo && { ingredient: combo }) });
 										}}
 										placeholder={t("typeToSearch")}
 									/>
@@ -504,6 +510,19 @@ export default function BoxView(props: {
 }
 
 const noRatings = new Map<string, Rating | null>();
+
+/**
+ * Once a screenshot's reading is confirmed as `pokemonName`, its icon is learned for that Pokémon unless the
+ * icon was already recognized as it (or a form sharing its name). The OCR module is loaded by then.
+ */
+function learnFromReading(reading: ScreenshotReading | undefined, pokemonName: string) {
+	const icon = reading?.pokemonIcon;
+	if (!icon || !pokemonName) return;
+	void import("../ocr/read").then(({ formsSharingName }) => {
+		if (reading.iconPokemon && formsSharingName(reading.iconPokemon).includes(pokemonName)) return;
+		learnIcon(pokemonName, icon);
+	});
+}
 
 /**
  * A row of icon buttons filtering the box. With none selected everything is shown; the first click shows

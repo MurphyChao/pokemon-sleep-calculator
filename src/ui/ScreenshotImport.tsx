@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ImportWarning, ScreenshotReading } from "../ocr/read";
 import type { OcrEngine, ScreenshotLang } from "../ocr/tesseract";
 import { getLang, ingredientLabel, type Key, pokemonLabel, t } from "./i18n";
+import { readLearnedIcons } from "./learnedIcons";
 import { useStoredState } from "./storage";
 
 export interface ImportItem {
@@ -21,6 +22,12 @@ const screenshotLangs: { lang: ScreenshotLang; label: string }[] = [
 
 /** What to check for each warning, for the review list. */
 export function warningText(w: ImportWarning, reading: ScreenshotReading): string {
+	if (w === "iconName") {
+		return t("warnIconName", {
+			icon: reading.iconPokemon ? pokemonLabel(reading.iconPokemon) : "?",
+			name: reading.namePokemon ? pokemonLabel(reading.namePokemon) : "?",
+		});
+	}
 	if (w.startsWith("lv") && w !== "level") return t("warnSubskill", { lv: w.replace("lv", "Lv") });
 	if (w === "ingredients" && reading.ingredientIcons?.lv30 && reading.ingredientIcons.lv60) {
 		return t("warnIngredientsSeen", {
@@ -103,12 +110,18 @@ export default function ScreenshotImport(props: {
 			queue.current = queue.current.then(async () => {
 				try {
 					update(id, { status: "reading" });
-					const [{ decodeImage, loadIngredientIcons }, { readScreenshot }] = await Promise.all([
+					const [{ decodeImage, loadIngredientIcons, loadPokemonIcons }, { readScreenshot }] = await Promise.all([
 						import("../ocr/browser"),
 						import("../ocr/read"),
 					]);
-					const [ocr, img, icons] = await Promise.all([getEngine(), decodeImage(file), loadIngredientIcons()]);
-					const reading = await readScreenshot(img, ocr, icons);
+					const [ocr, img, icons, builtIn] = await Promise.all([
+						getEngine(),
+						decodeImage(file),
+						loadIngredientIcons(),
+						loadPokemonIcons(),
+					]);
+					// Built-in icons plus the ones learned from this user's earlier imports.
+					const reading = await readScreenshot(img, ocr, icons, [...builtIn, ...readLearnedIcons()]);
 					update(id, { status: reading.warnings.includes("layout") ? "error" : "done", reading });
 				} catch (e) {
 					console.error(e);
