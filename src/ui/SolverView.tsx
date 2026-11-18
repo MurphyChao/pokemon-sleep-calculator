@@ -384,7 +384,7 @@ function BenchTable(props: {
 					<th>{t("savesCurrent")}</th>
 					<th>{t("savesVsBest")}</th>
 					<th>{t("colExtraTasty")}</th>
-					<th>{t("replaces")}</th>
+					<th className="line">{t("replaces")}</th>
 					<th />
 				</tr>
 			</thead>
