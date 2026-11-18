@@ -35,6 +35,14 @@ export const ratingLevel = 80;
 const maxSubSkills = subSkillLevels.length;
 
 /**
+ * What Helping Bonus adds for the rest of the team, in units of the Pokémon's own baseline value (neutral
+ * nature, no subskills; that baseline is 1): the yield model only counts its own 5% faster helping, but the
+ * 4 teammates also help 5% faster, i.e. 1/0.95 − 1 ≈ 5.3% more helps each. Assumes teammates produce as
+ * much as this Pokémon's baseline, and ignores the 35% cap on helping speed bonuses: about +21%.
+ */
+export const helpingBonusTeamValue = 4 * (1 / 0.95 - 1);
+
+/**
  * Random rolls (nature and 5 subskills) sampled per species to place a Pokémon among all its possible
  * rolls. Odds of a better roll are resolved down to about 1 in this many.
  */
@@ -70,16 +78,18 @@ export interface Rating {
 	best: { nature: string; subSkills: SubSkillType[] };
 	/** Main skill level the Pokémon was rated at. */
 	skillLevel: number;
-	/** Whether the main skill is rated at its max level (every role but ingredients). */
+	/** Whether the main skill is rated at its max level ({@link maxesSkill}). */
 	skillMaxed: boolean;
 }
 
 /**
- * Whether a role is benchmarked with the main skill at its max level. Pure ingredient Pokémon keep their
- * own skill level: players tend to save Main Skill Seeds for strength and skill-trigger Pokémon.
+ * Whether a Pokémon is benchmarked with the main skill at its max level: all but Ingredients specialists
+ * rated on ingredients alone (e.g. Blastoise with Ingredient Magnet S), which keep their own skill level,
+ * since players tend to save Main Skill Seeds for other Pokémon. Skills specialists with an ingredient
+ * skill (Sandslash, Crustle) and Ingredients specialists with a support skill (Chansey) are maxed.
  */
-export function maxesSkill(role: RatingRole): boolean {
-	return role !== "ingredients";
+export function maxesSkill(role: RatingRole, specialty: string): boolean {
+	return !(role === "ingredients" && specialty === "Ingredients");
 }
 
 /**
@@ -269,6 +279,8 @@ export interface RatingProblem {
 	valueOf: (nature: string, subSkills: SubSkillType[]) => number;
 	/** Main skill level for these subskills as rolled. */
 	skillLevelOf: (subSkills: SubSkillType[]) => number;
+	/** Whether the main skill is at its max level ({@link maxesSkill}). */
+	skillMaxed: boolean;
 	natures: string[];
 	candidates: SubSkillType[];
 	/** Identifies the best build: species, ingredients, base skill level and settings. */
@@ -287,8 +299,9 @@ export function ratingProblem(
 		soloYieldDetail(build(entry, skillLevel, nature, seeded), options, strength);
 	// What the main skill does doesn't depend on its level, so the role can be found at any level.
 	const role = ratingRole(iv.pokemon.specialty, detailAt(base, "Serious", []));
+	const skillMaxed = maxesSkill(role, iv.pokemon.specialty);
 	const seededSkillLevel = (seeded: SubSkillType[]) =>
-		maxesSkill(role) ? maxSkill : Math.min(maxSkill, base + skillLevelUp(seeded));
+		skillMaxed ? maxSkill : Math.min(maxSkill, base + skillLevelUp(seeded));
 	const detailOf = (nature: string, subSkills: SubSkillType[]) => {
 		const seeded = seedSubSkills(subSkills);
 		return detailAt(seededSkillLevel(seeded), nature, seeded);
@@ -298,7 +311,8 @@ export function ratingProblem(
 	const baseMeasures = measures(baseline);
 	const valueOf = (nature: string, subSkills: SubSkillType[]) => {
 		const m = measures(detailOf(nature, subSkills));
-		return weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
+		const own = weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
+		return own + (subSkills.includes("Helping Bonus") ? helpingBonusTeamValue : 0);
 	};
 	const skillCounts =
 		role === "hybrid" ||
@@ -308,6 +322,7 @@ export function ratingProblem(
 		role,
 		valueOf,
 		skillLevelOf: (subSkills) => seededSkillLevel(seedSubSkills(subSkills)),
+		skillMaxed,
 		natures: candidateNatures(options),
 		candidates: candidateSubSkills(role, skillCounts, options),
 		key: [entry.pokemonName, entry.ingredient, base, JSON.stringify(options), JSON.stringify(strength)].join("|"),
@@ -324,7 +339,7 @@ const speciesCache = new Map<string, { best: { value: number; nature: string; su
  * ({@link searchBest}). Each measure is taken relative to the same Pokémon with a neutral nature and no
  * subskills, so a hybrid's ingredients and skill triggers can be added up. Every build is benchmarked with
  * Sub Skill Seeds used as far as they go, and with the main skill at its max level except for pure
- * ingredient Pokémon, which keep their own skill level plus Skill Level Up ({@link maxesSkill}).
+ * ingredient specialists, which keep their own skill level plus Skill Level Up ({@link maxesSkill}).
  */
 export function rateEntry(
 	entry: BoxEntry,
@@ -351,7 +366,7 @@ export function rateEntry(
 		ofBest: best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0,
 		best: { nature: best.nature, subSkills: best.subSkills },
 		skillLevel: problem.skillLevelOf(own),
-		skillMaxed: maxesSkill(problem.role),
+		skillMaxed: problem.skillMaxed,
 	};
 }
 

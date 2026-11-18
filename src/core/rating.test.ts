@@ -1,7 +1,7 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, scaleLevels, type SubSkillLevel } from "./box";
 import { defaultYieldOptions } from "./yield";
-import { gradeOf, rateEntry, ratingProblem, rollSampleSize, sampleRolls, searchBest, shareBetter } from "./rating";
+import { gradeOf, helpingBonusTeamValue, rateEntry, ratingProblem, rollSampleSize, sampleRolls, searchBest, shareBetter } from "./rating";
 
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
 const e = (pokemonName: string, nature = "Serious", subSkills: SubSkillType[] = [], extra: Partial<BoxEntry> = {}): BoxEntry => ({
@@ -63,7 +63,7 @@ describe("rateEntry", () => {
 		expect(rateEntry(e("Dragonite", "Adamant", subs)).ofBest).toBeLessThan(neutral); // ingredient finding ▼
 	});
 
-	it("maxes the main skill except for pure ingredient Pokémon, so their entered skill level doesn't matter", () => {
+	it("maxes the main skill except for Ingredients specialists rated on ingredients, so the entered level doesn't matter", () => {
 		const subs: SubSkillType[] = ["Helping Speed M", "Berry Finding S"];
 		const low = rateEntry(e("Sceptile", "Serious", subs, { skillLevel: 1 }));
 		const high = rateEntry(e("Sceptile", "Serious", subs, { skillLevel: 5 }));
@@ -72,7 +72,10 @@ describe("rateEntry", () => {
 		expect(low.better).toBe(high.better);
 		expect(rateEntry(e("Chansey", "Serious", [], { skillLevel: 1 })).skillMaxed).toBe(true);
 		expect(rateEntry(e("Wigglytuff", "Serious", [], { skillLevel: 1 })).skillMaxed).toBe(true);
-		expect(rateEntry(e("Sandslash", "Serious", [], { skillLevel: 2 }))).toMatchObject({ skillMaxed: false, skillLevel: 2 });
+		// Skills specialists with an ingredient skill are maxed; an Ingredients specialist with one isn't.
+		expect(rateEntry(e("Sandslash", "Serious", [], { skillLevel: 2 })).skillMaxed).toBe(true);
+		expect(rateEntry(e("Crustle", "Serious", [], { skillLevel: 2 })).skillMaxed).toBe(true);
+		expect(rateEntry(e("Blastoise", "Serious", [], { skillLevel: 2 }))).toMatchObject({ role: "ingredients", skillMaxed: false, skillLevel: 2 });
 	});
 
 	it("uses Sub Skill Seeds: an S subskill counts as M unless the Pokémon already has the M", () => {
@@ -84,23 +87,36 @@ describe("rateEntry", () => {
 		expect(both.ofBest).toBeGreaterThan(twoM.ofBest);
 	});
 
-	it("pure ingredient Pokémon: Skill Level Up counts after seeds, also when not unlocked yet", () => {
+	it("Ingredients specialists: Skill Level Up counts after seeds, also when not unlocked yet", () => {
 		// Lv30: Skill Level Up S in the Lv50 slot isn't unlocked, so the entered skill level doesn't include it.
-		const withLevelUp = rateEntry(e("Sandslash", "Serious", ["Helping Speed S", "Ingredient Finder S", "Skill Level Up S"], { level: 30, skillLevel: 2 }));
+		const withLevelUp = rateEntry(e("Blastoise", "Serious", ["Helping Speed S", "Ingredient Finder S", "Skill Level Up S"], { level: 30, skillLevel: 2 }));
 		expect(withLevelUp.skillLevel).toBe(4); // Skill Level Up S → M: +2
-		const without = rateEntry(e("Sandslash", "Serious", ["Helping Speed S", "Ingredient Finder S"], { level: 30, skillLevel: 2 }));
+		const without = rateEntry(e("Blastoise", "Serious", ["Helping Speed S", "Ingredient Finder S"], { level: 30, skillLevel: 2 }));
 		expect(withLevelUp.ofBest).toBeGreaterThan(without.ofBest);
 	});
 
 	it("rates the solvers' copies from the skill level as entered: level scaling and seeds change nothing", () => {
 		const subs: SubSkillType[] = ["Helping Speed S", "Ingredient Finder S", "Skill Level Up S"];
-		const real = e("Sandslash", "Serious", subs, { level: 30, skillLevel: 2 });
+		const real = e("Blastoise", "Serious", subs, { level: 30, skillLevel: 2 });
 		const rating = rateEntry(real);
 		// Lv60 unlocks Skill Level Up S, which the entered skill level doesn't include yet.
 		const [scaled] = scaleLevels([real], 60);
 		expect(rateEntry(scaled)).toEqual(rating);
 		const [seeded] = maxSubSkillSeeds(scaleLevels([real], 60), true);
 		expect(rateEntry(seeded)).toEqual(rating);
+	});
+
+	it("counts Helping Bonus for the 4 teammates helping 5% faster, on top of its own faster helping", () => {
+		expect(helpingBonusTeamValue).toBeCloseTo(0.2105, 4);
+		for (const name of ["Raichu", "Dragonite", "Chansey", "Wigglytuff"]) {
+			const p = ratingProblem(e(name));
+			const base = p.valueOf("Serious", []);
+			expect(base).toBeCloseTo(1, 9);
+			const gain = p.valueOf("Serious", ["Helping Bonus"]) - base;
+			expect(gain).toBeGreaterThan(helpingBonusTeamValue + 0.03); // + its own ~4–5% faster helping
+			expect(gain).toBeGreaterThan(p.valueOf("Serious", ["Helping Speed M"]) - base);
+			expect(rateEntry(e(name)).best.subSkills).toContain("Helping Bonus");
+		}
 	});
 
 	it("ignores subskills that don't help the role", () => {

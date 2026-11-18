@@ -102,7 +102,8 @@ const en = {
 	ratingOddsNone: "Fewer than 1 in {n} rolls is better",
 	ratingOddsShare: "{pct} of rolls are better",
 	ratingTooltip:
-		"Rated for: {role}\n{odds}, among random rolls of this Pokémon at Lv80 (any nature and 5 subskills, all equally likely; estimated from {n} rolls).\n{ofBest}% of the best nature and subskills: {best}\n{benchmark}",
+		"Rated for: {role}\n{odds}, among random rolls of this Pokémon at Lv80 (any nature and 5 subskills, all equally likely; estimated from {n} rolls).\n{ofBest}% of the best nature and subskills: {best}\n{benchmark}\n{helpingBonus}",
+	ratingHelpingBonus: "Helping Bonus also counts the 4 teammates helping 5% faster (+21% of this Pokémon's output without subskills).",
 	ratingBenchmarkMax: "All compared with Sub Skill Seeds used and the main skill at its max level (Lv{n}).",
 	ratingBenchmarkOwn: "All compared with Sub Skill Seeds used and the main skill at its own level plus Skill Level Up (Lv{n} for this one).",
 	edit: "Edit",
@@ -362,7 +363,8 @@ const zh: Record<Key, string> = {
 	ratingOddsNone: "每 {n} 次不到 1 次更好",
 	ratingOddsShare: "{pct} 的結果更好",
 	ratingTooltip:
-		"評分依據：{role}\n在這隻寶可夢 Lv80 的隨機性格與副技能中（任意性格與 5 個副技能，機率相同；以 {n} 次隨機結果估計），{odds}。\n為最佳性格與副技能的 {ofBest}%：{best}\n{benchmark}",
+		"評分依據：{role}\n在這隻寶可夢 Lv80 的隨機性格與副技能中（任意性格與 5 個副技能，機率相同；以 {n} 次隨機結果估計），{odds}。\n為最佳性格與副技能的 {ofBest}%：{best}\n{benchmark}\n{helpingBonus}",
+	ratingHelpingBonus: "幫手獎勵也計入其他 4 隻隊友加快 5% 幫忙（相當於這隻寶可夢無副技能時產出的 +21%）。",
 	ratingBenchmarkMax: "皆以使用副技能種子、主技能升到最高等級（Lv{n}）比較。",
 	ratingBenchmarkOwn: "皆以使用副技能種子、主技能維持原等級加上技能等級提升比較（這隻為 Lv{n}）。",
 	edit: "編輯",

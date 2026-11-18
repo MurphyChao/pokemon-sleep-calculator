@@ -26,9 +26,15 @@ Lv80, where every subskill and ingredient slot is unlocked, with the same yield 
 The Pokémon and every roll it's compared with are benchmarked fully invested:
 
 - Sub Skill Seeds are used as far as they go (S → M → L, never the same subskill twice), as in the solvers' option.
-- The main skill is at its max level, except for pure ingredient Pokémon (including Ingredient Draw/Magnet
-  users): players tend to save Main Skill Seeds for the others, so these keep the skill level entered, plus
-  Skill Level Up from their (seeded) subskills.
+- The main skill is at its max level, except for Ingredients specialists rated on ingredients alone (e.g.
+  Blastoise or Venusaur with Ingredient Magnet S): players tend to save Main Skill Seeds for other Pokémon, so
+  these keep the skill level entered, plus Skill Level Up from their (seeded) subskills. Skills specialists
+  with an ingredient skill (Sandslash, Crustle) are maxed.
+
+Helping Bonus also counts the rest of the team: besides its own 5% faster helping (which the yield model
+includes), the 4 teammates help 5% faster, i.e. about 5.3% more helps each. That adds 4 × 5.3% ≈ 21% of the
+Pokémon's output with a neutral nature and no subskills, assuming teammates produce about as much and ignoring
+the 35% cap on helping speed bonuses. (The solvers don't count this team effect yet.)
 
 Rolls that end up doing the same in the yield model (e.g. Inventory Up S + L and M + L both become M + L) share one
 calculation. What is measured depends on what the Pokémon is kept for, not just its specialty:
