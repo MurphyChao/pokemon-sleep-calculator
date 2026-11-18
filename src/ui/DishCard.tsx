@@ -47,7 +47,7 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 			<h2>{t("dish")}</h2>
 			<div className="form-grid">
 				<label>
-					{t("dishType")}
+					<span className="field-text">{t("dishType")}</span>
 					<select
 						value={recipeType}
 						onChange={(e) => {
@@ -64,8 +64,9 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					</select>
 				</label>
 				<label>
-					{t("recipe")}
-					<select value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
+					{/* Phones hide this label (the dropdown shows the recipe); the select keeps its name. */}
+					<span className="field-text">{t("recipe")}</span>
+					<select aria-label={t("recipe")} value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
 						{typeRecipes.map((r) => (
 							<option key={r.id} value={r.id}>
 								{t("recipeOption", {
@@ -78,7 +79,7 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					</select>
 				</label>
 				<label>
-					{t("yourPotSize")}
+					<span className="field-text">{t("yourPotSize")}</span>
 					<input
 						type="number"
 						min={0}

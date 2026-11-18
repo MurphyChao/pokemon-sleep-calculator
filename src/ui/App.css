@@ -1325,9 +1325,15 @@ button.icon-select-button {
 		display: none;
 	}
 
-	/* Dish card: Type and pot size side by side, the recipe below; ingredients as "🎃 20 / 60" chips. */
+	/*
+	 * Dish card: "Type [ ]  Your pot size [ ]" on one row with the labels beside the fields, the recipe below
+	 * without its label (the dropdown shows it); ingredients as "🎃 20 / 60" chips on one row.
+	 */
+	.dish-card h2 {
+		margin-bottom: 4px;
+	}
 	.dish-card .form-grid {
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		gap: 6px 10px;
 	}
 	.dish-card .form-grid > label:nth-child(2) {
@@ -1335,16 +1341,27 @@ button.icon-select-button {
 		order: 3;
 	}
 	.dish-card .form-grid > label {
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
 		min-width: 0;
+		font-size: 0.75rem;
+	}
+	.dish-card .form-grid > label:nth-child(2) > .field-text {
+		display: none;
 	}
 	.dish-card .form-grid select,
 	.dish-card .form-grid input {
+		flex: 1;
 		width: 100%;
 		min-width: 0;
 		box-sizing: border-box;
+		padding: 3px 4px;
+		font-size: 0.85rem;
 	}
 	.dish-card .recipe-summary p {
-		margin: 8px 0 4px;
+		margin: 6px 0 2px;
+		font-size: 0.8rem;
 	}
 	.dish-ings caption {
 		display: block;
@@ -1361,8 +1378,9 @@ button.icon-select-button {
 	}
 	.dish-ings tr {
 		display: inline-block;
-		margin: 4px 6px 0 0;
-		padding: 2px 8px;
+		margin: 3px 4px 0 0;
+		padding: 1px 6px;
+		font-size: 0.8rem;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		white-space: nowrap;
