@@ -1,14 +1,16 @@
 import type { Rank } from "../core/rank";
-import { getLang, skillLabel, t } from "./i18n";
+import { getLang, ingredientLabel, skillLabel, t } from "./i18n";
 import { topLabel } from "./RatingCell";
 
 const format = (v: number) =>
 	new Intl.NumberFormat(getLang(), { maximumFractionDigits: v >= 100 ? 0 : 1 }).format(v);
 
-/** What a rank category is called, e.g. "Strength" or "Skill: Energy for Everyone S". */
+/** What a rank category is called, e.g. "Strength", "Ingredients: Fancy Apple" or "Skill: Energy for Everyone S". */
 export function rankCategoryLabel(category: string): string {
 	if (category === "strength") return t("rankStrength");
-	if (category === "ingredients") return t("rankIngredients");
+	if (category.startsWith("ingredient:")) {
+		return t("rankIngredient", { ing: ingredientLabel(category.slice("ingredient:".length)) });
+	}
 	return t("rankSkill", { skill: skillLabel(category.replace(/^skill:/, "")) });
 }
 
@@ -22,18 +24,22 @@ export default function RankCell(props: { rank: Rank | undefined }) {
 	const unit =
 		rank.category === "strength"
 			? t("rankUnitStrength")
-			: rank.category === "ingredients"
-				? t("rankUnitIngredients")
+			: rank.category.startsWith("ingredient:")
+				? ingredientLabel(rank.category.slice("ingredient:".length))
 				: t("rankUnitSkill");
+	const extra =
+		rank.ingredientStrength !== undefined
+			? `\n${t("rankIngredientStrength", { n: format(rank.ingredientStrength) })}`
+			: "";
 	return (
 		<div
 			className={`rating rank rating-${rank.grade.toLowerCase()}`}
-			title={t("rankTooltip", {
+			title={`${t("rankTooltip", {
 				value: format(rank.value),
 				unit,
 				median: format(rank.median),
 				species: rank.species,
-			})}
+			})}${extra}`}
 		>
 			<strong>{rank.grade}</strong> {topLabel(rank.better)}
 			<div className="muted small">{rankCategoryLabel(rank.category)}</div>

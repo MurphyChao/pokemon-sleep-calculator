@@ -28,20 +28,31 @@ test("shareAbove interpolates between quantiles", () => {
 	expect(shareAbove(t, 25)).toBeCloseTo(0.375, 9);
 });
 
-test("the tables cover strength, ingredients and skill kinds, with quantiles in order", () => {
+test("the tables cover strength, each ingredient and skill kinds, with quantiles in order", () => {
 	const { categories } = tables as RankTables;
 	expect(categories.strength.species).toBeGreaterThan(30);
-	expect(categories.ingredients.species).toBeGreaterThan(30);
+	expect(categories["ingredient:apple"].species).toBeGreaterThanOrEqual(4);
+	expect(categories["ingredient:potato"].species).toBeGreaterThan(10);
 	expect(categories["skill:Energy for Everyone S"]).toBeDefined();
 	for (const t of Object.values(categories)) expect(t.q).toEqual([...t.q].sort((a, b) => a - b));
 });
 
 describe("rankEntry", () => {
-	it("ranks by role across species: strength, ingredients, skill kind; hybrids by their better rank", () => {
+	it("ranks by role across species: strength, one ingredient, skill kind; hybrids by their better rank", () => {
 		expect(rank(e("Sceptile"))?.category).toBe("strength");
-		expect(rank(e("Dragonite"))?.category).toBe("ingredients");
+		expect(rank(e("Dragonite"))?.category).toMatch(/^ingredient:/);
 		expect(rank(e("Wigglytuff"))?.category).toBe("skill:Energy for Everyone S");
-		expect(["ingredients", "skill:Energy for Everyone S"]).toContain(rank(e("Chansey"))?.category);
+		expect(rank(e("Chansey"))?.category).toMatch(/^(ingredient:|skill:Energy for Everyone S$)/);
+	});
+
+	it("ranks ingredient Pokémon for their best ingredient, however little it's worth", () => {
+		// Skeledirge: Fancy Apple / Bean Sausage / Fiery Herb. Apples are the cheapest ingredient, but an AAA
+		// Skeledirge is compared with other apple gatherers.
+		const subs: SubSkillType[] = ["Ingredient Finder M", "Helping Speed M", "Ingredient Finder S"];
+		const r = rank(e("Skeledirge", "Quiet", subs, { ingredient: "AAA" }));
+		expect(r?.category).toBe("ingredient:apple");
+		expect(["S", "A"]).toContain(r?.grade);
+		expect(r?.ingredientStrength).toBeGreaterThan(0);
 	});
 
 	it("a better build ranks higher, and the grade follows the share", () => {
@@ -54,9 +65,13 @@ describe("rankEntry", () => {
 
 	it("compares species: the same nature and subskills rank differently on different Pokémon", () => {
 		const subs: SubSkillType[] = ["Ingredient Finder M", "Helping Speed M"];
-		const strong = rank(e("Dragonite", "Quiet", subs));
-		const weak = rank(e("Ditto", "Quiet", subs));
-		expect(strong?.better).toBeLessThan(weak?.better ?? 1);
+		// Two apple gatherers (Skeledirge in every slot, Pinsir in its Lv30 and Lv60 slots), same nature and
+		// subskills: compared on the same list, they rank differently.
+		const a = rank(e("Skeledirge", "Quiet", subs, { ingredient: "AAA" }));
+		const b = rank(e("Pinsir", "Quiet", subs, { ingredient: "ABB" }));
+		expect(a?.category).toBe("ingredient:apple");
+		expect(b?.category).toBe("ingredient:apple");
+		expect(a?.better).not.toBe(b?.better);
 	});
 
 	it("doesn't depend on the level entered (always Lv80)", () => {

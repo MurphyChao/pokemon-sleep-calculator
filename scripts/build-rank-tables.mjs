@@ -1,7 +1,8 @@
 /**
  * Builds the comparison population of the cross-species rank (src/core/rank.ts) into
- * src/data/rank-tables.json: for every non-mythical fully evolved Pokémon, random rolls (an ingredient
- * combination, a nature and 5 different subskills, each equally likely; the same number per species) are
+ * src/data/rank-tables.json: for every non-mythical fully evolved Pokémon and each category it's ranked in,
+ * random rolls (an ingredient combination, among those including the ingredient for an ingredient category; a
+ * nature and 5 different subskills; each equally likely; the same number per species and category) are
  * measured with the rank's conditions (Lv80, Sub Skill Seeds, skill rule, standard settings), and each
  * category's values are stored as quantiles.
  *
@@ -15,7 +16,7 @@ import { createServer } from "vite";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "src/data/rank-tables.json");
-/** Random rolls per species. */
+/** Random rolls per species and category. */
 const rollsPerSpecies = 600;
 /** Quantiles stored per category (0%, 0.25%, …, 100%). */
 const quantiles = 401;
@@ -26,9 +27,8 @@ try {
 	const { default: pokemons, getPokemonRarity } = await load("/src/vendor/pokesleep-tool/data/pokemons.ts");
 	const { default: Nature } = await load("/src/vendor/pokesleep-tool/util/Nature.ts");
 	const { default: SubSkill } = await load("/src/vendor/pokesleep-tool/util/SubSkill.ts");
-	const { IngredientTypes } = await load("/src/vendor/pokesleep-tool/util/PokemonIv.ts");
 	const { ratingProblem } = await load("/src/core/rating.ts");
-	const { rankOptions, rankStrengthOptions, rankValues } = await load("/src/core/rank.ts");
+	const { rankCategories, rankOptions, rankStrengthOptions, rankValue } = await load("/src/core/rank.ts");
 
 	// Same deterministic generator as the rating's samples (mulberry32), so the tables are reproducible.
 	let a = 20261118 >>> 0;
@@ -49,10 +49,8 @@ try {
 	const speciesIn = new Map();
 	const started = Date.now();
 	for (const p of species) {
-		const combos = IngredientTypes.filter((c) => (p.ing2 || !c.includes("B")) && (p.ing3 || !c.includes("C")));
 		const problems = new Map();
-		for (let i = 0; i < rollsPerSpecies; i++) {
-			const combo = pick(combos);
+		const problemFor = (combo) => {
 			let problem = problems.get(combo);
 			if (!problem) {
 				problem = ratingProblem(
@@ -62,17 +60,21 @@ try {
 				);
 				problems.set(combo, problem);
 			}
-			const pool = [...subSkills];
-			const roll = [];
-			while (roll.length < 5) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
-			for (const [category, value] of rankValues(problem, p.skill, pick(natures), roll, combo)) {
-				if (!values.has(category)) {
-					values.set(category, []);
-					speciesIn.set(category, new Set());
-				}
-				values.get(category).push(value);
-				speciesIn.get(category).add(p.name);
+			return problem;
+		};
+		for (const { category, combos } of rankCategories(problemFor("AAA"), p)) {
+			if (!values.has(category)) {
+				values.set(category, []);
+				speciesIn.set(category, new Set());
 			}
+			for (let i = 0; i < rollsPerSpecies; i++) {
+				const combo = pick(combos);
+				const pool = [...subSkills];
+				const roll = [];
+				while (roll.length < 5) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
+				values.get(category).push(rankValue(problemFor(combo), category, pick(natures), roll, combo));
+			}
+			speciesIn.get(category).add(p.name);
 		}
 	}
 
@@ -85,7 +87,7 @@ try {
 	}
 	const note =
 		`${quantiles} quantiles per category of ${rollsPerSpecies} random rolls per non-mythical fully evolved Pokémon ` +
-		"(Lv80, Sub Skill Seeds, standard settings); made by scripts/build-rank-tables.mjs";
+		"and category (Lv80, Sub Skill Seeds, standard settings); made by scripts/build-rank-tables.mjs";
 	writeFileSync(out, `${JSON.stringify({ note, categories })}\n`);
 	for (const [category, t] of Object.entries(categories)) {
 		console.log(`${category.padEnd(40)} ${String(t.species).padStart(3)} species  median ${t.q[(quantiles - 1) / 2]}`);

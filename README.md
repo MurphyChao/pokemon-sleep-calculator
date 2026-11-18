@@ -80,8 +80,11 @@ Strength". It's shown next to Rarity in the Box table (which can be sorted by ei
 benches. The job decides what's measured, in a unit all species share:
 
 - **Strength:** berry strength + strength-skill strength per day.
-- **Ingredients:** ingredient strength per day: each ingredient's base strength × count, skill ingredients included, so
-  ingredient type and combination count.
+- **Ingredients: <ingredient>:** how much of one ingredient per day (skill ingredients included), only against Pokémon
+  kept for ingredients (Ingredients specialists, ingredient-skill users like Sandslash) that can gather it, with
+  combinations that include it. A Pokémon is ranked for each ingredient it can gather and its best one counts, so the
+  best apple gatherer ranks high even though apples are the cheapest ingredient. (Ingredient strength per day is in the
+  tooltip.) Some ingredients have only a handful of such species; the tooltip says how many.
 - **Skill: <kind>:** what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream shards…),
   only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind).
 - Ingredients specialists with a support skill (Chansey, Drampa) are ranked in both their lists; the better rank shows.
@@ -89,7 +92,7 @@ benches. The job decides what's measured, in a unit all species share:
 Everything is measured the same way so ranks compare across users and settings: at Lv80, with Sub Skill Seeds used
 and the main skill maxed except for Ingredients specialists (as for rarity), Helping Bonus counted for the team, and
 standard settings (the app's defaults, not your own). That makes the comparison population fixed, so it's computed
-once by `npm run build-rank-tables` (600 random rolls per species; about 5 seconds) into `src/data/rank-tables.json`
+once by `npm run build-rank-tables` (600 random rolls per species and category; under 10 seconds) into `src/data/rank-tables.json`
 as quantiles per category; the app only looks values up. Rerun it after syncing new Pokémon or changing how ranks are
 measured. Code: `src/core/rank.ts`, `scripts/build-rank-tables.mjs`.
 

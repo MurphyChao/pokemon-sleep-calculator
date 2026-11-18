@@ -10,14 +10,17 @@
  *
  * The categories (a Pokémon's job decides which; hybrids are ranked in both and the better rank counts):
  * - strength: berry strength + strength-skill strength per day
- * - ingredients: ingredient strength per day (each ingredient's base strength × count, skill ones included)
+ * - ingredient:<name>: how much of one ingredient per day (skill ones included), only against Pokémon kept for
+ *   ingredients (Ingredients specialists, ingredient-skill users) that can gather it, with combinations that
+ *   include it; a Pokémon is ranked for each ingredient it can gather, so a top apple gatherer ranks high even
+ *   though apples are worth little
  * - skill:<kind>: what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream
  *   shards…), only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind)
  * Helping Bonus adds 4 × 5.3% of the Pokémon's own output with a neutral nature and no subskills, as in the
  * rating.
  */
-import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
-import type { IngredientType } from "../vendor/pokesleep-tool/util/PokemonIv";
+import type { IngredientName, PokemonData } from "../vendor/pokesleep-tool/data/pokemons";
+import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
 import { ingredientStrength } from "../vendor/pokesleep-tool/util/PokemonRp";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, subSkillLevels, toPokemonIv } from "./box";
@@ -28,7 +31,7 @@ import { defaultStrengthOptions, defaultYieldOptions, type YieldDetail } from ".
 export const rankOptions = defaultYieldOptions;
 export const rankStrengthOptions = defaultStrengthOptions;
 
-/** "strength", "ingredients" or "skill:<kind>" (e.g. "skill:Energy for Everyone S"). */
+/** "strength", "ingredient:<name>" (e.g. "ingredient:apple") or "skill:<kind>" (e.g. "skill:Energy for Everyone S"). */
 export type RankCategory = string;
 
 /** A main skill's kind: its name without a variant in brackets ("Charge Strength S (Random)" → "Charge Strength S"). */
@@ -36,7 +39,8 @@ export function skillKind(skill: string): string {
 	return skill.replace(/\s*\(.*\)\s*$/, "");
 }
 
-function ingredientValue(d: YieldDetail): number {
+/** Ingredient strength per day: each ingredient's base strength × count (shown with ingredient ranks). */
+export function ingredientStrengthPerDay(d: YieldDetail): number {
 	return (Object.entries(d.total) as [IngredientName, number][]).reduce(
 		(sum, [ing, n]) => sum + n * (ingredientStrength[ing] ?? 0),
 		0,
@@ -45,45 +49,52 @@ function ingredientValue(d: YieldDetail): number {
 
 function categoryValue(category: RankCategory, d: YieldDetail): number {
 	if (category === "strength") return d.berryStrength + d.skillStrength;
-	if (category === "ingredients") return ingredientValue(d);
+	if (category.startsWith("ingredient:")) return d.total[category.slice("ingredient:".length) as IngredientName] ?? 0;
 	return d.skillValue > 0 ? d.skillValue : d.skillsPerDay;
 }
 
-/** The categories a Pokémon is ranked in, from its role (see the rating) and main skill. */
-export function rankCategories(problem: RatingProblem, skill: string): RankCategory[] {
-	const kind = `skill:${skillKind(skill)}`;
+/** A category a Pokémon is ranked in, and the ingredient combinations it's measured with in the population. */
+export interface RankCategoryOf {
+	category: RankCategory;
+	/** Combinations random rolls can have: for an ingredient, those that include it; otherwise all. */
+	combos: IngredientType[];
+}
+
+/** The categories a Pokémon is ranked in, from its role (see the rating) and species. */
+export function rankCategories(problem: RatingProblem, pokemon: PokemonData): RankCategoryOf[] {
+	const all = IngredientTypes.filter((c) => (pokemon.ing2 || !c.includes("B")) && (pokemon.ing3 || !c.includes("C")));
+	const slot = { A: pokemon.ing1?.name, B: pokemon.ing2?.name, C: pokemon.ing3?.name } as Record<string, string | undefined>;
+	const ingredients = () =>
+		[...new Set([pokemon.ing1?.name, pokemon.ing2?.name, pokemon.ing3?.name])]
+			.filter((n): n is IngredientName => !!n)
+			.map((name) => ({ category: `ingredient:${name}`, combos: all.filter((c) => [...c].some((l) => slot[l] === name)) }));
+	const skill = { category: `skill:${skillKind(pokemon.skill)}`, combos: all };
 	switch (problem.role) {
 		case "strength":
-			return ["strength"];
+			return [{ category: "strength", combos: all }];
 		case "ingredients":
-			return ["ingredients"];
+			return ingredients();
 		case "support":
-			return [kind];
+			return [skill];
 		case "hybrid":
-			return ["ingredients", kind];
+			return [...ingredients(), skill];
 	}
 }
 
 /**
- * The Pokémon's value in each of its categories with this nature, these subskills as rolled and this
- * ingredient combination, measured as described above.
+ * The Pokémon's value in a category with this nature, these subskills as rolled and this ingredient
+ * combination, measured as described above.
  */
-export function rankValues(
+export function rankValue(
 	problem: RatingProblem,
-	skill: string,
+	category: RankCategory,
 	nature: string,
 	subSkills: SubSkillType[],
 	combo?: IngredientType,
-): Map<RankCategory, number> {
-	const detail = problem.detailOf(nature, subSkills, combo);
-	const bonus = subSkills.includes("Helping Bonus");
-	const baseline = bonus ? problem.detailOf("Serious", [], combo) : undefined;
-	return new Map(
-		rankCategories(problem, skill).map((c) => [
-			c,
-			categoryValue(c, detail) + (baseline ? helpingBonusTeamValue * categoryValue(c, baseline) : 0),
-		]),
-	);
+): number {
+	const value = categoryValue(category, problem.detailOf(nature, subSkills, combo));
+	if (!subSkills.includes("Helping Bonus")) return value;
+	return value + helpingBonusTeamValue * categoryValue(category, problem.detailOf("Serious", [], combo));
 }
 
 export interface RankTable {
@@ -131,6 +142,8 @@ export interface Rank {
 	median: number;
 	/** Species the category's population is made of. */
 	species: number;
+	/** For ingredient ranks: the Pokémon's ingredient strength per day, all its ingredients together. */
+	ingredientStrength?: number;
 }
 
 /**
@@ -139,14 +152,15 @@ export interface Rank {
  */
 export function rankEntry(entry: BoxEntry, tables: RankTables): Rank | undefined {
 	const problem = ratingProblem(entry, rankOptions, rankStrengthOptions);
-	const skill = toPokemonIv(entry).pokemon.skill;
+	const pokemon = toPokemonIv(entry).pokemon;
 	const own = subSkillLevels.map((lv) => entry.subSkills[lv]).filter((n): n is SubSkillType => !!n);
 	let best: Rank | undefined;
-	for (const [category, value] of rankValues(problem, skill, entry.nature, own)) {
+	for (const { category } of rankCategories(problem, pokemon)) {
 		const table = tables.categories[category];
 		if (!table) continue;
+		const value = rankValue(problem, category, entry.nature, own);
 		const better = shareAbove(table, value);
-		if (!best || better < best.better) {
+		if (!best || better < best.better || (better === best.better && value > best.value)) {
 			best = {
 				category,
 				better,
@@ -156,6 +170,9 @@ export function rankEntry(entry: BoxEntry, tables: RankTables): Rank | undefined
 				species: table.species,
 			};
 		}
+	}
+	if (best?.category.startsWith("ingredient:")) {
+		best.ingredientStrength = ingredientStrengthPerDay(problem.detailOf(entry.nature, own));
 	}
 	return best;
 }
