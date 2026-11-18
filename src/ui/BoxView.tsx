@@ -68,7 +68,9 @@ function sortBox(box: BoxEntry[], sort: BoxSort, ratings: Map<string, Rating | n
 	const collator = new Intl.Collator(getLang());
 	const dex = (e: BoxEntry) => dexOrder.get(e.pokemonName) ?? Number.MAX_SAFE_INTEGER;
 	const name = (e: BoxEntry) => pokemonLabel(e.pokemonName);
-	const score = (e: BoxEntry) => ratings.get(e.id)?.score ?? -1;
+	/** Share of random rolls that beat it (lower is better); unrated last. */
+	const better = (e: BoxEntry) => ratings.get(e.id)?.better ?? 2;
+	const ofBest = (e: BoxEntry) => ratings.get(e.id)?.ofBest ?? 0;
 	const compare: Record<SortBy, (a: BoxEntry, b: BoxEntry) => number> = {
 		added: () => 0,
 		dex: (a, b) => dex(a) - dex(b) || b.level - a.level,
@@ -77,7 +79,7 @@ function sortBox(box: BoxEntry[], sort: BoxSort, ratings: Map<string, Rating | n
 			collator.compare(name(a), name(b)) ||
 			collator.compare(a.nickname ?? "", b.nickname ?? "") ||
 			b.level - a.level,
-		rating: (a, b) => score(b) - score(a) || dex(a) - dex(b),
+		rating: (a, b) => better(a) - better(b) || ofBest(b) - ofBest(a) || dex(a) - dex(b),
 	};
 	const sorted = box
 		.map((e, i) => ({ e, i }))

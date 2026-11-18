@@ -1,6 +1,7 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, scaleLevels, type SubSkillLevel } from "./box";
-import { gradeOf, rateEntry, ratingProblem, searchBest } from "./rating";
+import { defaultYieldOptions } from "./yield";
+import { gradeOf, rateEntry, ratingProblem, rollSampleSize, sampleRolls, searchBest, shareBetter } from "./rating";
 
 const levels: SubSkillLevel[] = ["lv10", "lv25", "lv50", "lv70", "lv80"];
 const e = (pokemonName: string, nature = "Serious", subSkills: SubSkillType[] = [], extra: Partial<BoxEntry> = {}): BoxEntry => ({
@@ -33,18 +34,33 @@ describe("rateEntry", () => {
 	it("gives the best build found 100, and less to weaker builds", () => {
 		for (const name of ["Sceptile", "Chansey", "Sandslash", "Raichu"]) {
 			const { best } = rateEntry(e(name));
-			expect(rateEntry(e(name, best.nature, best.subSkills)).score).toBeCloseTo(100, 6);
-			const weaker = rateEntry(e(name, best.nature, best.subSkills.slice(0, 3))).score;
+			expect(rateEntry(e(name, best.nature, best.subSkills)).ofBest).toBeCloseTo(100, 6);
+			const weaker = rateEntry(e(name, best.nature, best.subSkills.slice(0, 3))).ofBest;
 			expect(weaker).toBeLessThan(100);
-			expect(rateEntry(e(name)).score).toBeLessThan(weaker);
+			expect(rateEntry(e(name)).ofBest).toBeLessThan(weaker);
+		}
+	});
+
+	it("ranks Pokémon among random rolls of their species: the best build beats them all, a plain one few", () => {
+		for (const name of ["Sceptile", "Chansey"]) {
+			const { best } = rateEntry(e(name));
+			const top = rateEntry(e(name, best.nature, best.subSkills));
+			expect(top.better).toBe(0);
+			expect(top.grade).toBe("S");
+			const good = rateEntry(e(name, best.nature, best.subSkills.slice(0, 3)));
+			const plain = rateEntry(e(name, "Serious", ["Sleep EXP Bonus"]));
+			expect(good.better).toBeGreaterThan(0);
+			expect(good.better).toBeLessThan(plain.better);
+			expect(plain.better).toBeGreaterThan(0.8);
+			expect(plain.grade).toBe("D");
 		}
 	});
 
 	it("rewards a nature that helps the role and penalises one that hurts it", () => {
 		const subs: SubSkillType[] = ["Helping Speed M", "Ingredient Finder M"];
-		const neutral = rateEntry(e("Dragonite", "Serious", subs)).score;
-		expect(rateEntry(e("Dragonite", "Quiet", subs)).score).toBeGreaterThan(neutral); // ingredient finding ▲
-		expect(rateEntry(e("Dragonite", "Adamant", subs)).score).toBeLessThan(neutral); // ingredient finding ▼
+		const neutral = rateEntry(e("Dragonite", "Serious", subs)).ofBest;
+		expect(rateEntry(e("Dragonite", "Quiet", subs)).ofBest).toBeGreaterThan(neutral); // ingredient finding ▲
+		expect(rateEntry(e("Dragonite", "Adamant", subs)).ofBest).toBeLessThan(neutral); // ingredient finding ▼
 	});
 
 	it("rates at full potential: subskills not unlocked yet count, and so does their Skill Level Up", () => {
@@ -52,26 +68,26 @@ describe("rateEntry", () => {
 		const lv30 = rateEntry(e("Sceptile", "Serious", subs, { level: 30, skillLevel: 2 }));
 		// At Lv60 Skill Level Up M is unlocked and already included in the in-game skill level.
 		const lv60 = rateEntry(e("Sceptile", "Serious", subs, { level: 60, skillLevel: 4 }));
-		expect(lv30.score).toBeCloseTo(lv60.score, 6);
+		expect(lv30.ofBest).toBeCloseTo(lv60.ofBest, 6);
 		const withoutLevelUp = rateEntry(e("Sceptile", "Serious", ["Helping Speed S", "Berry Finding S"], { level: 30, skillLevel: 2 }));
-		expect(lv30.score).toBeGreaterThan(withoutLevelUp.score);
+		expect(lv30.ofBest).toBeGreaterThan(withoutLevelUp.ofBest);
 	});
 
 	it("rates the solvers' copies from the skill level as entered: level scaling changes nothing, seeds count", () => {
 		const subs: SubSkillType[] = ["Helping Speed S", "Berry Finding S", "Skill Level Up S"];
 		const real = e("Sceptile", "Serious", subs, { level: 30, skillLevel: 2 });
-		const score = rateEntry(real).score;
+		const score = rateEntry(real).ofBest;
 		// Lv60 unlocks Skill Level Up S, which the entered skill level doesn't include yet.
 		const [scaled] = scaleLevels([real], 60);
-		expect(rateEntry(scaled).score).toBeCloseTo(score, 6);
+		expect(rateEntry(scaled).ofBest).toBeCloseTo(score, 6);
 		const [seeded] = maxSubSkillSeeds([real], true);
-		expect(rateEntry(seeded).score).toBeGreaterThan(score);
+		expect(rateEntry(seeded).ofBest).toBeGreaterThan(score);
 	});
 
 	it("ignores subskills that don't help the role", () => {
 		const base: SubSkillType[] = ["Helping Speed M"];
-		const score = rateEntry(e("Dragonite", "Serious", base)).score;
-		expect(rateEntry(e("Dragonite", "Serious", [...base, "Sleep EXP Bonus"])).score).toBeCloseTo(score, 6);
+		const score = rateEntry(e("Dragonite", "Serious", base)).ofBest;
+		expect(rateEntry(e("Dragonite", "Serious", [...base, "Sleep EXP Bonus"])).ofBest).toBeCloseTo(score, 6);
 	});
 });
 
@@ -91,17 +107,47 @@ describe("searchBest", () => {
 	});
 });
 
+describe("sampleRolls", () => {
+	it("is the same on every run, sorted, and of the sample size", () => {
+		const p = ratingProblem(e("Sceptile"));
+		const a = sampleRolls(p, defaultYieldOptions);
+		expect(a).toHaveLength(rollSampleSize);
+		expect([...a]).toEqual([...a].sort((x, y) => x - y));
+		expect([...sampleRolls(ratingProblem(e("Sceptile")), defaultYieldOptions)]).toEqual([...a]);
+	});
+
+	it("shares one calculation between rolls that do the same: inventory adds up, unused subskills don't matter", () => {
+		const p = ratingProblem(e("Dragonite"));
+		const sm = p.valueOf("Quiet", ["Inventory Up S", "Inventory Up M", "Helping Speed M", "Sleep EXP Bonus", "Dream Shard Bonus"]);
+		const l = p.valueOf("Quiet", ["Inventory Up L", "Helping Speed M", "Research EXP Bonus", "Sleep EXP Bonus", "Dream Shard Bonus"]);
+		expect(sm).toBeCloseTo(l, 12);
+	});
+});
+
+describe("shareBetter", () => {
+	const values = Float64Array.from([1, 2, 2, 3, 4]);
+	it.each([
+		[0.5, 1],
+		[2, 0.4],
+		[4, 0],
+		[5, 0],
+	])("%d → %d", (v, share) => {
+		expect(shareBetter(values, v)).toBe(share);
+	});
+});
+
 describe("gradeOf", () => {
 	it.each([
-		[100, "S"],
-		[90, "S"],
-		[89.9, "A"],
-		[75, "A"],
-		[60, "B"],
-		[40, "C"],
-		[39.9, "D"],
-		[0, "D"],
-	])("%d → %s", (score, grade) => {
-		expect(gradeOf(score)).toBe(grade);
+		[0, "S"],
+		[0.049, "S"],
+		[0.05, "A"],
+		[0.19, "A"],
+		[0.2, "B"],
+		[0.5, "C"],
+		[0.79, "C"],
+		[0.8, "D"],
+		[1, "D"],
+	])("%d of rolls better → %s", (better, grade) => {
+		expect(gradeOf(better)).toBe(grade);
 	});
 });

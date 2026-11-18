@@ -32,26 +32,40 @@ const roleWeights: Record<RatingRole, Partial<Record<Measure, number>>> = {
 /** Level the rating is computed at: Lv80, where every subskill and ingredient slot is unlocked (the Pokémon's potential). */
 export const ratingLevel = 80;
 
+const maxSubSkills = subSkillLevels.length;
+
+/**
+ * Random rolls (nature and 5 subskills) sampled per species to place a Pokémon among all its possible
+ * rolls. Odds of a better roll are resolved down to about 1 in this many.
+ */
+export const rollSampleSize = 2000;
+
 export const grades = ["S", "A", "B", "C", "D"] as const;
 export type Grade = (typeof grades)[number];
 
-/** Lowest score (0–100) for each grade but the last. */
+/** For each grade but the last: the share of random rolls that may be better (S: top 5%, A: top 20%…). */
 const gradeThresholds: [Grade, number][] = [
-	["S", 90],
-	["A", 75],
-	["B", 60],
-	["C", 40],
+	["S", 0.05],
+	["A", 0.2],
+	["B", 0.5],
+	["C", 0.8],
 ];
 
-export function gradeOf(score: number): Grade {
-	return gradeThresholds.find(([, min]) => score >= min)?.[0] ?? "D";
+/** The grade for a Pokémon that `better` (0–1) of random rolls beat. */
+export function gradeOf(better: number): Grade {
+	return gradeThresholds.find(([, max]) => better < max)?.[0] ?? "D";
 }
 
 export interface Rating {
 	role: RatingRole;
-	/** 0–100: the Pokémon's value for its role as a share of the best nature and subskills it could have. */
-	score: number;
+	/**
+	 * 0–1: the share of random rolls of the same Pokémon (any nature and 5 different subskills, all equally
+	 * likely) that are better for its role, i.e. the chance that a new one would beat it. 0.03 = top 3%.
+	 */
+	better: number;
 	grade: Grade;
+	/** 0–100: the Pokémon's value as a share of the best nature and subskills it could have. */
+	ofBest: number;
 	/** The best nature and subskills found, which score 100. */
 	best: { nature: string; subSkills: SubSkillType[] };
 }
@@ -72,18 +86,99 @@ function candidateSubSkills(role: RatingRole, skillCounts: boolean, options: Yie
 }
 
 /**
- * One nature per distinct effect: EXP gains never matter here, and energy recovery only with simulated
- * energy, so e.g. all neutral-for-us natures collapse into Serious.
+ * What a nature does in the yield model: EXP gains never matter here, and energy recovery only with
+ * simulated energy. Natures with the same class give the same yields.
  */
-function candidateNatures(options: YieldOptions): string[] {
+function natureClass(n: Nature, options: YieldOptions): string {
 	const relevant = (effect: NatureEffect) =>
 		effect !== "EXP gains" && effect !== "No effect" && (effect !== "Energy recovery" || options.energy === "simulated");
+	return `${relevant(n.upEffect) ? n.upEffect : "-"}/${relevant(n.downEffect) ? n.downEffect : "-"}`;
+}
+
+/** One nature per class; the class with no effect is represented by Serious. */
+function candidateNatures(options: YieldOptions): string[] {
 	const seen = new Map<string, string>();
 	for (const n of Nature.allNatures) {
-		const key = `${relevant(n.upEffect) ? n.upEffect : "-"}/${relevant(n.downEffect) ? n.downEffect : "-"}`;
+		const key = natureClass(n, options);
 		if (!seen.has(key)) seen.set(key, key === "-/-" ? "Serious" : n.name);
 	}
 	return [...seen.values()];
+}
+
+/**
+ * What a set of subskills does in the yield model: helping speed, ingredient finder, skill trigger, Skill
+ * Level Up and inventory add up (Inventory Up S + M = L), the rest are on or off. Sets with the same key
+ * give the same yields.
+ */
+function subSkillsKey(subSkills: SubSkill[]): string {
+	let speed = 0;
+	let ing = 0;
+	let trigger = 0;
+	let levelUp = 0;
+	let inventory = 0;
+	for (const s of subSkills) {
+		speed += s.helpingSpeed;
+		ing += s.ingredientFinder;
+		trigger += s.skillTrigger;
+		levelUp += s.skillLevelUp;
+		inventory += s.inventory;
+	}
+	const has = (name: SubSkillType) => (subSkills.some((s) => s.name === name) ? 1 : 0);
+	return [speed, ing, trigger, levelUp, inventory, has("Berry Finding S"), has("Helping Bonus"), has("Energy Recovery Bonus")].join(",");
+}
+
+/** A small deterministic random number generator (mulberry32), so samples are the same on every load. */
+function seededRandom(seed: number): () => number {
+	let a = seed >>> 0;
+	return () => {
+		a = (a + 0x6d2b79f5) >>> 0;
+		let t = a;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+/**
+ * Values of {@link rollSampleSize} random rolls, sorted: a nature and 5 different subskills, each equally
+ * likely (the game doesn't publish the real odds), all unlocked as at the rating level.
+ */
+export function sampleRolls(problem: RatingProblem, options: YieldOptions, count = rollSampleSize): Float64Array {
+	const random = seededRandom(20261118);
+	const natures = Nature.allNatures;
+	const subSkills = SubSkill.allSubSkills;
+	const memo = new Map<string, number>();
+	const values = new Float64Array(count);
+	for (let i = 0; i < count; i++) {
+		const nature = natures[Math.floor(random() * natures.length)];
+		const pool = [...subSkills];
+		const roll: SubSkill[] = [];
+		while (roll.length < maxSubSkills) roll.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
+		const key = `${natureClass(nature, options)}|${subSkillsKey(roll)}`;
+		let value = memo.get(key);
+		if (value === undefined) {
+			value = problem.valueOf(
+				nature.name,
+				roll.map((s) => s.name),
+			);
+			memo.set(key, value);
+		}
+		values[i] = value;
+	}
+	return values.sort();
+}
+
+/** The share of sorted `values` that are better than `value` (ignoring rounding differences). */
+export function shareBetter(values: Float64Array, value: number): number {
+	const threshold = value + Math.abs(value) * 1e-9;
+	let lo = 0;
+	let hi = values.length;
+	while (lo < hi) {
+		const mid = (lo + hi) >>> 1;
+		if (values[mid] <= threshold) lo = mid + 1;
+		else hi = mid;
+	}
+	return values.length > 0 ? (values.length - lo) / values.length : 0;
 }
 
 function skillLevelUp(names: (SubSkillType | null | undefined)[]): number {
@@ -184,14 +279,15 @@ export function ratingProblem(
 	};
 }
 
-/** Best builds by {@link RatingProblem.key}. */
-const bestCache = new Map<string, { value: number; nature: string; subSkills: SubSkillType[] }>();
+/** Best builds and sampled rolls by {@link RatingProblem.key}. */
+const speciesCache = new Map<string, { best: { value: number; nature: string; subSkills: SubSkillType[] }; rolls: Float64Array }>();
 
 /**
  * Rates a Pokémon's nature and subskills for its role, at its potential (every subskill unlocked, see
- * {@link ratingLevel}), with the yield model and settings the solvers use. Each measure is taken relative
- * to the same Pokémon with a neutral nature and no subskills, so a hybrid's ingredients and skill triggers
- * can be added up; 100 is the best nature and subskills found by {@link searchBest}.
+ * {@link ratingLevel}), with the yield model and settings the solvers use: where it ranks among random
+ * rolls of the same Pokémon ({@link sampleRolls}), and how close it comes to the best nature and subskills
+ * ({@link searchBest}). Each measure is taken relative to the same Pokémon with a neutral nature and no
+ * subskills, so a hybrid's ingredients and skill triggers can be added up.
  */
 export function rateEntry(
 	entry: BoxEntry,
@@ -199,23 +295,26 @@ export function rateEntry(
 	strength: StrengthOptions = defaultStrengthOptions,
 ): Rating {
 	const problem = ratingProblem(entry, options, strength);
-	let best = bestCache.get(problem.key);
-	if (!best) {
-		best = searchBest(problem.valueOf, problem.natures, problem.candidates);
-		bestCache.set(problem.key, best);
+	let species = speciesCache.get(problem.key);
+	if (!species) {
+		species = {
+			best: searchBest(problem.valueOf, problem.natures, problem.candidates),
+			rolls: sampleRolls(problem, options),
+		};
+		speciesCache.set(problem.key, species);
 	}
+	const { best, rolls } = species;
 	const own = subSkillLevels.map((lv) => entry.subSkills[lv]).filter((n): n is SubSkillType => !!n);
 	const current = problem.valueOf(entry.nature, own);
-	const score = best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0;
+	const better = shareBetter(rolls, current);
 	return {
 		role: problem.role,
-		score,
-		grade: gradeOf(score),
+		better,
+		grade: gradeOf(better),
+		ofBest: best.value > 0 ? Math.min(100, (current / best.value) * 100) : 0,
 		best: { nature: best.nature, subSkills: best.subSkills },
 	};
 }
-
-const maxSubSkills = subSkillLevels.length;
 
 /**
  * Local search, with the nature as one more thing to change: starting from a neutral nature and no

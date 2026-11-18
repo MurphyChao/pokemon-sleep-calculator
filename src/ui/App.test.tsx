@@ -361,15 +361,16 @@ test("Box shows each Pokémon's rating for its role and can be sorted by it", as
 	const box = section("Your box");
 	await waitFor(() => expect(within(box).queryByText("Rating…")).toBeNull());
 	const cell = (label: string) => rowOf(box, label).querySelector(".rating") as HTMLElement;
-	expect(cell("Strong").textContent).toMatch(/^[SABCD] \d+Strength/);
+	// Grade, rank among random rolls, odds of a better roll, and what it's rated for.
+	expect(cell("Strong").textContent).toMatch(/^[SABCD] Top [\d.]+%(1 in [\d,]+ rolls is better|[\d.]+% of rolls are better)Strength/);
 	expect(cell("Chansey").textContent).toContain("Ingredients + skill");
-	expect(cell("Strong").getAttribute("title")).toMatch(/Lv80/);
-	const score = (label: string) => Number(cell(label).textContent?.match(/\d+/)?.[0]);
-	expect(score("Strong")).toBeGreaterThan(score("Weak"));
+	expect(cell("Strong").getAttribute("title")).toMatch(/random rolls of this Pokémon at Lv80[^]*% of the best nature and subskills/);
+	const top = (row: Element) => Number(row.querySelector(".rating")?.textContent?.match(/Top ([\d.]+)%/)?.[1]);
+	expect(top(rowOf(box, "Strong"))).toBeLessThan(top(rowOf(box, "Weak")));
 
 	fireEvent.change(within(box).getByLabelText("Sort by"), { target: { value: "rating" } });
-	const order = [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector(".rating")?.textContent?.match(/\d+/)?.[0]);
-	expect(order.map(Number)).toEqual(order.map(Number).sort((a, b) => b - a));
+	const order = [...box.querySelectorAll("tbody tr")].map(top);
+	expect(order).toEqual([...order].sort((a, b) => a - b));
 });
 
 test("both solvers' bench lists show each Pokémon's rating, for the Pokémon as the solvers see it", async () => {
@@ -390,12 +391,12 @@ test("both solvers' bench lists show each Pokémon's rating, for the Pokémon as
 	};
 	expect(within(section("Bench")).getByText("Rating")).toBeTruthy();
 	// Evolved to Charizard for the solvers, and rated as one.
-	expect(await ratingOf("Charmander→Charizard")).toMatch(/^[SABCD] \d+Ingredients/);
+	expect(await ratingOf("Charmander→Charizard")).toMatch(/^[SABCD] Top .*Ingredients/);
 
 	fireEvent.click(screen.getByText("Energy solver"));
 	expect(within(section("Bench")).getByText("Rating")).toBeTruthy();
 	const benchRow = section("Bench").querySelector("tbody tr") as HTMLElement;
-	await waitFor(() => expect(benchRow.querySelector(".rating")?.textContent).toMatch(/^[SABCD] \d+/));
+	await waitFor(() => expect(benchRow.querySelector(".rating")?.textContent).toMatch(/^[SABCD] Top /));
 });
 
 test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {

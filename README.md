@@ -12,12 +12,19 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 
 ## Box rating
 
-The Box table rates each Pokémon's nature and subskills from 0 to 100 (grades S ≥ 90, A ≥ 75, B ≥ 60, C ≥ 40, D),
-and can be sorted by it. Both solvers' bench lists show the rating too, for the Pokémon as the solvers see it
-(after final evolution and Sub Skill Seeds, if on). 100 is the best nature and subskills that Pokémon could have, for the same species,
-ingredients and main skill level. The rating is computed at full potential (Lv80, every subskill unlocked) with
-the same yield model and settings as the solvers. What it measures depends on what the Pokémon is kept for, not
-just its specialty:
+The Box table rates each Pokémon's nature and subskills by where they rank among all possible rolls of the same
+Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
+as odds too ("1 in 33 rolls is better"). Grades: S top 5%, A top 20%, B top 50%, C top 80%, D the rest. The box can
+be sorted by it, and both solvers' bench lists show it too, for the Pokémon as the solvers see it (after final
+evolution and Sub Skill Seeds, if on). The tooltip also gives the share of the best possible nature and subskills,
+and what that best build is.
+
+A roll is a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
+subskills are probably rarer, so Pokémon with them rank lower than they should). The rank is estimated from 2,000
+random rolls, the same on every load, so odds are resolved down to about 1 in 2,000. Rolls that do the same in the
+yield model (e.g. Inventory Up S + M and Inventory Up L) share one calculation. Everything is computed at Lv80,
+where every subskill and ingredient slot is unlocked, with the same yield model and settings as the solvers. What
+is measured depends on what the Pokémon is kept for, not just its specialty:
 
 | Role | Measures | Who |
 |---|---|---|
@@ -27,7 +34,7 @@ just its specialty:
 | Skill triggers | main skill triggers per day | other Skills specialists |
 
 For the hybrid, each measure is taken relative to the same Pokémon with a neutral nature and no subskills, so the
-two can be added up. The best build is found by a local search (`searchBest` in `src/core/rating.ts`); checked
+two can be added up. The best build (for the tooltip) is found by a local search (`searchBest` in `src/core/rating.ts`); checked
 against an exhaustive search over every Pokémon, it finds the same optimum. Code: `src/core/rating.ts`,
 `src/ui/useRatings.ts`.
 

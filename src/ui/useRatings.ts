@@ -7,7 +7,7 @@ import type { StrengthOptions, YieldOptions } from "../core/yield";
 const sliceMs = 30;
 
 /**
- * Ratings of the box's Pokémon by entry id. A species' first rating takes a search (~10–30 ms), so
+ * Ratings of the box's Pokémon by entry id. A species' first rating takes a search and a sample of random rolls (~100–150 ms), so
  * ratings are worked out a slice at a time after rendering; entries not rated yet are missing from the map,
  * and entries that can't be rated map to null.
  */
