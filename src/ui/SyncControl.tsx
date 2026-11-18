@@ -231,9 +231,13 @@ export default function SyncControl() {
 					onClick={turnOn}
 					disabled={status.kind === "syncing"}
 					title={t("syncHint")}
+					aria-label={status.kind === "signingIn" || status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
 				>
 					<GoogleLogo />
-					{status.kind === "signingIn" || status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
+					{/* Phones show just the logo (App.css). */}
+					<span className="google-label">
+						{status.kind === "signingIn" || status.kind === "syncing" ? t("syncSigningIn") : t("syncTurnOn")}
+					</span>
 				</button>
 				{status.kind === "error" && <span className="sync-error small">{status.message}</span>}
 			</div>
@@ -245,9 +249,9 @@ export default function SyncControl() {
 		<div className="sync">
 			<span className="account" title={account?.email}>
 				{account?.picture && <img src={account.picture} alt="" referrerPolicy="no-referrer" />}
-				<span>{account?.name || account?.email || t("syncSignedIn")}</span>
+				<span className="account-name">{account?.name || account?.email || t("syncSignedIn")}</span>
 			</span>
-			<span className="muted small" title={t("syncHint")}>
+			<span className="muted small sync-status" title={t("syncHint")}>
 				{status.kind === "syncing"
 					? t("syncSyncing")
 					: status.kind === "signIn"
@@ -257,8 +261,18 @@ export default function SyncControl() {
 							: t("syncOn")}
 			</span>
 			{status.kind === "error" && <span className="sync-error small">{status.message}</span>}
-			<button type="button" onClick={() => run(true)} disabled={status.kind === "syncing" || status.kind === "conflict"}>
-				{t("syncNow")}
+			<button
+				type="button"
+				className="sync-now"
+				aria-label={t("syncNow")}
+				onClick={() => run(true)}
+				disabled={status.kind === "syncing" || status.kind === "conflict"}
+			>
+				{/* Phones show just the icon (App.css). */}
+				<span className="sync-now-icon" aria-hidden="true">
+					⟳
+				</span>
+				<span className="sync-now-label">{t("syncNow")}</span>
 			</button>
 			<button type="button" className="link" onClick={turnOff}>
 				{t("syncTurnOff")}

@@ -189,11 +189,12 @@ export default function App() {
 				<button
 					type="button"
 					className="secondary settings-toggle"
+					aria-label={t("settings")}
 					aria-expanded={settingsOpen}
 					aria-controls="settings-bar"
 					onClick={() => setSettingsOpen(!settingsOpen)}
 				>
-					⚙ {t("settings")} {settingsOpen ? "▴" : "▾"}
+					⚙ <span className="settings-label">{t("settings")}</span> {settingsOpen ? "▴" : "▾"}
 				</button>
 				<div id="settings-bar" className={settingsOpen ? "settings-bar" : "settings-bar collapsed"}>
 					<label className="check">
