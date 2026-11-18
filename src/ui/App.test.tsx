@@ -417,7 +417,7 @@ test("Box shows each Pokémon's rating for its role and can be sorted by it", as
 
 	// The cross-species rank sits next to the rarity, and can be sorted by.
 	const rank = (label: string) => rowOf(box, label).querySelector(".rank") as HTMLElement;
-	expect(rank("Strong").textContent).toMatch(/^[SABCD] Top [\d.<]+%Strength$/);
+	expect(rank("Strong").textContent).toMatch(/^[SABCD] Top [\d.<]+%Strength: \w+$/);
 	expect(rank("Chansey").textContent).toMatch(/(Ingredients: .+|Skill: Energy for Everyone S)$/);
 	fireEvent.change(within(box).getByLabelText("Sort by"), { target: { value: "rank" } });
 	const rankTop = (row: Element) => Number(row.querySelector(".rank")?.textContent?.match(/Top ([\d.]+)%/)?.[1] ?? 0);
@@ -443,10 +443,10 @@ test("both solvers' bench lists show each Pokémon's cross-species rank, for the
 	]);
 	const rankOf = (label: string) => rowOf(section("Bench"), label).querySelector(".rank")?.textContent ?? "";
 	expect(within(section("Bench")).getByText("Rank")).toBeTruthy();
-	// Evolved to Charizard for the solvers, and ranked as one among ingredient Pokémon of every species.
+	// Evolved to Charizard for the solvers, and ranked as one against the best Pokémon for its ingredient.
 	expect(rankOf("Charmander→Charizard")).toMatch(/^[SABCD] Top .*Ingredients: (Bean Sausage|Warming Ginger|Fiery Herb)$/);
 	expect(rowOf(section("Bench"), "Charmander→Charizard").querySelector(".rank")?.getAttribute("title")).toMatch(
-		/per day \((Bean Sausage|Warming Ginger|Fiery Herb)\); the median is [\d,.]+\.\nRanked against random rolls of the \d+ fully evolved Pokémon[^]*\nIngredient strength of everything it gathers: [\d,]+ per day\./,
+		/per day \((Bean Sausage|Warming Ginger|Fiery Herb)\); the median is [\d,.]+\.\nCompared with random rolls of (Tyranitar|Aggron|Dragonite|Charizard), the best in this category[^]*\nIngredient strength of everything it gathers: [\d,]+ per day\./,
 	);
 
 	fireEvent.click(screen.getByText("Energy solver"));

@@ -76,9 +76,10 @@ describe("rateEntry", () => {
 		const plain = rateEntry(e("Charizard", "Serious", ["Sleep EXP Bonus"], { ingredient: "AAC" }));
 		expect(plain.better).toBeGreaterThan(0.5);
 		expect(["C", "D"]).toContain(plain.grade);
-		// Hybrids too (Chansey: half ingredients, half skill triggers); other roles have no ingredient.
+		// Hybrids too (Chansey: half ingredients, half skill triggers), and ingredient-skill users kept for
+		// ingredients (Sandslash, skill ingredients included); other roles have no ingredient.
 		expect(rateEntry(e("Chansey", "Serious", subs, { ingredient: "AAA" })).ingredient).toBe("egg");
-		expect(rateEntry(e("Sandslash")).ingredient).toBeUndefined();
+		expect(rateEntry(e("Sandslash")).ingredient).toBeDefined();
 		expect(rateEntry(e("Sceptile")).ingredient).toBeUndefined();
 	});
 

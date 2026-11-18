@@ -49,6 +49,8 @@ export const helpingBonusTeamValue = 4 * (1 / 0.95 - 1);
  * rolls. Odds of a better roll are resolved down to about 1 in this many.
  */
 export const rollSampleSize = 2000;
+/** Seed of the random rolls (the same every time, so ratings don't change between visits; Rank uses it too). */
+export const rollSeed = 20261118;
 
 export const grades = ["S", "A", "B", "C", "D"] as const;
 export type Grade = (typeof grades)[number];
@@ -199,7 +201,7 @@ export function sampleRolls(problem: RatingProblem, options: YieldOptions, count
 	const subSkills = SubSkill.allSubSkills;
 	const memo = new Map<string, YieldDetail>();
 	return problem.goals.map((goal) => {
-		const random = seededRandom(20261118);
+		const random = seededRandom(rollSeed);
 		const values = new Float64Array(count);
 		for (let i = 0; i < count; i++) {
 			const combo = goal.combos[Math.floor(random() * goal.combos.length)];
@@ -365,8 +367,8 @@ export function ratingProblem(
 	};
 	const settingsKey = [base, JSON.stringify(options), JSON.stringify(strength)].join("|");
 
-	if (pokemon.specialty === "Ingredients" && (role === "ingredients" || role === "hybrid")) {
-		// One goal per ingredient: how much of it the Pokémon gathers (half of the value for a hybrid, the
+	if (role === "ingredients" || role === "hybrid") {
+		// One goal per ingredient (also for ingredient-skill users like Sandslash, as the rank measures them): how much of it the Pokémon gathers (half of the value for a hybrid, the
 		// other half being skill triggers), against rolls with any ingredient combination that can gather it.
 		// Each ingredient is measured against the most of it a neutral Pokémon of this species can gather.
 		const combos = speciesCombos(pokemon.ing2, pokemon.ing3);
@@ -395,10 +397,12 @@ export function ratingProblem(
 	}
 
 	const weights = Object.entries(roleWeights[role]) as [Measure, number][];
-	const baseMeasures = measures(baseline);
+	// Measured against a fixed neutral Pokémon (AAA) and against rolls with any ingredient combination (part of
+	// a roll's luck too), so this is exactly the rank's measure for the best species of its category.
+	const baseMeasures = measures(detailOf("Serious", [], "AAA"));
 	const goal: RatingGoal = {
 		combo: entry.ingredient,
-		combos: [entry.ingredient],
+		combos: speciesCombos(pokemon.ing2, pokemon.ing3),
 		value: (d, subSkills) => {
 			const m = measures(d);
 			const own = weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
@@ -426,9 +430,9 @@ const speciesCache = new Map<string, { best: BestBuild[]; rolls: Float64Array[] 
  * Sub Skill Seeds used as far as they go, and with the main skill at its max level except for pure
  * ingredient specialists, which keep their own skill level plus Skill Level Up ({@link maxesSkill}).
  *
- * Ingredients specialists are ranked for each ingredient they can gather, against rolls with any
- * ingredient combination that can gather it, and their best rank counts: an AAA Charizard ranks high for
- * Bean Sausage.
+ * Pokémon kept for ingredients (Ingredients specialists, ingredient-skill users like Sandslash) are ranked for
+ * each ingredient they can gather, against rolls with any ingredient combination that can gather it, and their
+ * best rank counts: an AAA Charizard ranks high for Bean Sausage.
  */
 export function rateEntry(
 	entry: BoxEntry,

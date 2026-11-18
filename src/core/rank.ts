@@ -1,23 +1,24 @@
 /**
- * Cross-species rank: how a Pokémon's daily output compares with random rolls of every (non-mythical) fully
- * evolved Pokémon doing the same job, in a unit all of them share. Unlike the rating (rarity), which only
- * compares a Pokémon with other rolls of its own species.
+ * Cross-species rank: how a Pokémon's daily output compares with random rolls of the best species for the
+ * same job, in a unit both share. For the best species itself it's the same as the rating (rarity), which
+ * compares a Pokémon with rolls of its own species; any other species is told how close it gets to the best.
  *
- * Every Pokémon, and the comparison population, is measured the same way, with the user's settings (as for
- * the rating): at Lv80, with Sub Skill Seeds used and the main skill maxed except for Ingredients specialists.
- * The population depends on the settings, so it's built with {@link buildRankTables}: once by
- * `npm run build-rank-tables` for the app's default settings (src/data/rank-tables.json, used as is), and in
- * the browser for any other settings (see ui/useRankTables.ts).
+ * Every Pokémon, and the comparison rolls, is measured the same way, with the user's settings (as for the
+ * rating): as its final form at Lv80, with Sub Skill Seeds used and the main skill maxed except for
+ * Ingredients specialists. The best species and its rolls depend on the settings, so the tables are built
+ * with {@link buildRankTables}: once by `npm run build-rank-tables` for the app's default settings
+ * (src/data/rank-tables.json, used as is), and in the browser for any other settings (ui/useRankTables.ts).
  *
  * The categories (a Pokémon's job decides which; hybrids are ranked in both and the better rank counts):
- * - strength: berry strength + strength-skill strength per day
- * - ingredient:<name>: how much of one ingredient per day (skill ones included), only against Pokémon kept for
- *   ingredients (Ingredients specialists, ingredient-skill users) that can gather it, with combinations that
- *   include it; a Pokémon is ranked for each ingredient it can gather, so a top apple gatherer ranks high even
- *   though apples are worth little
+ * - strength:<type>: berry strength + strength-skill strength per day, against the best strength Pokémon of
+ *   the same type (favorite berries and island bonuses go by type)
+ * - ingredient:<name>: how much of one ingredient per day (skill ones included), against the best Pokémon
+ *   kept for ingredients (Ingredients specialists, ingredient-skill users) that gathers it, with its
+ *   combinations that include it; a Pokémon is ranked for each ingredient it can gather
  * - skill:<kind>: what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream
- *   shards…), only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind)
- * Helping Bonus adds 4 × 5.3% of the Pokémon's own output with a neutral nature and no subskills, as in the
+ *   shards…), against the best Pokémon with the same kind of skill ("(Random)" variants count as one kind)
+ * The best species of a category is the one doing the most with a neutral nature and no subskills, among
+ * non-mythical fully evolved Pokémon. Helping Bonus adds 4 × 5.3% of a neutral Pokémon's output, as in the
  * rating.
  */
 import pokemons, { getPokemonRarity, type IngredientName, type PokemonData } from "../vendor/pokesleep-tool/data/pokemons";
@@ -34,6 +35,8 @@ import {
 	natureClass,
 	type RatingProblem,
 	ratingProblem,
+	rollSampleSize,
+	rollSeed,
 	seededRandom,
 	seedSubSkills,
 	subSkillsKey,
@@ -62,7 +65,7 @@ export function rankSettingsKey(options: YieldOptions, strength: StrengthOptions
 	]);
 }
 
-/** "strength", "ingredient:<name>" (e.g. "ingredient:apple") or "skill:<kind>" (e.g. "skill:Energy for Everyone S"). */
+/** "strength:<type>" (e.g. "strength:grass"), "ingredient:<name>" (e.g. "ingredient:apple") or "skill:<kind>" (e.g. "skill:Energy for Everyone S"). */
 export type RankCategory = string;
 
 /** A main skill's kind: its name without a variant in brackets ("Charge Strength S (Random)" → "Charge Strength S"). */
@@ -79,7 +82,7 @@ export function ingredientStrengthPerDay(d: YieldDetail): number {
 }
 
 function categoryValue(category: RankCategory, d: YieldDetail): number {
-	if (category === "strength") return d.berryStrength + d.skillStrength;
+	if (category.startsWith("strength:")) return d.berryStrength + d.skillStrength;
 	if (category.startsWith("ingredient:")) return d.total[category.slice("ingredient:".length) as IngredientName] ?? 0;
 	return d.skillValue > 0 ? d.skillValue : d.skillsPerDay;
 }
@@ -102,7 +105,7 @@ export function rankCategories(problem: RatingProblem, pokemon: PokemonData): Ra
 	const skill = { category: `skill:${skillKind(pokemon.skill)}`, combos: all };
 	switch (problem.role) {
 		case "strength":
-			return [{ category: "strength", combos: all }];
+			return [{ category: `strength:${pokemon.type}`, combos: all }];
 		case "ingredients":
 			return ingredients();
 		case "support":
@@ -126,57 +129,57 @@ export function rankValue(
 ): number {
 	const value = categoryValue(category, detail);
 	if (!subSkills.includes("Helping Bonus")) return value;
-	return value + helpingBonusTeamValue * helpingBonusBase(problem, category, combo);
+	return value + helpingBonusTeamValue * helpingBonusBase(problem, category);
 }
 
 /**
- * What Helping Bonus's team value is measured in: a neutral Pokémon of the species. For an ingredient, as
- * for Rarity, the one with the combination gathering the most of it, so the bonus is the same whatever the
- * roll's own combination (it speeds up teammates, not this Pokémon); otherwise with the roll's combination.
+ * What Helping Bonus's team value is measured in: a neutral Pokémon of the species with a fixed combination,
+ * as for Rarity, so the bonus is the same whatever the roll's own combination (it speeds up teammates, not
+ * this Pokémon): for an ingredient, the combination gathering the most of it; otherwise AAA.
  */
-function helpingBonusBase(problem: RatingProblem, category: RankCategory, combo?: IngredientType): number {
+function helpingBonusBase(problem: RatingProblem, category: RankCategory): number {
 	const ingredient = category.startsWith("ingredient:") ? category.slice("ingredient:".length) : undefined;
 	const top = ingredient ? problem.goals.find((g) => g.ingredient === ingredient)?.combo : undefined;
-	return categoryValue(category, problem.detailOf("Serious", [], top ?? combo));
+	return categoryValue(category, problem.detailOf("Serious", [], top ?? "AAA"));
 }
 
-/** Values are stored with 4 significant digits; a Pokémon's value is rounded the same way before looking it up. */
+/** Values are stored with 6 significant digits; a Pokémon's value is rounded the same way before looking it up. */
 function roundValue(v: number): number {
-	return Number(v.toPrecision(4));
+	return Number(v.toPrecision(6));
 }
 
 export interface RankTable {
-	/** Rolls in the population. */
+	/** The species the rolls are of: the category's best. */
+	best: string;
+	/** Rolls sampled. */
 	count: number;
-	/** Pokémon species in the population. */
-	species: number;
-	/** Values at evenly spaced fractions of the population, lowest first (q[0] = minimum, last = maximum). */
-	q: number[];
+	/** The rolls' median value. */
+	median: number;
+	/** The distinct values rolled, lowest first. */
+	v: number[];
+	/** For each value in `v`: how many rolls did better. */
+	above: number[];
 }
 
 export interface RankTables {
-	/** How many quantiles each table has and how the population was made (see build-rank-tables). */
+	/** How the rolls were made (see build-rank-tables). */
 	note: string;
 	categories: Record<RankCategory, RankTable>;
 }
 
-/** The share (0–1) of the population better than `value`, interpolating between quantiles. */
+/** The share (0–1) of the rolls doing better than `value` (exact, like the rating's). */
 export function shareAbove(table: RankTable, value: number): number {
-	const { q } = table;
-	const n = q.length;
-	if (n === 0) return 0;
-	if (value >= q[n - 1]) return 0;
-	if (value < q[0]) return 1;
+	const { v, above, count } = table;
+	const x = roundValue(value);
+	if (v.length === 0 || x < v[0]) return 1;
 	let lo = 0;
-	let hi = n - 1;
-	while (hi - lo > 1) {
-		const mid = (lo + hi) >> 1;
-		if (q[mid] <= value) lo = mid;
-		else hi = mid;
+	let hi = v.length - 1;
+	while (lo < hi) {
+		const mid = (lo + hi + 1) >> 1;
+		if (v[mid] <= x) lo = mid;
+		else hi = mid - 1;
 	}
-	const span = q[hi] - q[lo];
-	const within = span > 0 ? (value - q[lo]) / span : 1;
-	return 1 - (lo + within) / (n - 1);
+	return above[lo] / count;
 }
 
 export interface Rank {
@@ -186,10 +189,10 @@ export interface Rank {
 	grade: Grade;
 	/** The Pokémon's value per day in the category's unit. */
 	value: number;
-	/** The population's median value. */
+	/** The rolls' median value. */
 	median: number;
-	/** Species the category's population is made of. */
-	species: number;
+	/** The species it's compared with: the category's best. */
+	best: string;
 	/** For ingredient ranks: the Pokémon's ingredient strength per day, all its ingredients together. */
 	ingredientStrength?: number;
 }
@@ -212,17 +215,15 @@ export function rankEntry(
 		const table = tables.categories[category];
 		if (!table) continue;
 		const value = rankValue(problem, category, entry.nature, own);
-		// Rounded like the table, so a value tied with many rolls (subskills that don't change it) isn't
-		// put just below them by the rounding.
-		const better = shareAbove(table, roundValue(value));
+		const better = shareAbove(table, value);
 		if (!best || better < best.better || (better === best.better && value > best.value)) {
 			best = {
 				category,
 				better,
 				grade: gradeOf(better),
 				value,
-				median: table.q[Math.floor((table.q.length - 1) / 2)],
-				species: table.species,
+				median: table.median,
+				best: table.best,
 			};
 		}
 	}
@@ -232,15 +233,15 @@ export function rankEntry(
 	return best;
 }
 
-/** One part of building a population: random rolls of one species for one category. */
+/** Random rolls of one species for one category. */
 export interface RankJob {
 	pokemon: PokemonData;
 	category: RankCategory;
 	combos: IngredientType[];
 }
 
-/** Every non-mythical fully evolved Pokémon, with each category it's ranked in under these settings. */
-export function rankJobs(options: YieldOptions, strength: StrengthOptions): RankJob[] {
+/** Every non-mythical fully evolved Pokémon, with each category it's ranked in under these settings, and its probe. */
+function candidates(options: YieldOptions, strength: StrengthOptions): (RankJob & { probe: RatingProblem })[] {
 	return pokemons
 		.filter((p) => p.isFullyEvolved && getPokemonRarity(p) !== "mythical" && p.frequency > 0)
 		.flatMap((pokemon) => {
@@ -249,23 +250,26 @@ export function rankJobs(options: YieldOptions, strength: StrengthOptions): Rank
 				options,
 				strength,
 			);
-			return rankCategories(probe, pokemon).map(({ category, combos }) => ({ pokemon, category, combos }));
+			return rankCategories(probe, pokemon).map(({ category, combos }) => ({ pokemon, category, combos, probe }));
 		});
 }
 
-/** A seed from a job's species and category, so each job's rolls don't depend on the order jobs run in. */
-function jobSeed(job: RankJob): number {
-	let h = 2166136261;
-	for (const c of `${job.pokemon.name}|${job.category}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-	return h >>> 0;
+/** What a candidate does in its category with a neutral nature and no subskills, with its best combination for it. */
+function neutralValue(job: RankJob & { probe: RatingProblem }): number {
+	const ingredient = job.category.startsWith("ingredient:") ? job.category.slice("ingredient:".length) : undefined;
+	const top = ingredient ? job.probe.goals.find((g) => g.ingredient === ingredient)?.combo : undefined;
+	const combos = top ? [top] : job.category.startsWith("ingredient:") ? job.combos : ["AAA" as IngredientType];
+	return Math.max(...combos.map((c) => rankValue(job.probe, job.category, "Serious", [], c)));
 }
 
 /**
- * The values of `rolls` random rolls of a job: an ingredient combination from the job's, a nature and 5
- * different subskills, each equally likely. Rolls that do the same in the yield model share one calculation.
+ * The values of `rolls` random rolls of a job, drawn as the rating draws them (same seed and order: an
+ * ingredient combination from the job's, a nature and 5 different subskills, each equally likely), so the best
+ * species' rank equals its rarity. Rolls that do the same in the yield model share one calculation. Yields
+ * now and then so the browser can build a slice at a time.
  */
-export function sampleRankJob(job: RankJob, options: YieldOptions, strength: StrengthOptions, rolls: number): number[] {
-	const random = seededRandom(jobSeed(job));
+function* sampleRolls(job: RankJob, options: YieldOptions, strength: StrengthOptions, rolls: number): Generator<void, number[]> {
+	const random = seededRandom(rollSeed);
 	const natures = Nature.allNatures;
 	const subSkills = SubSkill.allSubSkills;
 	const problems = new Map<IngredientType, RatingProblem>();
@@ -292,44 +296,72 @@ export function sampleRankJob(job: RankJob, options: YieldOptions, strength: Str
 			}
 			value = rankValue(problem, job.category, nature.name, names, combo);
 			memo.set(key, value);
+			yield;
 		}
 		values.push(value);
 	}
 	return values;
 }
 
-/** Quantiles stored per category (0%, 0.25%, …, 100%). */
-const quantiles = 401;
-
-/** Collects job samples into tables. */
-export class RankTableBuilder {
-	private values = new Map<RankCategory, number[]>();
-	private species = new Map<RankCategory, Set<string>>();
-
-	add(job: RankJob, values: number[]) {
-		if (!this.values.has(job.category)) {
-			this.values.set(job.category, []);
-			this.species.set(job.category, new Set());
-		}
-		(this.values.get(job.category) as number[]).push(...values);
-		this.species.get(job.category)?.add(job.pokemon.name);
+/** A table from a job's rolled values. */
+function tableOf(job: RankJob, values: number[]): RankTable {
+	const sorted = values.map(roundValue).sort((a, b) => a - b);
+	const v: number[] = [];
+	const above: number[] = [];
+	for (let i = 0; i < sorted.length; i++) {
+		if (i + 1 < sorted.length && sorted[i + 1] === sorted[i]) continue;
+		v.push(sorted[i]);
+		above.push(sorted.length - 1 - i);
 	}
-
-	build(note: string): RankTables {
-		const round = roundValue;
-		const categories: Record<RankCategory, RankTable> = {};
-		for (const [category, list] of [...this.values].sort((x, y) => x[0].localeCompare(y[0]))) {
-			list.sort((x, y) => x - y);
-			const q = Array.from({ length: quantiles }, (_, i) => round(list[Math.round((i / (quantiles - 1)) * (list.length - 1))]));
-			categories[category] = { count: list.length, species: this.species.get(category)?.size ?? 0, q };
-		}
-		return { note, categories };
-	}
+	return { best: job.pokemon.name, count: sorted.length, median: sorted[Math.floor((sorted.length - 1) / 2)], v, above };
 }
 
-/** Builds the whole population for these settings in one go (the build script; the browser goes job by job). */
-export function buildRankTables(options: YieldOptions, strength: StrengthOptions, rolls: number, note: string): RankTables {
-	const builder = new RankTableBuilder();
-	for (const job of rankJobs(options, strength)) builder.add(job, sampleRankJob(job, options, strength, rolls));
-	return builder.build(note);
+/**
+ * Each category's best species under these settings: the one doing the most there with a neutral nature and no
+ * subskills. Quick (one calculation per species and category).
+ */
+export function rankBest(options: YieldOptions, strength: StrengthOptions): Map<RankCategory, RankJob> {
+	const best = new Map<RankCategory, { job: RankJob; value: number }>();
+	for (const job of candidates(options, strength)) {
+		const value = neutralValue(job);
+		const current = best.get(job.category);
+		if (!current || value > current.value) best.set(job.category, { job, value });
+	}
+	return new Map([...best].sort((x, y) => x[0].localeCompare(y[0])).map(([category, { job }]) => [category, { pokemon: job.pokemon, category, combos: job.combos }]));
+}
+
+/**
+ * Builds one category's table from its best species' rolls, step by step: yields after each calculation (a
+ * fraction of a millisecond to a few) so the browser can build a slice at a time; returns the table. This is
+ * the slow part (2,000 rolls, nearly all different), so the browser only builds the categories it needs.
+ */
+export function rankTableSteps(job: RankJob, options: YieldOptions, strength: StrengthOptions, rolls = rollSampleSize): Generator<void, RankTable> {
+	return (function* () {
+		return tableOf(job, yield* sampleRolls(job, options, strength, rolls));
+	})();
+}
+
+/** Builds every category's table for these settings in one go (the build script and tests). */
+export function buildRankTables(options: YieldOptions, strength: StrengthOptions, note: string, rolls = rollSampleSize): RankTables {
+	const categories: Record<RankCategory, RankTable> = {};
+	for (const [category, job] of rankBest(options, strength)) {
+		const steps = rankTableSteps(job, options, strength, rolls);
+		for (;;) {
+			const next = steps.next();
+			if (next.done) {
+				categories[category] = next.value;
+				break;
+			}
+		}
+	}
+	return { note, categories };
+}
+
+/** The categories a Pokémon is ranked in under these settings (its tables must be there for {@link rankEntry}). */
+export function rankEntryCategories(
+	entry: BoxEntry,
+	options: YieldOptions = rankOptions,
+	strength: StrengthOptions = rankStrengthOptions,
+): RankCategory[] {
+	return rankCategories(ratingProblem(entry, options, strength), toPokemonIv(entry).pokemon).map((c) => c.category);
 }

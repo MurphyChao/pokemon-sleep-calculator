@@ -20,7 +20,7 @@ import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 import SyncControl from "./SyncControl";
 import { useRatings } from "./useRatings";
-import { type Rank, rankEntry } from "../core/rank";
+import { type Rank, type RankCategory, rankEntry, rankEntryCategories, rankSettingsKey } from "../core/rank";
 import { useRankTables } from "./useRankTables";
 
 type Tab = "box" | "slots" | "energy";
@@ -136,24 +136,39 @@ export default function App() {
 	 */
 	const ratedBox = useMemo(() => evolveToFinal(mathBox, true), [mathBox]);
 	const ratings = useRatings(tab === "box" ? ratedBox : noEntries, options, energy);
-	/** The rank's comparison population for these settings (built in the browser unless they're the defaults). */
-	const rankTables = useRankTables(options, energy);
+	const rankKey = rankSettingsKey(options, energy);
+	/** The categories each Pokémon is ranked in with these settings (they decide which tables are needed). */
+	const rankCategoriesById = useMemo(() => {
+		const map = new Map<string, RankCategory[]>();
+		for (const e of ratedBox) {
+			try {
+				map.set(e.id, rankEntryCategories(e, options, energy));
+			} catch {
+				map.set(e.id, []);
+			}
+		}
+		return map;
+	}, [ratedBox, rankKey]);
+	const neededRankCategories = useMemo(() => [...rankCategoriesById.values()].flat(), [rankCategoriesById]);
+	/** The rank's tables for these settings: shipped for the defaults, otherwise built as the box needs them. */
+	const rankTables = useRankTables(options, energy, neededRankCategories);
 	/**
-	 * Each Pokémon's cross-species rank with these settings; missing while the population is being built,
+	 * Each Pokémon's cross-species rank with these settings; missing while one of its tables is being built,
 	 * null if it can't be ranked.
 	 */
 	const ranks = useMemo(() => {
 		const map = new Map<string, Rank | null>();
 		if (!rankTables) return map;
 		for (const e of ratedBox) {
+			if (rankCategoriesById.get(e.id)?.some((c) => rankTables.pending.has(c))) continue;
 			try {
-				map.set(e.id, rankEntry(e, rankTables, options, energy) ?? null);
+				map.set(e.id, rankEntry(e, rankTables.tables, options, energy) ?? null);
 			} catch {
 				map.set(e.id, null);
 			}
 		}
 		return map;
-	}, [ratedBox, rankTables]);
+	}, [ratedBox, rankTables, rankCategoriesById]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],

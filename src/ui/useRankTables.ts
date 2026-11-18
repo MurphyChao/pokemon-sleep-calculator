@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
-import shippedTables from "../data/rank-tables.json";
+import { useEffect, useMemo, useState } from "react";
 import {
+	type RankCategory,
+	type RankJob,
+	type RankTable,
 	type RankTables,
-	RankTableBuilder,
-	rankJobs,
+	rankBest,
 	rankOptions,
 	rankSettingsKey,
 	rankStrengthOptions,
-	sampleRankJob,
+	rankTableSteps,
 } from "../core/rank";
 import type { StrengthOptions, YieldOptions } from "../core/yield";
 
-/** Random rolls per species and category when built in the browser, as many as the shipped tables. */
-const browserRolls = 600;
 /** Time spent building per slice before letting the page update. */
 const sliceMs = 30;
 /**
@@ -22,76 +21,131 @@ const sliceMs = 30;
 const cacheKey = "pscalc-rank-tables";
 const cacheSize = 3;
 /** Bump when how ranks are measured changes, so old cached tables are dropped. */
-const cacheVersion = 3;
+const cacheVersion = 5;
 
 const standardKey = rankSettingsKey(rankOptions, rankStrengthOptions);
-const memory = new Map<string, RankTables>([[standardKey, shippedTables as RankTables]]);
+
+interface Built {
+	/** Each category's best species; undefined until found (or for the shipped tables, which have them all). */
+	best?: Map<RankCategory, RankJob>;
+	categories: Record<RankCategory, RankTable>;
+}
+/** What's been built or loaded this visit, by settings key. */
+const memory = new Map<string, Built>();
 
 interface CachedTables {
 	version: number;
 	key: string;
-	tables: RankTables;
+	categories: Record<RankCategory, RankTable>;
 }
 
 function readCache(): CachedTables[] {
 	try {
 		const list = JSON.parse(localStorage.getItem(cacheKey) ?? "[]");
-		return Array.isArray(list) ? list.filter((c) => c?.version === cacheVersion) : [];
+		return Array.isArray(list) ? list.filter((c) => c?.version === cacheVersion && c.categories) : [];
 	} catch {
 		return [];
 	}
 }
 
-function writeCache(key: string, tables: RankTables) {
+function writeCache(key: string, categories: Record<RankCategory, RankTable>) {
 	try {
-		const list = [{ version: cacheVersion, key, tables }, ...readCache().filter((c) => c.key !== key)].slice(0, cacheSize);
+		const list = [{ version: cacheVersion, key, categories }, ...readCache().filter((c) => c.key !== key)].slice(0, cacheSize);
 		localStorage.setItem(cacheKey, JSON.stringify(list));
 	} catch {
 		// Storage full or unavailable: the tables stay in memory for this visit.
 	}
 }
 
-function cached(key: string): RankTables | undefined {
-	let tables = memory.get(key);
-	if (!tables) {
-		tables = readCache().find((c) => c.key === key)?.tables;
-		if (tables) memory.set(key, tables);
+function builtFor(key: string): Built {
+	let built = memory.get(key);
+	if (!built) {
+		built = { categories: key === standardKey ? {} : (readCache().find((c) => c.key === key)?.categories ?? {}) };
+		memory.set(key, built);
 	}
-	return tables;
+	return built;
+}
+
+export interface RankTablesState {
+	/** The tables built so far. */
+	tables: RankTables;
+	/** Categories asked for that are still being built (their Pokémon show "Rank…"). */
+	pending: Set<RankCategory>;
 }
 
 /**
- * The rank's comparison population for these settings: the shipped tables for the app's defaults, otherwise
- * built in the browser a slice at a time (undefined until done) and cached.
+ * The rank's tables for these settings, for the categories asked for (those the box's Pokémon are ranked in).
+ * For the app's defaults, all of them come shipped, loaded separately so they don't hold up the page.
+ * Otherwise each category is built in the browser the first time it's needed (finding the best species is
+ * quick; rolling it is the slow part), a slice at a time, and cached. Undefined until the shipped tables load.
  */
-export function useRankTables(options: YieldOptions, strength: StrengthOptions): RankTables | undefined {
+export function useRankTables(
+	options: YieldOptions,
+	strength: StrengthOptions,
+	needed: RankCategory[],
+): RankTablesState | undefined {
 	const key = rankSettingsKey(options, strength);
-	const [built, setBuilt] = useState<{ key: string; tables: RankTables } | undefined>();
+	// In the order asked for (the box's), so the first rows get their ranks first.
+	const neededKey = [...new Set(needed)].join("\n");
+	const [, setTick] = useState(0);
+	const built = builtFor(key);
+	const shipped = key === standardKey;
 
 	useEffect(() => {
-		if (cached(key)) return;
-		const jobs = rankJobs(options, strength);
-		const builder = new RankTableBuilder();
-		let next = 0;
+		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
+		const refresh = () => setTick((n) => n + 1);
+		if (shipped) {
+			if (Object.keys(built.categories).length > 0) return;
+			import("../data/rank-tables.json").then((m) => {
+				if (cancelled) return;
+				built.categories = (m.default as RankTables).categories;
+				refresh();
+			});
+			return () => {
+				cancelled = true;
+			};
+		}
+		if (!built.best) {
+			built.best = rankBest(options, strength);
+			refresh();
+		}
+		const best = built.best;
+		const todo = neededKey
+			.split("\n")
+			.filter((c) => best.has(c) && !built.categories[c])
+			.map((c) => best.get(c) as RankJob);
+		if (todo.length === 0) return;
+		let steps = rankTableSteps(todo[0], options, strength);
 		const step = () => {
 			const start = performance.now();
-			while (next < jobs.length && performance.now() - start < sliceMs) {
-				const job = jobs[next++];
-				builder.add(job, sampleRankJob(job, options, strength, browserRolls));
+			while (performance.now() - start < sliceMs) {
+				const next = steps.next();
+				if (!next.done) continue;
+				const job = todo.shift() as RankJob;
+				built.categories = { ...built.categories, [job.category]: next.value };
+				writeCache(key, built.categories);
+				refresh();
+				if (todo.length === 0) return;
+				steps = rankTableSteps(todo[0], options, strength);
 			}
-			if (next < jobs.length) {
-				timer = setTimeout(step, 0);
-				return;
-			}
-			const tables = builder.build(`${browserRolls} random rolls per Pokémon and category, built in the browser`);
-			memory.set(key, tables);
-			writeCache(key, tables);
-			setBuilt({ key, tables });
+			timer = setTimeout(step, 0);
 		};
 		timer = setTimeout(step, 0);
 		return () => clearTimeout(timer);
-	}, [key]);
+	}, [key, neededKey]);
 
-	return cached(key) ?? (built?.key === key ? built.tables : undefined);
+	const pendingKey = neededKey
+		.split("\n")
+		.filter((c) => c && !shipped && !built.categories[c] && (built.best ? built.best.has(c) : true))
+		.join("\n");
+	const categories = built.categories;
+	const state = useMemo(
+		() => ({
+			tables: { note: shipped ? "Shipped" : "Built in the browser for these settings", categories },
+			pending: new Set(pendingKey ? pendingKey.split("\n") : []),
+		}),
+		[categories, pendingKey, shipped],
+	);
+	return shipped && Object.keys(categories).length === 0 ? undefined : state;
 }

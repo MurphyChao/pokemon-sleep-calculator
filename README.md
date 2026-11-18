@@ -26,15 +26,15 @@ best combinations found and refines them.
 
 ## Rarity
 
-The Box table's **Rarity** rates each Pokémon's nature and subskills by where they rank among all possible rolls of the
-same Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
+The Box table's **Rarity** rates each Pokémon's nature, subskills and ingredients by where they rank among all possible
+rolls of the same Pokémon (same species and main skill level, any ingredient combination): "Top 3%" means 3% of random rolls would be better, shown
 as odds too ("1 in 33 rolls is better"). Grades: S top 3%, A top 15%, B top 50%, C top 80%, D the rest. The box can
 be sorted by it (the solvers' benches show the Rank below instead). Rarity and Rank always judge a Pokémon as its final
 form (branching lines like Eevee stay as they are), with Sub Skill Seeds used, whatever the Final evolution and Max Sub
 Skill Seeds options say, so they tell how good it can become. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.
 
-A roll is a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
+A roll is an ingredient combination, a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
 subskills are probably rarer, so Pokémon with them rank lower than they should). The rank is estimated from 2,000
 random rolls, the same on every load, so odds are resolved down to about 1 in 2,000. Everything is computed at
 Lv80, where every subskill and ingredient slot is unlocked, with the same yield model and settings as the solvers.
@@ -46,7 +46,8 @@ The Pokémon and every roll it's compared with are benchmarked fully invested:
   these keep the skill level entered, plus Skill Level Up from their (seeded) subskills. Skills specialists
   with an ingredient skill (Sandslash, Crustle) are maxed.
 
-Ingredients specialists (including hybrids like Chansey) are ranked for each ingredient they can gather: how
+Pokémon kept for ingredients (Ingredients specialists including hybrids like Chansey, and ingredient-skill users like
+Sandslash) are ranked for each ingredient they can gather: how
 much of that one ingredient they gather per day (half of the value for a hybrid, the other half being skill
 triggers), against 2,000 random rolls with any ingredient combination that can gather it (each equally likely).
 Their best rank counts, and the cell names that ingredient. So the combination matters: an AAA Charizard ranks top
@@ -75,32 +76,38 @@ against an exhaustive search over every Pokémon, it finds the same optimum. Cod
 
 ## Rank
 
-Rarity only compares a Pokémon with other rolls of its own species. **Rank** compares it across species: its daily
-output against random rolls of every non-mythical fully evolved Pokémon doing the same job, e.g. "S · Top 2% ·
-Strength". It's shown next to Rarity in the Box table (which can be sorted by either) and on its own in both solvers'
-benches. The job decides what's measured, in a unit all species share:
+Rarity compares a Pokémon with other rolls of its own species. **Rank** compares it with random rolls of **the best
+species for the same job**, e.g. "S · Top 2% · Ingredients: Fancy Apple" against Skeledirge rolls. For the best species
+itself, Rank and Rarity are the same number; any other species is told how close it gets to the best (so most of them
+rank C or D). It's shown next to Rarity in the Box table (which can be sorted by either) and on its own in both solvers'
+benches; the tooltip names the species it's compared with. The job decides what's measured, in a unit both share:
 
-- **Strength:** berry strength + strength-skill strength per day.
-- **Ingredients: <ingredient>:** how much of one ingredient per day (skill ingredients included), only against Pokémon
-  kept for ingredients (Ingredients specialists, ingredient-skill users like Sandslash) that can gather it, with
-  combinations that include it. A Pokémon is ranked for each ingredient it can gather and its best one counts, so the
-  best apple gatherer ranks high even though apples are the cheapest ingredient. (Ingredient strength per day is in the
-  tooltip.) Some ingredients have only a handful of such species; the tooltip says how many.
+- **Strength: <type>:** berry strength + strength-skill strength per day, against the best strength Pokémon of the same
+  berry type (favorite berries and island bonuses go by type), e.g. Grass → Sceptile.
+- **Ingredients: <ingredient>:** how much of one ingredient per day (skill ingredients included), against the best
+  Pokémon kept for ingredients (Ingredients specialists, ingredient-skill users like Sandslash) that gathers it, with its
+  combinations that include it. A Pokémon is ranked for each ingredient it can gather and its best one counts, so a good
+  apple gatherer ranks high even though apples are the cheapest ingredient. (Ingredient strength per day is in the
+  tooltip.)
 - **Skill: <kind>:** what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream shards…),
-  only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind).
+  against the best Pokémon with the same kind of skill (variants like "(Random)" count as one kind).
 - Ingredients specialists with a support skill (Chansey, Drampa) are ranked in both their lists; the better rank shows.
 
-Everything, the Pokémon and the comparison population alike, is measured the same way as for Rarity: as the final form,
-at Lv80, with Sub Skill Seeds used and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team (for an ingredient, as
-much whatever the roll's ingredient combination),
-and **your settings** (inventory limit, sleep score, energy, camp ticket, favorite berries, island bonus), so Rarity and
-Rank never disagree because of a setting. The population therefore depends on the settings: for the app's defaults
-it's shipped, built by `npm run build-rank-tables` (600 random rolls per species and category, about 8 seconds) into
-`src/data/rank-tables.json`; for any other settings the browser builds it with the same code and as many rolls (about
-3–13 seconds once, depending on the settings; simulated energy is the slowest), a slice at a time so the page stays usable,
-showing "Rank…" meanwhile. Built tables are kept in the browser for the last three settings (`pscalc-rank-tables`,
-not synced). Rerun the script after syncing new Pokémon or changing how ranks are measured (and bump `cacheVersion` in
-`src/ui/useRankTables.ts`). Code: `src/core/rank.ts`, `src/ui/useRankTables.ts`, `scripts/build-rank-tables.mjs`.
+The best species of a category is the non-mythical fully evolved Pokémon doing the most there with a neutral nature and
+no subskills (legendaries included, e.g. Latios for Dragon strength). Its rolls are drawn exactly as Rarity draws them
+(2,000 rolls, same seed), and everything is measured the same way: as the final form, at Lv80, with Sub Skill Seeds used
+and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team (the same amount whatever
+the roll's ingredient combination), and **your settings** (inventory limit, sleep score, energy, camp ticket, favorite
+berries, island bonus). The best species and its rolls therefore depend on the settings, and can change with them. For the
+app's defaults the tables are shipped, built by `npm run build-rank-tables` (about 5 seconds) into
+`src/data/rank-tables.json` and loaded separately from the page. For any other settings the browser builds them with the
+same code, but only the categories the box's Pokémon are ranked in, each the first time it's needed, in box order, a
+slice at a time so the page stays usable (their Pokémon show "Rank…" meanwhile). Finding the best species takes a
+fraction of a second; rolling it is the slow part, from about 20 ms (inventory limit off) to about 350 ms (simulated
+energy) per category. Built tables are kept in the browser for the last three settings
+(`pscalc-rank-tables`, not synced). Rerun the script after syncing new Pokémon or changing how ranks are measured (and
+bump `cacheVersion` in `src/ui/useRankTables.ts`). Code: `src/core/rank.ts`, `src/ui/useRankTables.ts`,
+`scripts/build-rank-tables.mjs`.
 
 ## Box filters
 
