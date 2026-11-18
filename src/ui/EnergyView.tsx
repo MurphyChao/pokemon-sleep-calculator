@@ -312,7 +312,7 @@ export default function EnergyView(props: {
 						shortLabels={shortLabels}
 					/>
 
-					<section className="card">
+					<section className="card bench-card">
 						<h2>{t("bench")}</h2>
 						<TableHelp>
 							<Rich text={t("energyBenchHelp")} />

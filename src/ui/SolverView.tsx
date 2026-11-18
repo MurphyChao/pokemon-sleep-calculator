@@ -215,7 +215,7 @@ export default function SolverView(props: {
 						</TableHelp>
 					</section>
 
-					<section className="card">
+					<section className="card bench-card">
 						<h2>{t("bench")}</h2>
 						<TableHelp>
 							<Rich text={t("benchHelp")} />

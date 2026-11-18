@@ -1619,6 +1619,31 @@ button.icon-select-button {
 		font-size: 0.85rem;
 	}
 
+	/*
+	 * Bench cards: smaller numbers so the chips fit on one line, tags beside the name (only the "+" button
+	 * needs room on the right), a smaller icon and tighter padding.
+	 */
+	.bench-card table.stack tr {
+		min-height: 38px;
+		padding: 5px 6px 5px 44px;
+	}
+	.bench-card table.stack td.icon-cell img {
+		width: 32px;
+		height: 32px;
+	}
+	.bench-card table.stack td {
+		padding-right: 6px;
+		font-size: 0.8rem;
+	}
+	.bench-card table.stack td.icon-cell + td {
+		padding-right: 40px;
+		font-size: 0.9rem;
+	}
+	.bench-card table.stack td.row-actions .icon-button {
+		width: 28px;
+		height: 28px;
+	}
+
 	/* The add/edit pop-up uses the whole screen width. */
 	.modal-backdrop {
 		padding: 0.5rem;
