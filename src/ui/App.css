@@ -965,6 +965,11 @@ button.icon-select-button {
 	display: none;
 }
 
+/* The rank's ingredient icon replaces its "Ingredients: <name>" text on phones only (below). */
+.rank-ing-icon {
+	display: none;
+}
+
 /* Table explanations fold behind this button on phones only (below). */
 .help-toggle {
 	display: none;
@@ -1642,6 +1647,97 @@ button.icon-select-button {
 	.bench-card table.stack td.row-actions .icon-button {
 		width: 28px;
 		height: 28px;
+	}
+
+	/*
+	 * Box cards: Lv, skill level, nature and subskills share a line (smaller text and icons), with a smaller
+	 * Pokémon icon and tighter padding.
+	 */
+	/*
+	 * Laid out as rows: the name; Lv, skill level, nature and subskills; rarity and rank; ingredients per
+	 * day. The card's ::after is an invisible full-width item that breaks the line before the rarity.
+	 */
+	.box-list table.stack tr {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		column-gap: 6px;
+		row-gap: 2px;
+		min-height: 38px;
+		padding: 5px 6px 5px 44px;
+	}
+	.box-list table.stack tr::after {
+		content: "";
+		flex-basis: 100%;
+		height: 0;
+		order: 6;
+	}
+	.box-list table.stack td:nth-child(2) {
+		flex-basis: 100%;
+		order: 1;
+		padding-right: 62px;
+	}
+	.box-list table.stack td:nth-child(3) {
+		order: 2;
+	}
+	.box-list table.stack td:nth-child(4) {
+		order: 3;
+	}
+	.box-list table.stack td:nth-child(5) {
+		order: 4;
+	}
+	.box-list table.stack td:nth-child(6) {
+		order: 5;
+	}
+	.box-list table.stack td:nth-child(7) {
+		order: 7;
+	}
+	.box-list table.stack td:nth-child(8) {
+		order: 8;
+	}
+	.box-list table.stack td:nth-child(9) {
+		flex-basis: 100%;
+		order: 9;
+	}
+	.box-list table.stack td.row-actions .icon-button {
+		width: 26px;
+		height: 26px;
+	}
+	.box-list table.stack td.icon-cell img {
+		width: 34px;
+		height: 34px;
+	}
+	.box-list table.stack td {
+		padding-right: 0;
+		font-size: 0.85rem;
+	}
+	.box-list table.stack td.icon-cell + td {
+		font-size: 0.95rem;
+	}
+	.box-list table.stack .subskill-icon {
+		width: 17px;
+		height: 17px;
+	}
+	.box-list table.stack .subskill-icons {
+		gap: 1px;
+	}
+	.box-list table.stack td > div > .nature-effects {
+		margin-left: 3px;
+		gap: 3px;
+	}
+	.box-list table.stack .nature-effects svg.stat-icon {
+		width: 14px;
+		height: 14px;
+	}
+	/* The rank's ingredient as an icon instead of "Ingredients: <name>". */
+	table.stack .rank .rank-ing-icon {
+		display: inline;
+		width: 16px;
+		height: 16px;
+		vertical-align: -3px;
+	}
+	table.stack .rank .rank-ing-icon + .rank-category {
+		display: none;
 	}
 
 	/* The add/edit pop-up uses the whole screen width. */

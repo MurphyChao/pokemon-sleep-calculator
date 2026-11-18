@@ -1,6 +1,8 @@
 import type { Rank } from "../core/rank";
 import { getLang, ingredientLabel, skillLabel, t } from "./i18n";
 import { topLabel } from "./RatingCell";
+import { IngredientIcon } from "./IngredientIcons";
+import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 
 const format = (v: number) =>
 	new Intl.NumberFormat(getLang(), { maximumFractionDigits: v >= 100 ? 0 : 1 }).format(v);
@@ -42,7 +44,17 @@ export default function RankCell(props: { rank: Rank | undefined }) {
 			})}${extra}`}
 		>
 			<strong>{rank.grade}</strong> {topLabel(rank.better)}
-			<div className="muted small">{rankCategoryLabel(rank.category)}</div>
+			<div className="muted small">
+				{/* Phones show the ingredient's icon instead of "Ingredients: <name>" (App.css). */}
+				{rank.category.startsWith("ingredient:") && (
+					<IngredientIcon
+						name={rank.category.slice("ingredient:".length) as IngredientName}
+						className="rank-ing-icon"
+						decorative
+					/>
+				)}
+				<span className="rank-category">{rankCategoryLabel(rank.category)}</span>
+			</div>
 		</div>
 	);
 }

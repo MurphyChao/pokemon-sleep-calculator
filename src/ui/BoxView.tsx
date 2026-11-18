@@ -372,7 +372,7 @@ export default function BoxView(props: {
 				</div>
 			)}
 
-			<section className="card">
+			<section className="card box-list">
 				<div className="box-header">
 					<h2>{t("yourBox")}</h2>
 					{box.length > 1 && (
@@ -435,9 +435,9 @@ export default function BoxView(props: {
 								<th>{t("pokemon")}</th>
 								{/* Classes only shape the phone cards (App.css): "nolabel" hides the label, "line" gets its own line, "brief" shows just the grade. */}
 								<th>{t("colLv")}</th>
-								<th>{t("colSkillLv")}</th>
+								<th data-short={t("colSkillLvShort")}>{t("colSkillLv")}</th>
 								<th className="nolabel">{t("colNature")}</th>
-								<th className="line nolabel">{t("colSubskills")}</th>
+								<th className="nolabel">{t("colSubskills")}</th>
 								<th className="brief">{t("colRating")}</th>
 								<th>{t("colRank")}</th>
 								<th className="line nolabel yield">{t("colIngPerDay")}</th>
