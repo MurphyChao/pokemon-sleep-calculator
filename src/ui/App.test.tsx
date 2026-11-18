@@ -500,6 +500,29 @@ test("Box filters by type (icons) and by unlocked ingredient", () => {
 	expect(box.textContent).toContain("No Pokémon match these filters.");
 });
 
+test("rarity and rank always judge the final form, even with Final evolution off", async () => {
+	const subs = { lv10: "Ingredient Finder M", lv25: "Helping Speed M", lv50: "Inventory Up L" } as const;
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			// Charmander evolves twice: +2 main skill levels, so it matches the Charizard below once evolved.
+			{ ...entry("charmander", "Charmander", "AAB", 1), nature: "Quiet", subSkills: subs },
+			{ ...entry("charizard", "Charizard", "AAB", 3), nature: "Quiet", subSkills: subs },
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	await waitFor(() => expect(within(box).queryByText("Rarity…")).toBeNull());
+	const cells = (label: string) => {
+		const row = rowOf(box, label);
+		return [row.querySelector(".rating:not(.rank)")?.textContent, row.querySelector(".rank")?.textContent];
+	};
+	// The box itself still shows the Charmander (Final evolution is off).
+	expect(rowOf(box, "Charmander").textContent).not.toContain("Charizard");
+	expect(cells("Charmander")).toEqual(cells("Charizard"));
+	expect(cells("Charmander")[1]).toMatch(/^[SABCD] Top /);
+});
+
 test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {
 	localStorage.setItem(
 		"pscalc.box.v1",

@@ -130,7 +130,12 @@ export default function App() {
 		return (id: string, heal: Heal | undefined, helpers = 0) => withHelpers((k) => at(id, heal, k), helpers);
 	}, [details, helpedDetail]);
 	/** Box tab only (benches show the rank): each Pokémon's rarity among rolls of its species. */
-	const ratings = useRatings(tab === "box" ? mathBox : noEntries, options, energy);
+	/**
+	 * Rarity and rank always judge a Pokémon as its final form (and with Sub Skill Seeds, which they apply
+	 * themselves), whatever the Final evolution option, so they say how good it can become.
+	 */
+	const ratedBox = useMemo(() => evolveToFinal(mathBox, true), [mathBox]);
+	const ratings = useRatings(tab === "box" ? ratedBox : noEntries, options, energy);
 	/** The rank's comparison population for these settings (built in the browser unless they're the defaults). */
 	const rankTables = useRankTables(options, energy);
 	/**
@@ -140,7 +145,7 @@ export default function App() {
 	const ranks = useMemo(() => {
 		const map = new Map<string, Rank | null>();
 		if (!rankTables) return map;
-		for (const e of mathBox) {
+		for (const e of ratedBox) {
 			try {
 				map.set(e.id, rankEntry(e, rankTables, options, energy) ?? null);
 			} catch {
@@ -148,7 +153,7 @@ export default function App() {
 			}
 		}
 		return map;
-	}, [mathBox, rankTables]);
+	}, [ratedBox, rankTables]);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],

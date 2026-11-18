@@ -115,7 +115,7 @@ const en = {
 	rankUnitStrength: "strength",
 	rankUnitSkill: "in the skill's own unit: energy, Extra Tasty chance, dream shards…",
 	rankTooltip:
-		"{value} per day ({unit}); the median is {median}.\nRanked against random rolls of the {species} fully evolved Pokémon in this category, at Lv80 with Sub Skill Seeds used and your settings.",
+		"{value} per day ({unit}); the median is {median}.\nRanked against random rolls of the {species} fully evolved Pokémon in this category, as its final form at Lv80, with Sub Skill Seeds used and your settings.",
 	roleStrength: "Strength (berries + skill)",
 	roleIngredients: "Ingredients (incl. from skill)",
 	roleHybrid: "Ingredients + skill (half each)",
@@ -130,8 +130,8 @@ const en = {
 	ratingTooltip:
 		"Rated for: {role}\n{odds}, among random rolls of this Pokémon at Lv80 (any nature and 5 subskills, all equally likely; estimated from {n} rolls).\n{ofBest}% of the best nature and subskills: {best}\n{ingredientNote}{benchmark}\n{helpingBonus}",
 	ratingHelpingBonus: "Helping Bonus also counts the 4 teammates helping 5% faster (+21% of this Pokémon's output without subskills).",
-	ratingBenchmarkMax: "All compared with Sub Skill Seeds used and the main skill at its max level (Lv{n}).",
-	ratingBenchmarkOwn: "All compared with Sub Skill Seeds used and the main skill at its own level plus Skill Level Up (Lv{n} for this one).",
+	ratingBenchmarkMax: "All compared as the final form, with Sub Skill Seeds used and the main skill at its max level (Lv{n}).",
+	ratingBenchmarkOwn: "All compared as the final form, with Sub Skill Seeds used and the main skill at its own level plus Skill Level Up (Lv{n} for this one).",
 	edit: "Edit",
 	delete: "Delete",
 	inclFromSkill: "(incl. {n} from skill)",
@@ -409,7 +409,7 @@ const zh: Record<Key, string> = {
 	rankUnitStrength: "能量",
 	rankUnitSkill: "以技能本身的單位計算：活力、大成功機率、夢之碎片…",
 	rankTooltip:
-		"每日 {value}（{unit}）；中位數為 {median}。\n與這個類別中 {species} 種最終進化寶可夢的隨機結果比較，以 Lv80、使用副技能種子、你的設定計算。",
+		"每日 {value}（{unit}）；中位數為 {median}。\n與這個類別中 {species} 種最終進化寶可夢的隨機結果比較，以最終進化型態、Lv80、使用副技能種子、你的設定計算。",
 	roleStrength: "能量（樹果＋技能）",
 	roleIngredients: "食材（含技能）",
 	roleHybrid: "食材＋技能（各半）",
@@ -424,8 +424,8 @@ const zh: Record<Key, string> = {
 	ratingTooltip:
 		"評分依據：{role}\n在這隻寶可夢 Lv80 的隨機性格與副技能中（任意性格與 5 個副技能，機率相同；以 {n} 次隨機結果估計），{odds}。\n為最佳性格與副技能的 {ofBest}%：{best}\n{ingredientNote}{benchmark}\n{helpingBonus}",
 	ratingHelpingBonus: "幫手獎勵也計入其他 4 隻隊友加快 5% 幫忙（相當於這隻寶可夢無副技能時產出的 +21%）。",
-	ratingBenchmarkMax: "皆以使用副技能種子、主技能升到最高等級（Lv{n}）比較。",
-	ratingBenchmarkOwn: "皆以使用副技能種子、主技能維持原等級加上技能等級提升比較（這隻為 Lv{n}）。",
+	ratingBenchmarkMax: "皆以最終進化型態、使用副技能種子、主技能升到最高等級（Lv{n}）比較。",
+	ratingBenchmarkOwn: "皆以最終進化型態、使用副技能種子、主技能維持原等級加上技能等級提升比較（這隻為 Lv{n}）。",
 	edit: "編輯",
 	delete: "刪除",
 	inclFromSkill: "（含技能 {n}）",

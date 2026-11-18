@@ -29,8 +29,9 @@ best combinations found and refines them.
 The Box table's **Rarity** rates each Pokémon's nature and subskills by where they rank among all possible rolls of the
 same Pokémon (same species, ingredients and main skill level): "Top 3%" means 3% of random rolls would be better, shown
 as odds too ("1 in 33 rolls is better"). Grades: S top 3%, A top 15%, B top 50%, C top 80%, D the rest. The box can
-be sorted by it (the solvers' benches show the Rank below instead). It's for the Pokémon after final evolution, if that
-option is on. The tooltip also gives the share of the best possible nature and subskills,
+be sorted by it (the solvers' benches show the Rank below instead). Rarity and Rank always judge a Pokémon as its final
+form (branching lines like Eevee stay as they are), with Sub Skill Seeds used, whatever the Final evolution and Max Sub
+Skill Seeds options say, so they tell how good it can become. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.
 
 A roll is a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold
@@ -89,8 +90,8 @@ benches. The job decides what's measured, in a unit all species share:
   only against Pokémon with the same kind of skill (variants like "(Random)" count as one kind).
 - Ingredients specialists with a support skill (Chansey, Drampa) are ranked in both their lists; the better rank shows.
 
-Everything, the Pokémon and the comparison population alike, is measured the same way as for Rarity: at Lv80, with
-Sub Skill Seeds used and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team,
+Everything, the Pokémon and the comparison population alike, is measured the same way as for Rarity: as the final form,
+at Lv80, with Sub Skill Seeds used and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team,
 and **your settings** (inventory limit, sleep score, energy, camp ticket, favorite berries, island bonus), so Rarity and
 Rank never disagree because of a setting. The population therefore depends on the settings: for the app's defaults
 it's shipped, built by `npm run build-rank-tables` (600 random rolls per species and category, about 8 seconds) into
