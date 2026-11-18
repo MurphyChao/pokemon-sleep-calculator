@@ -2,7 +2,8 @@
  * On phones, tables with the "stack" class are shown as one card per row (see App.css), with each cell
  * labelled by its column's header. This copies the header labels onto the cells as data-label (the header
  * text, or the name of an icon header such as an ingredient, whose picture goes in --label-icon), the
- * header's class as data-col, and data-empty on cells showing nothing or "–", so the CSS can show them.
+ * header's class as data-col, its data-short (a shorter label for phones) as data-short, and data-empty
+ * on cells showing nothing or "–", so the CSS can show them.
  * Run once on start; it keeps tables up to date as rows change.
  */
 
@@ -36,6 +37,9 @@ export function labelTable(table: HTMLTableElement) {
 				}
 				if (th?.className && cell.colSpan === 1) cell.dataset.col = th.className;
 				else delete cell.dataset.col;
+				const short = cell.colSpan === 1 ? (th as HTMLElement | undefined)?.dataset.short : undefined;
+				if (short) cell.dataset.short = short;
+				else delete cell.dataset.short;
 				const text = cell.textContent?.trim() ?? "";
 				const empty = (text === "" || text === "–") && !cell.querySelector("img, svg, input, button");
 				if (empty) cell.dataset.empty = "";

@@ -331,8 +331,9 @@ export default function EnergyView(props: {
 										))}
 										<th>{t("colBerries")}</th>
 										<th>{t("colSkill")}</th>
-										<th>{t("colRating")}</th>
-										<th>{t("colBestWithIt")}</th>
+										{/* Phone cards: just the grade (no label, no odds), and a short label (App.css). */}
+										<th className="nolabel brief">{t("colRating")}</th>
+										<th data-short={t("colBestWithItShort")}>{t("colBestWithIt")}</th>
 										<th />
 									</tr>
 								</thead>

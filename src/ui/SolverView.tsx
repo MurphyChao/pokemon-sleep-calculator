@@ -283,7 +283,7 @@ function TeamTable(props: {
 						</th>
 					))}
 					<th>{t("colSlotUsed")}</th>
-					<th>{t("colExtraTasty")}</th>
+					<th data-short={t("colExtraTastyShort")}>{t("colExtraTasty")}</th>
 					<th />
 				</tr>
 			</thead>
@@ -380,10 +380,11 @@ function BenchTable(props: {
 							<IngredientIcon name={i} className="header" />
 						</th>
 					))}
-					<th>{t("colRating")}</th>
-					<th>{t("savesCurrent")}</th>
-					<th>{t("savesVsBest")}</th>
-					<th>{t("colExtraTasty")}</th>
+					{/* Phone cards: just the grade (no label, no odds), and short labels (App.css). */}
+					<th className="nolabel brief">{t("colRating")}</th>
+					<th data-short={t("savesCurrentShort")}>{t("savesCurrent")}</th>
+					<th data-short={t("savesVsBestShort")}>{t("savesVsBest")}</th>
+					<th data-short={t("colExtraTastyShort")}>{t("colExtraTasty")}</th>
 					<th className="line">{t("replaces")}</th>
 					<th />
 				</tr>
@@ -413,7 +414,7 @@ function BenchTable(props: {
 								</div>
 							))}
 						</td>
-						<td>
+						<td className="row-actions">
 							<button
 								type="button"
 								className="secondary icon-button"

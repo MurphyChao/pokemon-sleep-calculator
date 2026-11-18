@@ -1147,9 +1147,16 @@ button.icon-select-button {
 		color: var(--muted);
 		font-size: 0.75rem;
 	}
+	table.stack td[data-short]::before {
+		content: attr(data-short) " ";
+	}
 	table.stack td.icon-cell + td::before,
 	table.stack td[data-col~="nolabel"]::before {
 		content: none;
+	}
+	/* "brief" ratings (benches): just the grade and "Top x%". */
+	table.stack td[data-col~="brief"] .rating > div {
+		display: none;
 	}
 	table.stack td[data-col~="line"] {
 		display: block;

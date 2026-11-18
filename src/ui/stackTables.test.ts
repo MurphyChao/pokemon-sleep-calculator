@@ -5,7 +5,7 @@ test("stack tables get each cell labelled by its column header (text, or an icon
 	document.body.innerHTML = `
 		<table class="stack">
 			<thead><tr>
-				<th class="icon-cell"></th><th>Pokémon</th><th class="ing-col"><img alt="Soft Potato" src="potato.png"></th><th>Lv</th><th></th>
+				<th class="icon-cell"></th><th>Pokémon</th><th class="ing-col"><img alt="Soft Potato" src="potato.png"></th><th data-short="L">Lv</th><th></th>
 			</tr></thead>
 			<tbody>
 				<tr><td class="icon-cell"></td><td>Sandslash</td><td>28</td><td>50</td><td>–</td></tr>
@@ -23,6 +23,9 @@ test("stack tables get each cell labelled by its column header (text, or an icon
 	expect(row.cells[2].style.getPropertyValue("--label-icon")).toContain("potato.png");
 	expect("empty" in row.cells[4].dataset).toBe(true);
 	expect("empty" in row.cells[3].dataset).toBe(false);
+	// A header's shorter label for phones is passed on too.
+	expect(row.cells[3].dataset.short).toBe("L");
+	expect(row.cells[1].dataset.short).toBeUndefined();
 	// Tables without the class are left alone.
 	expect(document.querySelector<HTMLElement>("table:not(.stack) td")?.dataset.label).toBeUndefined();
 });
