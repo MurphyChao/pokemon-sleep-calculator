@@ -189,7 +189,8 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
 
 ## Model assumptions
 
-Daily yields use pokesleep-tool's model with checking in every 3 hours while awake and no Helping Bonus.
+Daily yields use pokesleep-tool's model with checking in every 3 hours while awake. A Pokémon's own Helping Bonus
+speeds up itself; the solvers also count it for the rest of the team (see above).
 Energy is always full by default (fastest helping all day). The sleep score (default 0 = no sleep, 100 = 8.5 hours)
 sets how long the bag goes unemptied overnight and, with simulated energy, how much energy recovers. With **Energy: Simulated**, energy drains while
 awake and is restored by sleep and healers: each Pokémon heals itself on the Box tab and in

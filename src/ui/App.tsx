@@ -33,6 +33,8 @@ export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
 	/** The Box tab's pop-up with the screenshot import and the add/edit form. */
 	const [addOpen, setAddOpen] = useState(false);
+	/** Phones only: the settings are folded away behind a button (always shown on wider screens). */
+	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [storedLang, setStoredLang] = useStoredState<Lang>("pscalc.lang", "en");
 	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
 	// Text helpers read the language from a module-level value; the page below is re-mounted when it changes.
@@ -178,10 +180,22 @@ export default function App() {
 							setAddOpen(true);
 						}}
 					>
-						{t("addPokemonButton")}
+						<span className="label-long">{t("addPokemonButton")}</span>
+						<span className="label-short" aria-hidden="true">
+							{t("addPokemonShort")}
+						</span>
 					</button>
 				</nav>
-				<div className="settings-bar">
+				<button
+					type="button"
+					className="secondary settings-toggle"
+					aria-expanded={settingsOpen}
+					aria-controls="settings-bar"
+					onClick={() => setSettingsOpen(!settingsOpen)}
+				>
+					⚙ {t("settings")} {settingsOpen ? "▴" : "▾"}
+				</button>
+				<div id="settings-bar" className={settingsOpen ? "settings-bar" : "settings-bar collapsed"}>
 					<label className="check">
 						<input
 							type="checkbox"

@@ -105,7 +105,8 @@ test("adds a Pokémon from the pop-up the Add Pokémon button opens", () => {
 
 	// The button is in the tab bar, last; from a solver tab it goes to the Box tab and opens the pop-up.
 	const nav = document.querySelector("nav") as HTMLElement;
-	expect([...nav.querySelectorAll("button")].at(-1)?.textContent).toBe("+ Add Pokémon");
+	// Shown as "+ Add" on phones (CSS picks one of the two labels).
+	expect([...nav.querySelectorAll("button")].at(-1)?.querySelector(".label-long")?.textContent).toBe("+ Add Pokémon");
 	fireEvent.click(screen.getByText("Energy solver"));
 	fireEvent.click(screen.getByText("+ Add Pokémon"));
 	expect(screen.getByRole("dialog", { name: "Add Pokémon" })).toBeTruthy();

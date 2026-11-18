@@ -272,7 +272,7 @@ function TeamTable(props: {
 		demand,
 	);
 	return (
-		<table>
+		<table className="stack">
 			<thead>
 				<tr>
 					<th className="icon-cell" />
@@ -370,7 +370,7 @@ function BenchTable(props: {
 	const ings = Object.keys(demand) as IngredientName[];
 	if (scores.length === 0) return <p className="muted">{t("allOnTeam")}</p>;
 	return (
-		<table>
+		<table className="stack">
 			<thead>
 				<tr>
 					<th className="icon-cell" />

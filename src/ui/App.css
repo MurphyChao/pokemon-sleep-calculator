@@ -136,7 +136,7 @@ select {
 
 .form-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
 	gap: 10px 16px;
 }
 
@@ -247,7 +247,7 @@ tr.total td {
 
 .team-pair {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
 	gap: 0 16px;
 }
 
@@ -951,6 +951,197 @@ button.icon-select-button {
 	position: absolute;
 	top: 0.5rem;
 	right: 0.5rem;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border-radius: 50%;
 	font-size: 1.25rem;
 	line-height: 1;
+}
+
+/* Shorter labels on phones (below). */
+.label-short {
+	display: none;
+}
+
+/* Settings toggle: phones only (below); on wider screens the settings are always shown. */
+.settings-toggle {
+	display: none;
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+	.app {
+		padding: 10px;
+	}
+	header h1 {
+		font-size: 1.5rem;
+	}
+	.title-row {
+		flex-wrap: wrap;
+	}
+	.title-row .language > span {
+		display: none;
+	}
+	.subtitle {
+		font-size: 0.9rem;
+		margin: 4px 0;
+	}
+
+	/* Tabs and "+ Add Pokémon" on one row, smaller. */
+	nav {
+		gap: 5px;
+		flex-wrap: wrap;
+	}
+	nav button {
+		padding: 6px 8px;
+		font-size: 0.85rem;
+	}
+	nav .label-long {
+		display: none;
+	}
+	nav .label-short {
+		display: inline;
+	}
+
+	/* Settings folded away behind a button. */
+	.settings-toggle {
+		display: inline-block;
+		margin-bottom: 8px;
+		padding: 4px 12px;
+		font-size: 0.9rem;
+	}
+	.settings-bar.collapsed {
+		display: none;
+	}
+	.settings-bar {
+		flex-direction: column;
+		gap: 10px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--card);
+	}
+	.settings-bar .check {
+		flex-wrap: wrap;
+	}
+	.settings-bar select {
+		max-width: 100%;
+	}
+
+	.card {
+		padding: 10px 12px;
+	}
+	.filter-row .field-label {
+		min-width: 100%;
+	}
+	.filter-choice .type-icon,
+	.filter-choice .ing-icon {
+		width: 30px;
+		height: 30px;
+	}
+
+	/* Pokémon tables as one card per row: icon on the left, buttons top right, labelled lines. */
+	table.stack,
+	table.stack tbody,
+	table.stack tr,
+	table.stack td {
+		display: block;
+		width: auto;
+	}
+	table.stack thead {
+		display: none;
+	}
+	table.stack tr {
+		position: relative;
+		min-height: 52px;
+		margin-bottom: 10px;
+		padding: 8px 10px 8px 60px;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: var(--card);
+	}
+	table.stack td {
+		padding: 2px 0;
+		border: none;
+	}
+	table.stack td.icon-cell {
+		position: absolute;
+		left: 8px;
+		top: 8px;
+		padding: 0;
+	}
+	/* The name (first cell after the icon) is the card's title; room on the right for the buttons. */
+	table.stack td.icon-cell + td {
+		padding-right: 84px;
+		font-weight: 600;
+	}
+	table.stack td.icon-cell + td * {
+		font-weight: normal;
+	}
+	table.stack td.row-actions {
+		position: absolute;
+		top: 6px;
+		right: 6px;
+		padding: 0;
+	}
+	/* Label in a fixed column on the left, the value (however many lines) next to it. */
+	table.stack td[data-label] {
+		padding-left: 6rem;
+	}
+	/* The label floats into the left padding; the clearfix keeps a long label inside the card. */
+	table.stack td[data-label]::before {
+		content: attr(data-label);
+		float: left;
+		width: 5.6rem;
+		margin-left: -6rem;
+		padding-top: 2px;
+		color: var(--muted);
+		font-size: 0.8rem;
+		line-height: 1.2;
+	}
+	table.stack td[data-label]::after {
+		content: "";
+		display: block;
+		clear: both;
+	}
+	table.stack td.icon-cell + td {
+		padding-left: 0;
+	}
+	table.stack td.icon-cell + td::before {
+		content: none;
+	}
+	/* Ingredient columns side by side on one line. */
+	/* Ingredient amounts two per row, the ingredient's name above each number. */
+	table.stack td[data-col~="ing-col"] {
+		display: inline-block;
+		width: calc(50% - 8px);
+		margin-right: 8px;
+		padding-left: 0;
+		vertical-align: top;
+	}
+	table.stack td[data-col~="ing-col"]::before {
+		float: none;
+		display: block;
+		width: auto;
+		margin-left: 0;
+	}
+	table.stack .tag {
+		white-space: nowrap;
+	}
+	/* Total rows: no icon, so no left gap. */
+	table.stack tr.total {
+		padding-left: 10px;
+	}
+	table.stack td:empty {
+		display: none;
+	}
+
+	/* The add/edit pop-up uses the whole screen width. */
+	.modal-backdrop {
+		padding: 0.5rem;
+	}
+	.modal {
+		padding: 2.25rem 0.5rem 0.5rem;
+	}
 }

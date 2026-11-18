@@ -210,7 +210,7 @@ export default function EnergyView(props: {
 								t("energyFullNote")
 							)}
 						</p>
-						<table>
+						<table className="stack">
 							<thead>
 								<tr>
 									<th className="icon-cell" />
@@ -319,7 +319,7 @@ export default function EnergyView(props: {
 						{bench.length === 0 ? (
 							<p className="muted">{t("allOnTeam")}</p>
 						) : (
-							<table>
+							<table className="stack">
 								<thead>
 									<tr>
 										<th className="icon-cell" />

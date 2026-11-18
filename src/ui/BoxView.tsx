@@ -411,7 +411,7 @@ export default function BoxView(props: {
 				) : shownBox.length === 0 ? (
 					<p className="muted">{t("noMatches")}</p>
 				) : (
-					<table>
+					<table className="stack">
 						<thead>
 							<tr>
 								<th className="icon-cell" />

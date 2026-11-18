@@ -57,12 +57,14 @@ const en = {
 	footerIcons: "Pokémon icons from",
 	privacyPolicy: "Privacy policy",
 	footerAssumptions:
-		"The sleep score sets how long you sleep (100 = 8.5 hours, 0 = not at all): while asleep the bag isn't emptied, and with simulated energy that's when energy recovers. Energy \"Always full\" keeps every Pokémon at full help speed all day. \"Simulated\" uses pokesleep-tool's energy model (energy drains while awake and recovers during sleep); on the Box tab and in the slot solver each Pokémon is healed only by its own skill, while the energy solver also counts the team's healers (Energy for Everyone heals everyone, Energizing Cheer one random member, Charge Energy itself). No Helping Bonus. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet, Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver shares 5 slots like the slot solver (a Pokémon on the team part of the time uses part of a slot) and counts berries, strength skills (Charge Strength, Berry Burst, Extra Helpful, Helper Boost and similar, as estimated by pokesleep-tool) and the target dish only: ingredients the dish doesn't use, extra ingredients in the pot and Helping Bonus add nothing, and a meal without enough ingredients for the dish counts as 0.",
+		"The sleep score sets how long you sleep (100 = 8.5 hours, 0 = not at all): while asleep the bag isn't emptied, and with simulated energy that's when energy recovers. Energy \"Always full\" keeps every Pokémon at full help speed all day. \"Simulated\" uses pokesleep-tool's energy model (energy drains while awake and recovers during sleep); on the Box tab and in the slot solver each Pokémon is healed only by its own skill, while the energy solver also counts the team's healers (Energy for Everyone heals everyone, Energizing Cheer one random member, Charge Energy itself). Helping Bonus speeds up the rest of the team (5% per slot its Pokémon fill) in both solvers. With the inventory limit on, ingredients are collected every 3 hours while awake and not while asleep. Ingredients from main skills (Ingredient Magnet, Ingredient Draw, Bulk Up) are counted as an expected average, with random ingredients split evenly; skills that copy other skills are not counted. Mythical Pokémon are not supported yet. The energy solver shares 5 slots like the slot solver (a Pokémon on the team part of the time uses part of a slot) and counts berries, strength skills (Charge Strength, Berry Burst, Extra Helpful, Helper Boost and similar, as estimated by pokesleep-tool) and the target dish only: ingredients the dish doesn't use, and extra ingredients in the pot add nothing, and a meal without enough ingredients for the dish counts as 0.",
 	footerRecipeNames: "",
 
 	// Box
 	addPokemon: "Add Pokémon",
 	addPokemonButton: "+ Add Pokémon",
+	settings: "Settings",
+	addPokemonShort: "+ Add",
 	close: "Close",
 	editPokemon: "Edit Pokémon",
 	pokemon: "Pokémon",
@@ -334,11 +336,13 @@ const zh: Record<Key, string> = {
 	footerIcons: "寶可夢圖示來自",
 	privacyPolicy: "隱私權政策",
 	footerAssumptions:
-		"睡眠分數決定睡多久（100 = 8.5 小時，0 = 完全不睡）：睡眠中不會收取持有的物品，模擬活力時也是在睡眠中回復活力。活力「總是全滿」時，每隻寶可夢整天都以最快速度幫忙。「模擬」使用 pokesleep-tool 的活力模型（清醒時消耗，睡眠中回復）；在寶可夢盒分頁與名額最佳化中，每隻寶可夢只會被自己的技能回復，能量最佳化則會計入隊伍中的回復技能（活力全體療癒回復全隊、活力療愈隨機回復一隻、活力填充只回復自己）。不計幫手獎勵。開啟持有上限時，清醒時每 3 小時收取一次，睡眠中不收取。主技能獲得的食材（食材獲取、食材精選、健美）以期望值計算，隨機食材平均分配；複製其他技能的技能不計入。尚不支援幻之寶可夢。能量最佳化與名額最佳化一樣共用 5 個名額（只在隊伍中一部分時間的寶可夢只佔一部分名額），只計算樹果、能量類技能（能量填充、樹果遽增、幫手支援、幫手加速等，數值依 pokesleep-tool 估算）與目標料理：料理用不到的食材、鍋中額外加入的食材與幫手獎勵都不計入，食材不足以做出這道料理的那一餐算作 0。",
+		"睡眠分數決定睡多久（100 = 8.5 小時，0 = 完全不睡）：睡眠中不會收取持有的物品，模擬活力時也是在睡眠中回復活力。活力「總是全滿」時，每隻寶可夢整天都以最快速度幫忙。「模擬」使用 pokesleep-tool 的活力模型（清醒時消耗，睡眠中回復）；在寶可夢盒分頁與名額最佳化中，每隻寶可夢只會被自己的技能回復，能量最佳化則會計入隊伍中的回復技能（活力全體療癒回復全隊、活力療愈隨機回復一隻、活力填充只回復自己）。兩種最佳化都計入幫手獎勵（擁有它的寶可夢每佔一個名額，其他隊友快 5%）。開啟持有上限時，清醒時每 3 小時收取一次，睡眠中不收取。主技能獲得的食材（食材獲取、食材精選、健美）以期望值計算，隨機食材平均分配；複製其他技能的技能不計入。尚不支援幻之寶可夢。能量最佳化與名額最佳化一樣共用 5 個名額（只在隊伍中一部分時間的寶可夢只佔一部分名額），只計算樹果、能量類技能（能量填充、樹果遽增、幫手支援、幫手加速等，數值依 pokesleep-tool 估算）與目標料理：料理用不到的食材與鍋中額外加入的食材都不計入，食材不足以做出這道料理的那一餐算作 0。",
 	footerRecipeNames: "食譜中文名稱取自神奇寶貝百科（52poke）。",
 
 	addPokemon: "新增寶可夢",
 	addPokemonButton: "＋ 新增寶可夢",
+	settings: "設定",
+	addPokemonShort: "＋ 新增",
 	close: "關閉",
 	editPokemon: "編輯寶可夢",
 	pokemon: "寶可夢",
