@@ -1092,9 +1092,44 @@ button.icon-select-button {
 	table.stack td.icon-cell + td * {
 		font-weight: normal;
 	}
+	/*
+	 * Solver names: the name, then the ingredient icons and tags on the same line; the nature and
+	 * subskills that tell identical Pokémon apart on a smaller line below, without "·" separators.
+	 */
+	table.stack td.icon-cell + td {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0 6px;
+	}
 	table.stack td.icon-cell + td > div {
 		display: inline;
-		margin-left: 4px;
+		order: 1;
+	}
+	table.stack td.icon-cell + td {
+		font-size: 0.95rem;
+	}
+	table.stack td.icon-cell + td img.ing-icon {
+		width: 15px;
+		height: 15px;
+	}
+	table.stack td.icon-cell + td > .tag {
+		order: 2;
+		margin-left: 0;
+		padding: 0 4px;
+		font-size: 0.7rem;
+	}
+	table.stack td.icon-cell + td > .entry-detail {
+		order: 3;
+		flex-basis: 100%;
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+	table.stack .entry-detail .sep {
+		display: none;
+	}
+	table.stack .entry-detail .subskill-icons {
+		margin-left: 6px;
 	}
 	table.stack td.row-actions {
 		position: absolute;

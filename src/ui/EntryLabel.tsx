@@ -18,17 +18,17 @@ export function EntryLabel(props: { entry: BoxEntry | undefined; parts: EntryLab
 		<>
 			{parts.text}
 			{parts.detail && (
-				<>
-					{" "}
-					·{" "}
+				// Wrapped so phones can put it on a smaller second line (App.css).
+				<span className="entry-detail">
+					<span className="sep"> · </span>
 					{new Nature(entry.nature).isNeautral ? parts.detail.nature : <NatureEffects nature={entry.nature} named />}
 					{hasSubSkills && (
 						<>
-							{" "}
-							· <SubSkillIcons entry={entry} />
+							<span className="sep"> · </span>
+							<SubSkillIcons entry={entry} />
 						</>
 					)}
-				</>
+				</span>
 			)}
 			{parts.nth && ` #${parts.nth}`}
 		</>
