@@ -10,6 +10,26 @@ Given the Pokémon in your box and a dish to cook at every meal (3 a day), two s
 - **Slot solver:** the smallest team whose ingredient output covers the dish, and how many slots a particular
   Pokémon (e.g. a multi-ingredient gatherer like Sandslash) saves compared with the best team without it.
 
+## Box rating
+
+The Box table rates each Pokémon's nature and subskills from 0 to 100 (grades S ≥ 90, A ≥ 75, B ≥ 60, C ≥ 40, D),
+and can be sorted by it. 100 is the best nature and subskills that Pokémon could have, for the same species,
+ingredients and main skill level. The rating is computed at full potential (Lv100, every subskill unlocked) with
+the same yield model and settings as the solvers. What it measures depends on what the Pokémon is kept for, not
+just its specialty:
+
+| Role | Measures | Who |
+|---|---|---|
+| Strength | berry + main skill strength per day | Berries specialists; Skills specialists with strength skills (e.g. Sceptile) |
+| Ingredients | ingredients per day, including from the main skill | Ingredients specialists; Ingredient Draw/Magnet users (e.g. Sandslash) |
+| Ingredients + skill | ingredients and skill triggers, half each | Ingredients specialists with a team healing or Tasty Chance skill (Chansey, Drampa, Cramorant) |
+| Skill triggers | main skill triggers per day | other Skills specialists |
+
+For the hybrid, each measure is taken relative to the same Pokémon with a neutral nature and no subskills, so the
+two can be added up. The best build is found by a local search (`searchBest` in `src/core/rating.ts`); checked
+against an exhaustive search over every Pokémon, it finds the same optimum. Code: `src/core/rating.ts`,
+`src/ui/useRatings.ts`.
+
 ## Screenshot import
 
 The Box tab can read Pokémon from screenshots of the game's Pokémon details screen (scrolled so the subskills

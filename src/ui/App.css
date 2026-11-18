@@ -852,3 +852,27 @@ button.icon-select-button {
 	align-items: center;
 	gap: 0.4rem;
 }
+
+/* Box table rating: grade letter coloured by grade. */
+.rating {
+	white-space: nowrap;
+}
+.rating strong {
+	font-size: 1.1em;
+}
+.rating-s strong {
+	color: var(--warn);
+}
+.rating-a strong {
+	color: var(--ok);
+}
+.rating-b strong {
+	color: var(--accent);
+}
+.rating-c strong,
+.rating-d strong {
+	color: var(--muted);
+}
+.rating .small {
+	white-space: normal;
+}

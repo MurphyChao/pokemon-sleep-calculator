@@ -18,8 +18,12 @@ import { type Key, type Lang, languages, setLang, t } from "./i18n";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
 import SyncControl from "./SyncControl";
+import { useRatings } from "./useRatings";
 
 type Tab = "box" | "slots" | "energy";
+
+/** A stable empty box, so hooks keyed on the box don't rerun every render. */
+const noEntries: BoxEntry[] = [];
 
 const tabs: { tab: Tab; label: Key }[] = [
 	{ tab: "energy", label: "tabEnergy" },
@@ -88,6 +92,8 @@ export default function App() {
 			return d;
 		};
 	}, [details]);
+	/** Box tab only: each Pokémon's rating for its role, on the box as entered. */
+	const ratings = useRatings(tab === "box" ? box : noEntries, options, energy);
 	const yields = useMemo(
 		() => new Map<string, IngredientYield>([...details].map(([id, d]) => [id, d.total])),
 		[details],
@@ -249,7 +255,7 @@ export default function App() {
 			</header>
 			<main>
 				{tab === "box" ? (
-					<BoxView box={box} setBox={setBox} details={details} />
+					<BoxView box={box} setBox={setBox} details={details} ratings={ratings} />
 				) : (
 					<div className="solver-view">
 						<DishCard dish={dish} campTicket={options.campTicket} />

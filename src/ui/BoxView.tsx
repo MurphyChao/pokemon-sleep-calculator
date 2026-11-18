@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
+import type { Rating, RatingRole } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
 import pokemons, { getPokemonRarity, type IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { getMaxSkillLevel } from "../vendor/pokesleep-tool/util/MainSkill";
 import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/util/PokemonIv";
-import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, t } from "./i18n";
+import { getLang, type Key, natureLabel, pokemonFromLabel, pokemonLabel, skillLabel, subSkillLabel, t } from "./i18n";
 import { buildEntryLabels, entryTooltip, formatAmount, ingredientLabel } from "./names";
 import NaturePicker from "./NaturePicker";
 import ScreenshotImport, { type ImportItem, warningText } from "./ScreenshotImport";
@@ -44,10 +45,10 @@ function slotIngredients(pokemonName: string): Record<"A" | "B" | "C", Ingredien
 	return { A: p?.ing1?.name, B: p?.ing2?.name, C: p?.ing3?.name };
 }
 
-type SortBy = "added" | "dex" | "level" | "name";
+type SortBy = "added" | "dex" | "level" | "name" | "rating";
 interface BoxSort {
 	by: SortBy;
-	/** Opposite of the natural direction (added: oldest first; dex and name: A→Z; level: highest first). */
+	/** Opposite of the natural direction (added: oldest first; dex and name: A→Z; level and rating: highest first). */
 	reversed: boolean;
 }
 const sortOptions: { by: SortBy; label: Key }[] = [
@@ -55,16 +56,18 @@ const sortOptions: { by: SortBy; label: Key }[] = [
 	{ by: "dex", label: "sortDex" },
 	{ by: "level", label: "sortLevel" },
 	{ by: "name", label: "sortName" },
+	{ by: "rating", label: "sortRating" },
 ];
 
 /** Position in pokesleep-tool's list: Pokédex order, with a species' forms after its base form. */
 const dexOrder = new Map(pokemons.map((p, i) => [p.name, i]));
 
-/** The box in display order. Ties keep the order the Pokémon were added. */
-function sortBox(box: BoxEntry[], sort: BoxSort): BoxEntry[] {
+/** The box in display order. Ties keep the order the Pokémon were added; unrated Pokémon sort last by rating. */
+function sortBox(box: BoxEntry[], sort: BoxSort, ratings: Map<string, Rating | null>): BoxEntry[] {
 	const collator = new Intl.Collator(getLang());
 	const dex = (e: BoxEntry) => dexOrder.get(e.pokemonName) ?? Number.MAX_SAFE_INTEGER;
 	const name = (e: BoxEntry) => pokemonLabel(e.pokemonName);
+	const score = (e: BoxEntry) => ratings.get(e.id)?.score ?? -1;
 	const compare: Record<SortBy, (a: BoxEntry, b: BoxEntry) => number> = {
 		added: () => 0,
 		dex: (a, b) => dex(a) - dex(b) || b.level - a.level,
@@ -73,6 +76,7 @@ function sortBox(box: BoxEntry[], sort: BoxSort): BoxEntry[] {
 			collator.compare(name(a), name(b)) ||
 			collator.compare(a.nickname ?? "", b.nickname ?? "") ||
 			b.level - a.level,
+		rating: (a, b) => score(b) - score(a) || dex(a) - dex(b),
 	};
 	const sorted = box
 		.map((e, i) => ({ e, i }))
@@ -94,8 +98,10 @@ export default function BoxView(props: {
 	box: BoxEntry[];
 	setBox: (box: BoxEntry[]) => void;
 	details: Map<string, YieldDetail>;
+	/** Each Pokémon's rating for its role; missing while still being worked out, null if it can't be rated. */
+	ratings: Map<string, Rating | null>;
 }) {
-	const { box, setBox, details } = props;
+	const { box, setBox, details, ratings } = props;
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
 	const [nameInput, setNameInput] = useState("");
@@ -121,7 +127,8 @@ export default function BoxView(props: {
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const [storedSort, setSort] = useStoredState<BoxSort>("pscalc.boxSort", { by: "added", reversed: false });
 	const sort: BoxSort = sortOptions.some((o) => o.by === storedSort.by) ? storedSort : { by: "added", reversed: false };
-	const sortedBox = useMemo(() => sortBox(box, sort), [box, sort.by, sort.reversed]);
+	const sortRatings = sort.by === "rating" ? ratings : noRatings;
+	const sortedBox = useMemo(() => sortBox(box, sort, sortRatings), [box, sort.by, sort.reversed, sortRatings]);
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
 	const maxSkillLevel = draftPokemon ? getMaxSkillLevel(draftPokemon.skill) : 1;
@@ -313,6 +320,7 @@ export default function BoxView(props: {
 								<th>{t("colSkillLv")}</th>
 								<th>{t("colNature")}</th>
 								<th>{t("colSubskills")}</th>
+								<th>{t("colRating")}</th>
 								<th>{t("colIngPerDay")}</th>
 								<th />
 							</tr>
@@ -345,6 +353,9 @@ export default function BoxView(props: {
 									</td>
 									<td>
 										<SubSkillIcons entry={e} />
+									</td>
+									<td>
+										<RatingCell rating={ratings.get(e.id)} />
 									</td>
 									<td>
 										<YieldSummary detail={details.get(e.id)} />
@@ -381,6 +392,33 @@ export default function BoxView(props: {
 					</table>
 				)}
 			</section>
+		</div>
+	);
+}
+
+const noRatings = new Map<string, Rating | null>();
+
+const roleLabels: Record<RatingRole, Key> = {
+	strength: "roleStrength",
+	ingredients: "roleIngredients",
+	hybrid: "roleHybrid",
+	support: "roleSupport",
+};
+
+/** Grade and score, e.g. "A 82", with what the rating measures and the best build in the tooltip. */
+function RatingCell(props: { rating: Rating | null | undefined }) {
+	const { rating } = props;
+	if (rating === undefined) return <span className="muted">{t("ratingPending")}</span>;
+	if (rating === null) return <span className="muted">–</span>;
+	const best = [natureLabel(rating.best.nature), ...rating.best.subSkills.map(subSkillLabel)].join(" · ");
+	const score = Math.floor(rating.score);
+	return (
+		<div
+			className={`rating rating-${rating.grade.toLowerCase()}`}
+			title={t("ratingTooltip", { role: t(roleLabels[rating.role]), score, best })}
+		>
+			<strong>{rating.grade}</strong> {score}
+			<div className="muted small">{t(roleLabels[rating.role])}</div>
 		</div>
 	);
 }

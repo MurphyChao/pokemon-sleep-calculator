@@ -97,9 +97,11 @@ export interface YieldDetail {
 	berryStrength: number;
 	/** Strength per day from the main skill, excluding skills that give ingredients (those go into the dish). */
 	skillStrength: number;
+	/** Main skill triggers per day. */
+	skillsPerDay: number;
 }
 
-export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0 };
+export const emptyYieldDetail: YieldDetail = { help: {}, skill: {}, total: {}, berryStrength: 0, skillStrength: 0, skillsPerDay: 0 };
 
 /** Skills whose strength comes from ingredients or the pot; their value is counted through the dish instead. */
 function isCookingSkill(skill: string): boolean {
@@ -218,6 +220,7 @@ export function dailyIngredientYieldDetail(
 		heal: healSource(iv, result),
 		berryStrength: result.berryTotalStrength,
 		skillStrength: isCookingSkill(iv.versatileSkill) ? 0 : result.skillStrength + result.skillStrength2,
+		skillsPerDay: result.skillCount,
 	};
 }
 

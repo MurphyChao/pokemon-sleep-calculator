@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { BoxEntry } from "../core/box";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import App from "./App";
@@ -345,6 +345,31 @@ test("Box can be sorted by order added, Pokédex number, level and name", () => 
 	expect(order()).toEqual(["Bulbasaur", "Dragonite", "Pikachu"]);
 	// The choice is remembered.
 	expect(JSON.parse(localStorage.getItem("pscalc.boxSort") ?? "{}")).toEqual({ by: "name", reversed: false });
+});
+
+test("Box shows each Pokémon's rating for its role and can be sorted by it", async () => {
+	const subs = (...names: SubSkillType[]) => Object.fromEntries(names.map((n, i) => [["lv10", "lv25", "lv50"][i], n]));
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			{ ...entry("weak", "Sceptile", "AAA"), nickname: "Weak", nature: "Quiet" },
+			{ ...entry("strong", "Sceptile", "AAA"), nickname: "Strong", nature: "Adamant", subSkills: subs("Helping Speed M", "Berry Finding S", "Skill Trigger M") },
+			{ ...entry("chansey", "Chansey", "AAA"), subSkills: subs("Ingredient Finder M", "Helping Speed M") },
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	await waitFor(() => expect(within(box).queryByText("Rating…")).toBeNull());
+	const cell = (label: string) => rowOf(box, label).querySelector(".rating") as HTMLElement;
+	expect(cell("Strong").textContent).toMatch(/^[SABCD] \d+Strength/);
+	expect(cell("Chansey").textContent).toContain("Ingredients + skill");
+	expect(cell("Strong").getAttribute("title")).toMatch(/full potential/);
+	const score = (label: string) => Number(cell(label).textContent?.match(/\d+/)?.[0]);
+	expect(score("Strong")).toBeGreaterThan(score("Weak"));
+
+	fireEvent.change(within(box).getByLabelText("Sort by"), { target: { value: "rating" } });
+	const order = [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector(".rating")?.textContent?.match(/\d+/)?.[0]);
+	expect(order.map(Number)).toEqual(order.map(Number).sort((a, b) => b - a));
 });
 
 test("box shows subskills as icons, fading ones the Pokémon hasn't unlocked yet", () => {
