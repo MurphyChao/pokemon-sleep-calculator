@@ -5,6 +5,8 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import SubSkill from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, type SubSkillLevel, subSkillLevels, toPokemonIv } from "./box";
+// rank.ts imports this module too; skillAsIngredient is only called when a hybrid is valued, not on load.
+import { skillAsIngredient } from "./rank";
 import {
 	defaultStrengthOptions,
 	defaultYieldOptions,
@@ -18,7 +20,8 @@ import {
  * What a Pokémon is kept for, which decides what its rating measures:
  * - strength: strength from berries and the main skill (Berries specialists, strength skills like Sceptile's Berry Burst)
  * - ingredients: ingredients from helps and the main skill (Ingredients specialists, Ingredient Draw/Magnet like Sandslash)
- * - hybrid: ingredients and a team support skill, half each (Chansey's healing, Drampa's Tasty Chance)
+ * - hybrid: ingredients and a team support skill, the skill counted as the ingredients it's worth in slots
+ *   (Chansey's healing, Drampa's Tasty Chance; see skillAsIngredient in rank.ts)
  * - support: main skill triggers (Skills specialists whose skill gives neither strength nor ingredients)
  */
 export type RatingRole = "strength" | "ingredients" | "hybrid" | "support";
@@ -27,7 +30,7 @@ type Measure = "strength" | "ingredients" | "skill";
 const roleWeights: Record<RatingRole, Partial<Record<Measure, number>>> = {
 	strength: { strength: 1 },
 	ingredients: { ingredients: 1 },
-	hybrid: { ingredients: 0.5, skill: 0.5 },
+	hybrid: { ingredients: 1 }, // not used: hybrids are valued per ingredient, the skill as ingredients (below)
 	support: { skill: 1 },
 };
 
@@ -319,6 +322,10 @@ export interface RatingProblem {
 	candidates: SubSkillType[];
 	/** Identifies the best builds and rolls: species, base skill level, settings (and ingredients if fixed). */
 	key: string;
+	/** The Pokémon's main skill, and the settings it's measured with. */
+	skill: string;
+	options: YieldOptions;
+	strength: StrengthOptions;
 }
 
 /** A goal's value as a function of nature and subskills, at its own combination (or `combo`). */
@@ -364,33 +371,37 @@ export function ratingProblem(
 		skillMaxed,
 		natures: candidateNatures(options),
 		candidates: candidateSubSkills(role, skillCounts, options),
+		skill: pokemon.skill,
+		options,
+		strength,
 	};
 	const settingsKey = [base, JSON.stringify(options), JSON.stringify(strength)].join("|");
 
 	if (role === "ingredients" || role === "hybrid") {
-		// One goal per ingredient (also for ingredient-skill users like Sandslash, as the rank measures them): how much of it the Pokémon gathers (half of the value for a hybrid, the
-		// other half being skill triggers), against rolls with any ingredient combination that can gather it.
+		// One goal per ingredient (also for ingredient-skill users like Sandslash, as the rank measures them):
+		// how much of it the Pokémon gathers, against rolls with any ingredient combination that can gather it.
+		// A hybrid's skill counts too, as the amount of the ingredient it's worth in slots: the share of a slot
+		// of the best Pokémon with that skill, times what a slot of the best gatherer of the ingredient brings
+		// ({@link skillAsIngredient}), as the rank measures it.
 		// Each ingredient is measured against the most of it a neutral Pokémon of this species can gather.
 		const combos = speciesCombos(pokemon.ing2, pokemon.ing3);
 		const baselines = combos.map((combo) => ({ combo, detail: detailOf("Serious", [], combo) }));
 		const names = [...new Set([pokemon.ing1?.name, pokemon.ing2?.name, pokemon.ing3?.name])].filter(
 			(n): n is IngredientName => !!n,
 		);
-		const baseSkills = baseline.skillsPerDay;
 		const slotOf = { A: pokemon.ing1?.name, B: pokemon.ing2?.name, C: pokemon.ing3?.name } as Record<string, string | undefined>;
 		const goals = names.map((ingredient): RatingGoal => {
 			const top = baselines.reduce((a, b) => ((b.detail.total[ingredient] ?? 0) > (a.detail.total[ingredient] ?? 0) ? b : a));
 			const norm = top.detail.total[ingredient] ?? 0;
-			const amount = (d: YieldDetail) => (norm > 0 ? (d.total[ingredient] ?? 0) / norm : 0);
-			const skills = (d: YieldDetail) => (baseSkills > 0 ? d.skillsPerDay / baseSkills : 0);
+			const credit = (d: YieldDetail) =>
+				role === "hybrid" ? skillAsIngredient(pokemon.skill, ingredient, d, options, strength) : 0;
+			const worth = (d: YieldDetail) => (d.total[ingredient] ?? 0) + credit(d);
 			return {
 				ingredient,
 				combo: top.combo,
 				combos: combos.filter((c) => [...c].some((slot) => slotOf[slot] === ingredient)),
-				value:
-					role === "hybrid"
-						? (d, subSkills) => 0.5 * amount(d) + 0.5 * skills(d) + bonus(subSkills)
-						: (d, subSkills) => amount(d) + bonus(subSkills),
+				// Helping Bonus: the team value of a neutral Pokémon's worth (skill included), as in the rank.
+				value: (d, subSkills) => (norm > 0 ? (worth(d) + bonus(subSkills) * worth(top.detail)) / norm : 0),
 			};
 		});
 		return { ...common, goals, key: [entry.pokemonName, "any", settingsKey].join("|") };

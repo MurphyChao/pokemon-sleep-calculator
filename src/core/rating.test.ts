@@ -138,9 +138,11 @@ describe("rateEntry", () => {
 		for (const name of ["Raichu", "Dragonite", "Chansey", "Wigglytuff"]) {
 			const p = ratingProblem(e(name));
 			const base = valueOf(p)("Serious", []);
-			expect(base).toBeCloseTo(1, 2); // a hybrid's skill triggers vary a little with the combination
+			// 1 = a neutral Pokémon of the species; a hybrid's (Chansey) skill adds its worth in ingredients.
+			if (p.role === "hybrid") expect(base).toBeGreaterThan(1.1);
+			else expect(base).toBeCloseTo(1, 2);
 			const gain = valueOf(p)("Serious", ["Helping Bonus"]) - base;
-			expect(gain).toBeGreaterThan(helpingBonusTeamValue + 0.03); // + its own ~4–5% faster helping
+			expect(gain).toBeGreaterThan(helpingBonusTeamValue * base + 0.03); // + its own ~4–5% faster helping
 			expect(gain).toBeGreaterThan(valueOf(p)("Serious", ["Helping Speed M"]) - base);
 			expect(rateEntry(e(name)).best.subSkills).toContain("Helping Bonus");
 		}

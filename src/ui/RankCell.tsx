@@ -31,10 +31,21 @@ export default function RankCell(props: { rank: Rank | null | undefined }) {
 			: rank.category.startsWith("ingredient:")
 				? ingredientLabel(rank.category.slice("ingredient:".length))
 				: t("rankUnitSkill");
+	const credit = rank.skillCredit;
 	const extra =
-		rank.ingredientStrength !== undefined
+		(credit
+			? `\n${t("rankSkillCredit", {
+					skill: skillLabel(credit.skill),
+					n: format(credit.amount),
+					ing: unit,
+					share: `${Math.round(credit.share * 100)}%`,
+					best: pokemonLabel(credit.best),
+					gatherer: pokemonLabel(rank.best),
+				})}`
+			: "") +
+		(rank.ingredientStrength !== undefined
 			? `\n${t("rankIngredientStrength", { n: format(rank.ingredientStrength) })}`
-			: "";
+			: "");
 	return (
 		<div
 			className={`rating rank rating-${rank.grade.toLowerCase()}`}

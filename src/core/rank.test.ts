@@ -1,7 +1,18 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import tables from "../data/rank-tables.json";
 import type { BoxEntry, SubSkillLevel } from "./box";
-import { buildRankTables, type RankTable, type RankTables, rankEntry, rankValue, shareAbove, skillKind } from "./rank";
+import {
+	buildRankTables,
+	rankEntry,
+	rankOptions,
+	rankReferences,
+	rankStrengthOptions,
+	type RankTable,
+	type RankTables,
+	rankValue,
+	shareAbove,
+	skillKind,
+} from "./rank";
 import { rateEntry, ratingProblem } from "./rating";
 import { defaultStrengthOptions, defaultYieldOptions } from "./yield";
 
@@ -137,4 +148,36 @@ it("Helping Bonus adds the same to an ingredient's rank whatever the roll's comb
 	expect(bonusFor("AAA")).toBeGreaterThan(0);
 	expect(bonusFor("ABA")).toBeCloseTo(bonusFor("AAA"), 6);
 	expect(bonusFor("ABB")).toBeCloseTo(bonusFor("AAA"), 6);
+});
+
+describe("hybrids (ingredients + a support skill)", () => {
+	const hybrid = e("Blissey", "Serious", [], { ingredient: "AAA" });
+
+	it("are ranked only for their ingredients, with their skill counted as ingredients", () => {
+		const problem = ratingProblem(hybrid);
+		expect(problem.role).toBe("hybrid");
+		const r = rank(hybrid);
+		expect(r?.category).toMatch(/^ingredient:/);
+		// Its egg value: the eggs it gathers, plus its skill as a share of a plain Gardevoir's Energy for
+		// Everyone S, times the eggs a plain Delibird (the best pure egg gatherer) gathers.
+		const refs = rankReferences(rankOptions, rankStrengthOptions);
+		const detail = problem.detailOf("Serious", []);
+		const share = detail.skillValue / (refs.get("skill:Energy for Everyone S") as number);
+		const eggs = (detail.total.egg ?? 0) + share * (refs.get("ingredient:egg") as number);
+		expect(rankValue(problem, "ingredient:egg", "Serious", [], "AAA", detail)).toBeCloseTo(eggs, 6);
+		expect(share).toBeGreaterThan(0.2);
+	});
+
+	it("aren't the reference for an ingredient a pure gatherer gathers, nor for a skill", () => {
+		const { categories } = tables as RankTables;
+		expect(categories["ingredient:egg"].best).not.toMatch(/Blissey|Cramorant/);
+		expect(categories["ingredient:soy"].best).toBe("Golem");
+		expect(categories["skill:Tasty Chance S"].best).toBe("Dedenne");
+	});
+
+	it("leave everyone else's values alone", () => {
+		const golem = ratingProblem(e("Golem", "Serious", [], { ingredient: "AAA" }));
+		const d = golem.detailOf("Serious", []);
+		expect(rankValue(golem, "ingredient:soy", "Serious", [], "AAA", d)).toBeCloseTo(d.total.soy ?? 0, 9);
+	});
 });

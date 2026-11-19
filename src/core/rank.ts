@@ -81,10 +81,40 @@ export function ingredientStrengthPerDay(d: YieldDetail): number {
 	);
 }
 
+/** What the main skill gives per day in its own unit (energy, Extra Tasty chance…), or its triggers. */
+function skillValueOf(d: YieldDetail): number {
+	return d.skillValue > 0 ? d.skillValue : d.skillsPerDay;
+}
+
 function categoryValue(category: RankCategory, d: YieldDetail): number {
 	if (category.startsWith("strength:")) return d.berryStrength + d.skillStrength;
 	if (category.startsWith("ingredient:")) return d.total[category.slice("ingredient:".length) as IngredientName] ?? 0;
-	return d.skillValue > 0 ? d.skillValue : d.skillsPerDay;
+	return skillValueOf(d);
+}
+
+/**
+ * A hybrid's (ingredients + support skill) skill as the amount of an ingredient it's worth, in slots: its skill
+ * as a share of what a neutral Pokémon of the best species with that kind of skill gives, times what a neutral
+ * Pokémon of the best gatherer of the ingredient gathers. E.g. half a slot of the best Energy for Everyone user
+ * is worth half a slot of the best egg gatherer's eggs. 0 if either has no reference.
+ */
+export function skillAsIngredient(
+	skill: string,
+	ingredient: string,
+	detail: YieldDetail,
+	options: YieldOptions,
+	strength: StrengthOptions,
+): number {
+	const refs = rankReferences(options, strength);
+	const perSlot = refs.get(`ingredient:${ingredient}`);
+	const skillPerSlot = refs.get(`skill:${skillKind(skill)}`);
+	return perSlot && skillPerSlot ? (perSlot * skillValueOf(detail)) / skillPerSlot : 0;
+}
+
+/** A hybrid's skill credit in an ingredient category, in that ingredient (0 for everyone else). */
+function skillCredit(problem: RatingProblem, category: RankCategory, detail: YieldDetail): number {
+	if (problem.role !== "hybrid" || !category.startsWith("ingredient:")) return 0;
+	return skillAsIngredient(problem.skill, category.slice("ingredient:".length), detail, problem.options, problem.strength);
 }
 
 /** A category a Pokémon is ranked in, and the ingredient combinations it's measured with in the population. */
@@ -111,7 +141,8 @@ export function rankCategories(problem: RatingProblem, pokemon: PokemonData): Ra
 		case "support":
 			return [skill];
 		case "hybrid":
-			return [...ingredients(), skill];
+			// Its skill counts in each ingredient category (skillAsIngredient), so not on its own.
+			return ingredients();
 	}
 }
 
@@ -127,7 +158,7 @@ export function rankValue(
 	combo?: IngredientType,
 	detail = problem.detailOf(nature, subSkills, combo),
 ): number {
-	const value = categoryValue(category, detail);
+	const value = categoryValue(category, detail) + skillCredit(problem, category, detail);
 	if (!subSkills.includes("Helping Bonus")) return value;
 	return value + helpingBonusTeamValue * helpingBonusBase(problem, category);
 }
@@ -140,7 +171,8 @@ export function rankValue(
 function helpingBonusBase(problem: RatingProblem, category: RankCategory): number {
 	const ingredient = category.startsWith("ingredient:") ? category.slice("ingredient:".length) : undefined;
 	const top = ingredient ? problem.goals.find((g) => g.ingredient === ingredient)?.combo : undefined;
-	return categoryValue(category, problem.detailOf("Serious", [], top ?? "AAA"));
+	const neutral = problem.detailOf("Serious", [], top ?? "AAA");
+	return categoryValue(category, neutral) + skillCredit(problem, category, neutral);
 }
 
 /** Values are stored with 6 significant digits; a Pokémon's value is rounded the same way before looking it up. */
@@ -195,6 +227,11 @@ export interface Rank {
 	best: string;
 	/** For ingredient ranks: the Pokémon's ingredient strength per day, all its ingredients together. */
 	ingredientStrength?: number;
+	/**
+	 * For a hybrid's ingredient rank: its skill counted as the ingredient (included in `value`), as a share of
+	 * what a neutral Pokémon of the best species with that kind of skill (`best`) gives.
+	 */
+	skillCredit?: { amount: number; share: number; skill: string; best: string };
 }
 
 /**
@@ -228,7 +265,15 @@ export function rankEntry(
 		}
 	}
 	if (best?.category.startsWith("ingredient:")) {
-		best.ingredientStrength = ingredientStrengthPerDay(problem.detailOf(entry.nature, own));
+		const detail = problem.detailOf(entry.nature, own);
+		best.ingredientStrength = ingredientStrengthPerDay(detail);
+		const amount = skillCredit(problem, best.category, detail);
+		const skillCategory = `skill:${skillKind(problem.skill)}`;
+		const perSlot = rankReferences(options, strength).get(skillCategory);
+		const skillBest = rankBest(options, strength).get(skillCategory);
+		if (amount > 0 && perSlot && skillBest) {
+			best.skillCredit = { amount, share: skillValueOf(detail) / perSlot, skill: problem.skill, best: skillBest.pokemon.name };
+		}
 	}
 	return best;
 }
@@ -259,7 +304,8 @@ function neutralValue(job: RankJob & { probe: RatingProblem }): number {
 	const ingredient = job.category.startsWith("ingredient:") ? job.category.slice("ingredient:".length) : undefined;
 	const top = ingredient ? job.probe.goals.find((g) => g.ingredient === ingredient)?.combo : undefined;
 	const combos = top ? [top] : job.category.startsWith("ingredient:") ? job.combos : ["AAA" as IngredientType];
-	return Math.max(...combos.map((c) => rankValue(job.probe, job.category, "Serious", [], c)));
+	// What it does in the category itself (a hybrid's skill credit isn't counted: it's what picks the reference).
+	return Math.max(...combos.map((c) => categoryValue(job.category, job.probe.detailOf("Serious", [], c))));
 }
 
 /**
@@ -321,13 +367,42 @@ function tableOf(job: RankJob, values: number[]): RankTable {
  * subskills. Quick (one calculation per species and category).
  */
 export function rankBest(options: YieldOptions, strength: StrengthOptions): Map<RankCategory, RankJob> {
-	const best = new Map<RankCategory, { job: RankJob; value: number }>();
+	return new Map([...bestWithValues(options, strength)].map(([category, { job }]) => [category, job]));
+}
+
+/** Each category's best species and its neutral value, by settings (computed once per settings). */
+const bestCache = new Map<string, Map<RankCategory, { job: RankJob; value: number }>>();
+
+function bestWithValues(options: YieldOptions, strength: StrengthOptions): Map<RankCategory, { job: RankJob; value: number }> {
+	const key = rankSettingsKey(options, strength);
+	let cached = bestCache.get(key);
+	if (cached) return cached;
+	const best = new Map<RankCategory, { job: RankJob; value: number; hybrid: boolean }>();
 	for (const job of candidates(options, strength)) {
+		// The reference for an ingredient is the best pure gatherer: a hybrid only if nothing else gathers it.
+		const hybrid = job.probe.role === "hybrid";
 		const value = neutralValue(job);
 		const current = best.get(job.category);
-		if (!current || value > current.value) best.set(job.category, { job, value });
+		if (!current || (current.hybrid && !hybrid) || (current.hybrid === hybrid && value > current.value)) {
+			best.set(job.category, { job: { pokemon: job.pokemon, category: job.category, combos: job.combos }, value, hybrid });
+		}
 	}
-	return new Map([...best].sort((x, y) => x[0].localeCompare(y[0])).map(([category, { job }]) => [category, { pokemon: job.pokemon, category, combos: job.combos }]));
+	cached = new Map([...best].sort((x, y) => x[0].localeCompare(y[0])).map(([category, { job, value }]) => [category, { job, value }]));
+	bestCache.set(key, cached);
+	return cached;
+}
+
+const referenceCache = new Map<string, Map<RankCategory, number>>();
+
+/** What a neutral Pokémon of each category's best species does there: what a "slot" of it is worth. */
+export function rankReferences(options: YieldOptions, strength: StrengthOptions): Map<RankCategory, number> {
+	const key = rankSettingsKey(options, strength);
+	let refs = referenceCache.get(key);
+	if (!refs) {
+		refs = new Map([...bestWithValues(options, strength)].map(([category, { value }]) => [category, value]));
+		referenceCache.set(key, refs);
+	}
+	return refs;
 }
 
 /**
