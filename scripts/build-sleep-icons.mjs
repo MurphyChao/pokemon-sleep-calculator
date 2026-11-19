@@ -9,7 +9,10 @@
  * teach a wrong icon. A Pokémon already having a matching icon is skipped; a different-looking one (shiny,
  * costume) is added as another icon of it.
  *
- * Usage: npm run build-sleep-icons [-- --lang zh-TW|ja|en]   (language of screenshots not in the fixtures)
+ * Usage: npm run build-sleep-icons [-- --lang zh-TW|ja|en] [--dir <folder>] [--names <file.json>]
+ *   --lang: language of screenshots not in the fixtures; --dir: read screenshots from another folder (PNG);
+ *   --names: a JSON object naming the Pokémon in screenshots by file name ({"photo_1.png": "Cutiefly"}), for
+ *   ones whose name can't be read or doesn't tell the form (as the fixtures do).
  *
  * Runs the app's TypeScript through Vite's module loader, so it uses exactly the importer's code.
  */
@@ -20,14 +23,17 @@ import { PNG } from "pngjs";
 import { createServer } from "vite";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const shotsDir = join(root, "screenshots");
+const dirArg = process.argv.indexOf("--dir");
+const shotsDir = dirArg >= 0 ? process.argv[dirArg + 1] : join(root, "screenshots");
 const outDir = join(root, "src/data/sleep-icons");
 const ingredientDir = join(root, "src/data/ingredient-icons");
 const langArg = process.argv.indexOf("--lang");
 const lang = langArg >= 0 ? process.argv[langArg + 1] : "zh-TW";
+const namesArg = process.argv.indexOf("--names");
+const givenNames = namesArg >= 0 ? JSON.parse(readFileSync(process.argv[namesArg + 1], "utf8")) : {};
 
 if (!existsSync(shotsDir)) {
-	console.error("No ./screenshots folder: put screenshots of the Pokémon details screen there.");
+	console.error(`No ${shotsDir} folder: put screenshots of the Pokémon details screen there.`);
 	process.exit(1);
 }
 
@@ -40,7 +46,7 @@ try {
 	const { createOcrEngine, tesseractLang } = await load("/src/ocr/tesseract.ts");
 	const { sleepIconSlug, slugOfIconFile } = await load("/src/data/sleepIconSlug.ts");
 	const expected = JSON.parse(readFileSync(join(root, "src/ocr/__fixtures__/screenshots.expected.json"), "utf8"));
-	const known = new Map(expected.map((e) => [e.file, e.pokemonName]));
+	const known = new Map([...expected.map((e) => [e.file, e.pokemonName]), ...Object.entries(givenNames)]);
 
 	const loadPng = (path) => {
 		const png = PNG.sync.read(readFileSync(path));
@@ -77,7 +83,7 @@ try {
 			continue;
 		}
 		let name = known.get(file);
-		let how = "fixture";
+		let how = file in givenNames ? "given" : "fixture";
 		if (!name) {
 			engine ??= await createOcrEngine(lang, toPng, {
 				cachePath: join(root, "node_modules/.cache/tesseract"),
