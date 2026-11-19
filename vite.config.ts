@@ -55,5 +55,12 @@ function tesseractAssets(): Plugin {
 export default defineConfig({
 	base: "./",
 	plugins: [react(), tesseractAssets()],
-	test: { globals: true, environment: "node", include: ["src/**/*.test.ts", "src/**/*.test.tsx"] },
+	test: {
+		globals: true,
+		environment: "node",
+		include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+		// Rarity and Rank tests roll species 2,000 times: 1–2 s on a fast machine, several times that on GitHub's
+		// runners, past the default 5 s.
+		testTimeout: 30_000,
+	},
 });
