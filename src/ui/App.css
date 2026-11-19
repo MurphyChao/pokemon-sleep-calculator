@@ -16,8 +16,12 @@
 	background: var(--bg);
 }
 
+/*
+ * Dark colors: with the system's dark mode unless the theme switch says Light, or always when it says Dark
+ * (the switch sets data-theme on <html>; see ui/theme.ts).
+ */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		--bg: #15171c;
 		--card: #1e2129;
 		--text: #e6e8ee;
@@ -31,6 +35,29 @@
 		--nature-up: #ff6b6b;
 		--nature-down: #4dabf7;
 	}
+}
+:root[data-theme="dark"] {
+	--bg: #15171c;
+	--card: #1e2129;
+	--text: #e6e8ee;
+	--muted: #9aa1ad;
+	--border: #2f3440;
+	--accent: #748ffc;
+	--ok: #51cf66;
+	--warn: #ff922b;
+	--danger: #ff6b6b;
+	--highlight: #3a3220;
+	--nature-up: #ff6b6b;
+	--nature-down: #4dabf7;
+}
+:root {
+	color-scheme: light dark;
+}
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
 }
 
 body {
@@ -522,6 +549,12 @@ input.narrow {
 	align-items: center;
 	justify-content: flex-end;
 	gap: 6px 16px;
+}
+.theme-toggle {
+	min-width: 2.2em;
+	padding: 2px 8px;
+	font-size: 1rem;
+	line-height: 1.5;
 }
 
 /* Pokémon icons */

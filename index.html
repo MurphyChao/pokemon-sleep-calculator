@@ -5,6 +5,13 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="google-site-verification" content="3vfMO-ZiRvcYnyJAGt9qlT83eBw4CfD_4J_CGaBNctA" />
 		<title>PokeMasterChef – Pokémon Sleep dish team calculator</title>
+		<script>
+			// The theme chosen with the theme button (src/ui/theme.ts), applied before the page first draws.
+			try {
+				const theme = JSON.parse(localStorage.getItem("pscalc-theme"));
+				if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+			} catch {}
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

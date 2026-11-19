@@ -18,6 +18,7 @@ import EnergyView, { defaultEnergySettings, type EnergySettings } from "./Energy
 import { type Key, type Lang, languages, setLang, t } from "./i18n";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
+import { type Theme, themes, useTheme } from "./theme";
 import SyncControl from "./SyncControl";
 import { useRatings } from "./useRatings";
 import { type Rank, type RankCategory, rankEntry, rankEntryCategories, rankSettingsKey } from "../core/rank";
@@ -34,6 +35,14 @@ const tabs: { tab: Tab; label: Key }[] = [
 	{ tab: "slots", label: "tabSlots" },
 ];
 
+/** The theme button's icon and label for each theme; a click moves on to the next one. */
+const themeIcons: Record<Theme, string> = { auto: "◐", light: "☀", dark: "☾" };
+const themeLabels: Record<Theme, "themeAuto" | "themeLight" | "themeDark"> = {
+	auto: "themeAuto",
+	light: "themeLight",
+	dark: "themeDark",
+};
+
 export default function App() {
 	const [tab, setTab] = useState<Tab>("box");
 	/** The Box tab's pop-up with the screenshot import and the add/edit form. */
@@ -41,6 +50,7 @@ export default function App() {
 	/** Phones only: the settings are folded away behind a button (always shown on wider screens). */
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [storedLang, setStoredLang] = useStoredState<Lang>("pscalc.lang", "en");
+	const [theme, setTheme] = useTheme();
 	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
 	// Text helpers read the language from a module-level value; the page below is re-mounted when it changes.
 	setLang(lang);
@@ -188,6 +198,15 @@ export default function App() {
 					<h1>{t("appTitle")}</h1>
 					<div className="header-tools">
 						<SyncControl />
+						<button
+							type="button"
+							className="secondary theme-toggle"
+							title={t("themeTitle", { theme: t(themeLabels[theme]) })}
+							aria-label={t("themeTitle", { theme: t(themeLabels[theme]) })}
+							onClick={() => setTheme(themes[(themes.indexOf(theme) + 1) % themes.length])}
+						>
+							<span aria-hidden="true">{themeIcons[theme]}</span>
+						</button>
 						<label className="language">
 						<span className="muted small">{t("language")}</span>
 						<select value={lang} onChange={(e) => setStoredLang(e.target.value as Lang)}>

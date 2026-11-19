@@ -689,3 +689,19 @@ test("recipes are listed by energy, highest first, and changing the dish type pi
 	expect(energies()).toEqual([...energies()].sort((a, b) => b - a));
 	expect([...recipe.options].some((o) => o.text.startsWith("Slowpoke Tail Roll Cake"))).toBe(true);
 });
+
+test("the theme button cycles Auto → Light → Dark, saved per device (not synced)", () => {
+	render(<App />);
+	const button = () => screen.getByRole("button", { name: /^Theme: / });
+	expect(button().getAttribute("aria-label")).toBe("Theme: Auto (follows your device) (click to change)");
+	expect(document.documentElement.dataset.theme).toBeUndefined();
+	fireEvent.click(button());
+	expect(document.documentElement.dataset.theme).toBe("light");
+	expect(localStorage.getItem("pscalc-theme")).toBe('"light"');
+	fireEvent.click(button());
+	expect(document.documentElement.dataset.theme).toBe("dark");
+	expect(button().getAttribute("aria-label")).toBe("Theme: Dark (click to change)");
+	fireEvent.click(button());
+	expect(document.documentElement.dataset.theme).toBeUndefined();
+	expect(Object.keys(localStorage).filter((k) => k.startsWith("pscalc.") && k.includes("theme"))).toEqual([]);
+});
