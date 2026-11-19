@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import TableHelp from "./TableHelp";
 import type { ImportWarning, ScreenshotReading } from "../ocr/read";
 import type { OcrEngine, ScreenshotLang } from "../ocr/tesseract";
 import { getLang, ingredientLabel, type Key, pokemonLabel, t } from "./i18n";
@@ -153,7 +154,7 @@ export default function ScreenshotImport(props: {
 	return (
 		<section className="card">
 			<h2>{t("importTitle")}</h2>
-			<p className="muted small">{t("importHelp")}</p>
+			<TableHelp label={t("importHowItWorks")}>{t("importHelp")}</TableHelp>
 			<div
 				className={`drop-zone${dragging ? " dragging" : ""}`}
 				onDragOver={(e) => {
@@ -168,8 +169,9 @@ export default function ScreenshotImport(props: {
 				}}
 			>
 				<label>
-					{t("screenshotLang")}{" "}
-					<select value={lang} onChange={(e) => setLang(e.target.value as ScreenshotLang)}>
+					<span className="label-long">{t("screenshotLang")}</span>
+					<span className="label-short">{t("language")}</span>{" "}
+					<select aria-label={t("screenshotLang")} value={lang} onChange={(e) => setLang(e.target.value as ScreenshotLang)}>
 						{screenshotLangs.map((l) => (
 							<option key={l.lang} value={l.lang}>
 								{l.label}

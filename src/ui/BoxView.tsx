@@ -290,7 +290,7 @@ export default function BoxView(props: {
 									</datalist>
 								</label>
 								<label>
-									{t("nicknameOptional")}
+									<span className="field-text">{t("nicknameOptional")}</span>
 									<input
 										value={draft.nickname ?? ""}
 										placeholder={t("nicknamePlaceholder")}
@@ -337,8 +337,15 @@ export default function BoxView(props: {
 									</select>
 								</label>
 								<label>
-									{draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")}
+									{/* Phones show just "Main skill level" (App.css); the skill is named in the box anyway. */}
+									<span className="label-long">
+										{draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")}
+									</span>
+									<span className="label-short">{t("mainSkillLevelNoSkill")}</span>
 									<select
+										aria-label={
+											draftPokemon ? t("mainSkillLevel", { skill: skillLabel(draftPokemon.skill) }) : t("mainSkillLevelNoSkill")
+										}
 										value={skillLevel}
 										disabled={!validName}
 										onChange={(e) => setDraft({ ...draft, skillLevel: Number(e.target.value) })}

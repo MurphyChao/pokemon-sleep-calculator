@@ -163,6 +163,7 @@ const en = {
 
 	// Screenshot import
 	importTitle: "Import from screenshots",
+	importHowItWorks: "How it works",
 	importHelp:
 		"Screenshot a Pokémon's details screen, scrolled down so the subskills and the nature are both visible. Screenshots are read on your device and never uploaded. The first import downloads the text recognizer (about 6 MB).",
 	screenshotLang: "Game language",
@@ -461,6 +462,7 @@ const zh: Record<Key, string> = {
 	syncUseRemoteAt: "使用 Google 雲端硬碟的資料（{time} 儲存）",
 
 	importTitle: "從截圖匯入",
+	importHowItWorks: "使用說明",
 	importHelp:
 		"截取寶可夢的詳細資料畫面，往下捲到副技能和性格都看得到的位置。截圖只在你的裝置上讀取，不會上傳。第一次匯入時會下載文字辨識程式（約 6 MB）。",
 	screenshotLang: "遊戲語言",
