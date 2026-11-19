@@ -1,5 +1,6 @@
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import tables from "../data/rank-tables.json";
+import pokemons, { getPokemonRarity } from "../vendor/pokesleep-tool/data/pokemons";
 import type { BoxEntry, SubSkillLevel } from "./box";
 import {
 	buildRankTables,
@@ -180,4 +181,14 @@ describe("hybrids (ingredients + a support skill)", () => {
 		const d = golem.detailOf("Serious", []);
 		expect(rankValue(golem, "ingredient:soy", "Serious", [], "AAA", d)).toBeCloseTo(d.total.soy ?? 0, 9);
 	});
+});
+
+it("doesn't compare anyone with a legendary when a regular Pokémon does the job, but still ranks legendaries", () => {
+	const legendary = new Set(pokemons.filter((p) => getPokemonRarity(p) === "legendary").map((p) => p.name));
+	const { categories } = tables as RankTables;
+	expect(categories["strength:fire"].best).not.toBe("Entei");
+	for (const t of Object.values(categories)) expect(legendary.has(t.best)).toBe(false);
+	const entei = rank(e("Entei", "Adamant", ["Helping Speed M", "Berry Finding S"], { ingredient: "AAA" }));
+	expect(entei?.category).toBe("strength:fire");
+	expect(entei?.best).toBe(categories["strength:fire"].best);
 });

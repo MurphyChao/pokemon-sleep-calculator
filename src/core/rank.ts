@@ -18,8 +18,9 @@
  * - skill:<kind>: what the main skill gives per day in its own unit (energy, Extra Tasty chance, dream
  *   shards…), against the best Pokémon with the same kind of skill ("(Random)" variants count as one kind)
  * The best species of a category is the one doing the most with a neutral nature and no subskills, among
- * non-mythical fully evolved Pokémon. Helping Bonus adds 4 × 5.3% of a neutral Pokémon's output, as in the
- * rating.
+ * non-mythical fully evolved Pokémon; legendaries (few players have one, and rarely a good roll) and hybrids
+ * only if nothing else does the job. Legendaries are still ranked, against that reference. Helping Bonus adds
+ * 4 × 5.3% of a neutral Pokémon's output, as in the rating.
  */
 import pokemons, { getPokemonRarity, type IngredientName, type PokemonData } from "../vendor/pokesleep-tool/data/pokemons";
 import Nature from "../vendor/pokesleep-tool/util/Nature";
@@ -377,14 +378,15 @@ function bestWithValues(options: YieldOptions, strength: StrengthOptions): Map<R
 	const key = rankSettingsKey(options, strength);
 	let cached = bestCache.get(key);
 	if (cached) return cached;
-	const best = new Map<RankCategory, { job: RankJob; value: number; hybrid: boolean }>();
+	const best = new Map<RankCategory, { job: RankJob; value: number; fallback: number }>();
 	for (const job of candidates(options, strength)) {
-		// The reference for an ingredient is the best pure gatherer: a hybrid only if nothing else gathers it.
-		const hybrid = job.probe.role === "hybrid";
+		// The reference is a regular Pokémon doing the job on its own: a legendary (few players have one, and
+		// rarely a good roll) or a hybrid (whose skill counts as ingredients) only if nothing else does it.
+		const fallback = (getPokemonRarity(job.pokemon) === "legendary" ? 2 : 0) + (job.probe.role === "hybrid" ? 1 : 0);
 		const value = neutralValue(job);
 		const current = best.get(job.category);
-		if (!current || (current.hybrid && !hybrid) || (current.hybrid === hybrid && value > current.value)) {
-			best.set(job.category, { job: { pokemon: job.pokemon, category: job.category, combos: job.combos }, value, hybrid });
+		if (!current || fallback < current.fallback || (fallback === current.fallback && value > current.value)) {
+			best.set(job.category, { job: { pokemon: job.pokemon, category: job.category, combos: job.combos }, value, fallback });
 		}
 	}
 	cached = new Map([...best].sort((x, y) => x[0].localeCompare(y[0])).map(([category, { job, value }]) => [category, { job, value }]));

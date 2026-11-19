@@ -103,7 +103,9 @@ benches; the tooltip names the species it's compared with. The job decides what'
   gatherer (e.g. Blissey with Delibird for eggs).
 
 The best species of a category is the non-mythical fully evolved Pokémon doing the most there with a neutral nature and
-no subskills (legendaries included, e.g. Latios for Dragon strength). Its rolls are drawn exactly as Rarity draws them
+no subskills. Legendaries aren't references unless nothing else does the job (few players have one, and rarely
+a good roll), so Dragon strength is compared with Noivern rather than Latios; legendaries themselves are still ranked,
+against that reference. Its rolls are drawn exactly as Rarity draws them
 (2,000 rolls, same seed), and everything is measured the same way: as the final form, at Lv80, with Sub Skill Seeds used
 and the main skill maxed except for Ingredients specialists, Helping Bonus counted for the team (the same amount whatever
 the roll's ingredient combination), and **your settings** (inventory limit, sleep score, energy, camp ticket, favorite

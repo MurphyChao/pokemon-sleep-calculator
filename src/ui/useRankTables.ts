@@ -23,7 +23,7 @@ const sliceMs = 30;
 const cacheKey = "pscalc-rank-tables";
 const cacheSize = 3;
 /** Bump when how ranks are measured changes, so old cached tables are dropped. */
-const cacheVersion = 6;
+const cacheVersion = 7;
 
 const standardKey = rankSettingsKey(rankOptions, rankStrengthOptions);
 
