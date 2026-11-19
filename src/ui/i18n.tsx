@@ -324,9 +324,12 @@ const en = {
 	allThresholds: "All thresholds",
 	colRule: "Rule",
 	colOnTeam: "{name} on team",
+	colOnTeamShort: "On team",
 	colCooked: "Cooked",
 	colStrengthPerDay: "Strength / day",
+	colStrengthShort: "Strength",
 	colVsBest: "vs. best team",
+	colVsBestShort: "vs best",
 };
 
 export type Key = keyof typeof en;
@@ -616,9 +619,12 @@ const zh: Record<Key, string> = {
 	allThresholds: "所有門檻",
 	colRule: "規則",
 	colOnTeam: "{name} 在隊伍中",
+	colOnTeamShort: "在隊伍中",
 	colCooked: "做出",
 	colStrengthPerDay: "每日能量",
+	colStrengthShort: "能量",
 	colVsBest: "相較最佳隊伍",
+	colVsBestShort: "比最佳",
 };
 
 const dictionaries: Record<Lang, Record<Key, string>> = { en, "zh-TW": zh };

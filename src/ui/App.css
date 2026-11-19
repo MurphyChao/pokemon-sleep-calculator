@@ -1814,6 +1814,49 @@ button.icon-select-button {
 	.swap-card details {
 		font-size: 0.85rem;
 	}
+	/* "How to read this" beside the title; the two pickers' labels in one column. */
+	.swap-card > h2 {
+		display: inline-block;
+		margin: 0 8px 6px 0;
+	}
+	.swap-card > h2 + .help-toggle {
+		margin-top: 0;
+		vertical-align: 3px;
+	}
+	.swap-card .swap-pickers {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: 4px 6px;
+	}
+	.swap-card .swap-pickers > label {
+		display: contents;
+	}
+	.swap-card .icon-select-button {
+		padding-top: 2px;
+		padding-bottom: 2px;
+	}
+	.swap-card .icon-select .poke-icon {
+		width: 26px;
+		height: 26px;
+	}
+	/* All thresholds: one small card per rule, the rule on its own line, then "label value" chips. */
+	.swap-card table.stack tr {
+		min-height: 0;
+		margin-bottom: 5px;
+		padding: 4px 8px;
+		font-size: 0.78rem;
+	}
+	.swap-card table.stack tr.highlight {
+		background: var(--highlight);
+	}
+	.swap-card table.stack td {
+		padding-right: 8px;
+	}
+	.swap-card table.stack .poke-icon {
+		width: 22px;
+		height: 22px;
+	}
 
 	/*
 	 * Bench cards: smaller numbers so the chips fit on one line, tags beside the name (only the "+" button

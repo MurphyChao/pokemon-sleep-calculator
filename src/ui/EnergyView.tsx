@@ -696,15 +696,15 @@ function SwapCard(props: {
 					</p>
 					<details>
 						<summary>{t("allThresholds")}</summary>
-						<table>
+						<table className="stack swap-options">
 							<thead>
 								<tr>
-									<th>{t("colRule")}</th>
-									<th>{tRich("colOnTeam", { name: inName })}</th>
-									<th>{t("colExtraTasty")}</th>
+									<th className="line nolabel">{t("colRule")}</th>
+									<th data-short={t("colOnTeamShort")}>{tRich("colOnTeam", { name: inName })}</th>
+									<th data-short={t("colExtraTastyShort")}>{t("colExtraTasty")}</th>
 									<th>{t("colCooked")}</th>
-									<th>{t("colStrengthPerDay")}</th>
-									<th>{t("colVsBest")}</th>
+									<th data-short={t("colStrengthShort")}>{t("colStrengthPerDay")}</th>
+									<th data-short={t("colVsBestShort")}>{t("colVsBest")}</th>
 								</tr>
 							</thead>
 							<tbody>
