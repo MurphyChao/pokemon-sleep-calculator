@@ -1943,8 +1943,8 @@ button.icon-select-button {
 		order: 9;
 	}
 	.box-list table.stack td.row-actions .icon-button {
-		width: 26px;
-		height: 26px;
+		width: 24px;
+		height: 24px;
 	}
 	.box-list table.stack td.icon-cell img {
 		width: 34px;
@@ -1956,6 +1956,32 @@ button.icon-select-button {
 	}
 	.box-list table.stack td.icon-cell + td {
 		font-size: 0.95rem;
+	}
+	/* Tighter cards: less padding, line height and gap between cards; a smaller ingredients-per-day line. */
+	.box-list table.stack tr {
+		margin-bottom: 5px;
+		padding-top: 3px;
+		padding-bottom: 3px;
+		row-gap: 0;
+		line-height: 1.25;
+	}
+	.box-list table.stack td {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+	.box-list table.stack td:nth-child(9) {
+		font-size: 0.8rem;
+	}
+	/* The name line as tall as the edit and delete buttons, so the line below never runs under them. */
+	.box-list table.stack td:nth-child(2) {
+		min-height: 25px;
+	}
+	.box-list table.stack td.row-actions {
+		top: 3px;
+	}
+	.box-list table.stack td:nth-child(9) img.ing-icon {
+		width: 15px;
+		height: 15px;
 	}
 	.box-list table.stack .subskill-icon {
 		width: 17px;
