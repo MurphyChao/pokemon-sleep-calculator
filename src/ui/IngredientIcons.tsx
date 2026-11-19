@@ -3,7 +3,11 @@ import pokemons, { type IngredientName } from "../vendor/pokesleep-tool/data/pok
 import { ingredientLabel } from "./i18n";
 
 const byName = new Map(pokemons.map((p) => [p.name, p]));
-const iconUrls = import.meta.glob("../data/ingredient-icons/*.png", {
+/**
+ * Icons as shown in the app: cut from the game's research notes, 70–96 px (ingredient-art). The screenshot
+ * importer has its own small references at the game's scale (ingredient-icons, see ocr/ingredients.ts).
+ */
+const iconUrls = import.meta.glob("../data/ingredient-art/*.png", {
 	eager: true,
 	query: "?url",
 	import: "default",

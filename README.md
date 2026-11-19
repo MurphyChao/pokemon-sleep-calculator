@@ -148,7 +148,8 @@ about 0.016, while different Pokémon in the screenshots so far are 0.08 or more
 Pumpkaboo sizes) count as one; the ingredient icons tell them apart. When the Pokémon is picked or changed in the
 review form, the ingredient combination is filled in from the recognized ingredient icons.
 
-Ingredients are recognized by comparing the Lv30/Lv60 icons with `src/data/ingredient-icons`. Every reading is
+Ingredients are recognized by comparing the Lv30/Lv60 icons with `src/data/ingredient-icons` (small references at the
+game's scale; the app shows the larger `src/data/ingredient-art`, cut from in-game research-notes screenshots). Every reading is
 checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 
 `src/ocr/screenshots.test.ts` checks the importer against real screenshots listed in
