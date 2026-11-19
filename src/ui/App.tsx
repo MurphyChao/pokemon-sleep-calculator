@@ -49,6 +49,8 @@ export default function App() {
 	const [addOpen, setAddOpen] = useState(false);
 	/** Phones only: the settings are folded away behind a button (always shown on wider screens). */
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	/** Phones fold the settings' explanations away until asked for (wider screens always show them). */
+	const [settingsHelp, setSettingsHelp] = useState(false);
 	const [storedLang, setStoredLang] = useStoredState<Lang>("pscalc.lang", "en");
 	const [theme, setTheme] = useTheme();
 	const lang: Lang = languages.some((l) => l.lang === storedLang) ? storedLang : "en";
@@ -258,7 +260,10 @@ export default function App() {
 				>
 					⚙ <span className="settings-label">{t("settings")}</span> {settingsOpen ? "▴" : "▾"}
 				</button>
-				<div id="settings-bar" className={settingsOpen ? "settings-bar" : "settings-bar collapsed"}>
+				<div
+					id="settings-bar"
+					className={`settings-bar${settingsOpen ? "" : " collapsed"}${settingsHelp ? " show-help" : ""}`}
+				>
 					<label className="check">
 						<input
 							type="checkbox"
@@ -362,6 +367,14 @@ export default function App() {
 						</div>
 						<span className="muted small">{t("levelScalingHint")}</span>
 					</div>
+					<button
+						type="button"
+						className="secondary help-toggle settings-help-toggle"
+						aria-expanded={settingsHelp}
+						onClick={() => setSettingsHelp(!settingsHelp)}
+					>
+						{t("settingsHelp")} {settingsHelp ? "▴" : "▾"}
+					</button>
 				</div>
 			</header>
 			<main>

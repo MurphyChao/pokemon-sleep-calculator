@@ -1619,6 +1619,15 @@ button.icon-select-button {
 	.table-help:not(.open) {
 		display: none;
 	}
+	/* The settings' explanations too, with their button across the bottom of the panel. */
+	.settings-bar:not(.show-help) .muted.small {
+		display: none;
+	}
+	.settings-bar .settings-help-toggle {
+		grid-column: 1 / -1;
+		justify-self: start;
+		margin-top: 0;
+	}
 
 	/* Energy solver's Best team card: a smaller headline, the summary lines in small text. */
 	.best-team .big {
