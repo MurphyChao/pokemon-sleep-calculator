@@ -1469,6 +1469,62 @@ button.icon-select-button {
 		padding: 1px 0;
 		font-size: 0.8rem;
 	}
+	/* Labels beside their fields: "Favorite berries [ ]", then "Island bonus [ ]  Recipe level [▼ 1 ▲]". */
+	.island-card h2 {
+		margin-bottom: 4px;
+	}
+	.island-card .form-grid:first-of-type {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+	}
+	.island-card .form-grid:first-of-type > label,
+	.island-card .form-grid:first-of-type > .field {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 6px;
+		font-size: 0.75rem;
+	}
+	.island-card .form-grid:first-of-type > label > :is(select, input),
+	.island-card .form-grid:first-of-type > .field > .stepper {
+		flex: 1;
+		min-width: 0;
+		width: auto;
+		padding-top: 3px;
+		padding-bottom: 3px;
+		font-size: 0.85rem;
+	}
+	.island-card .form-grid:first-of-type > .field > .key-levels {
+		flex-basis: 100%;
+		margin-top: 0;
+	}
+	.island-card .form-grid:first-of-type > .field > label {
+		margin: 0;
+		font-size: inherit;
+		color: var(--muted);
+	}
+	.island-card .form-grid:first-of-type > label:nth-child(2) {
+		align-self: start;
+		margin-top: 2px;
+	}
+	.island-card .form-grid:first-of-type > label:nth-child(2) > input {
+		flex: none;
+		width: 3.4em;
+	}
+	.island-card .form-grid:first-of-type .label-long {
+		display: none;
+	}
+	.island-card .form-grid:first-of-type .label-short {
+		display: inline;
+	}
+	/* The three berry types chosen for Greengrass Isle: small labels and fields. */
+	.island-card .form-grid + .form-grid > * {
+		font-size: 0.75rem;
+	}
+	.island-card .form-grid + .form-grid select {
+		padding: 3px 4px;
+		font-size: 0.85rem;
+	}
 
 	/* Add/edit pop-up: smaller import section, two-column fields, tighter pickers, buttons kept in view. */
 	.modal .card {

@@ -442,7 +442,8 @@ function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: 
 					</select>
 				</label>
 				<label>
-					{t("islandBonus")}
+					<span className="label-long">{t("islandBonus")}</span>
+					<span className="label-short">{t("islandBonusShort")}</span>
 					<input
 						type="number"
 						min={0}
