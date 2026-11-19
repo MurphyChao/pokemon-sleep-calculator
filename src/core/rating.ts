@@ -5,8 +5,8 @@ import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import SubSkill from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, maxSubSkillSeeds, type SubSkillLevel, subSkillLevels, toPokemonIv } from "./box";
-// rank.ts imports this module too; skillAsIngredient is only called when a hybrid is valued, not on load.
-import { skillAsIngredient } from "./rank";
+// rank.ts imports this module too; these are only called when a Pokémon is valued, not on load.
+import { skillAsIngredient, supportSkillAs } from "./rank";
 import {
 	defaultStrengthOptions,
 	defaultYieldOptions,
@@ -324,6 +324,11 @@ export interface RatingProblem {
 	key: string;
 	/** The Pokémon's main skill, and the settings it's measured with. */
 	skill: string;
+	/**
+	 * Whether the skill gives something other than strength besides any strength (Latias's Heal Pulse: energy
+	 * and extra helps). For most skills the value per day is the strength, or there's no strength.
+	 */
+	skillHasSupportPart: boolean;
 	options: YieldOptions;
 	strength: StrengthOptions;
 }
@@ -372,6 +377,8 @@ export function ratingProblem(
 		natures: candidateNatures(options),
 		candidates: candidateSubSkills(role, skillCounts, options),
 		skill: pokemon.skill,
+		skillHasSupportPart:
+			baseline.skillStrength > 0 && baseline.skillValue > 0 && Math.abs(baseline.skillValue - baseline.skillStrength) > 1,
 		options,
 		strength,
 	};
@@ -410,14 +417,26 @@ export function ratingProblem(
 	const weights = Object.entries(roleWeights[role]) as [Measure, number][];
 	// Measured against a fixed neutral Pokémon (AAA) and against rolls with any ingredient combination (part of
 	// a roll's luck too), so this is exactly the rank's measure for the best species of its category.
-	const baseMeasures = measures(detailOf("Serious", [], "AAA"));
+	const neutral = detailOf("Serious", [], "AAA");
+	const baseMeasures = measures(neutral);
+	// A strength Pokémon whose skill also does a support skill's job (Latias's Heal Pulse restores energy) gets
+	// that part as the strength it's worth in slots, as in the rank; 0 for everyone else.
+	const credit = (d: YieldDetail) =>
+		role === "strength" && common.skillHasSupportPart
+			? supportSkillAs(pokemon.skill, `strength:${pokemon.type}`, d, options, strength)
+			: 0;
+	// Worked out on first use, not here: the references it needs are found from every species' rating problem.
+	let baseCredit: number | undefined;
 	const goal: RatingGoal = {
 		combo: entry.ingredient,
 		combos: speciesCombos(pokemon.ing2, pokemon.ing3),
 		value: (d, subSkills) => {
 			const m = measures(d);
 			const own = weights.reduce((sum, [k, w]) => sum + (baseMeasures[k] > 0 ? (w * m[k]) / baseMeasures[k] : 0), 0);
-			return own + bonus(subSkills);
+			const extra = baseMeasures.strength > 0 ? credit(d) / baseMeasures.strength : 0;
+			// Helping Bonus: the team value of a neutral Pokémon's worth (support part included), as in the rank.
+			baseCredit ??= baseMeasures.strength > 0 ? credit(neutral) / baseMeasures.strength : 0;
+			return own + extra + bonus(subSkills) * (1 + baseCredit);
 		},
 	};
 	return {

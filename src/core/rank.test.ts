@@ -192,3 +192,26 @@ it("doesn't compare anyone with a legendary when a regular Pokémon does the job
 	expect(entei?.category).toBe("strength:fire");
 	expect(entei?.best).toBe(categories["strength:fire"].best);
 });
+
+describe("strength Pokémon whose skill also does a support job", () => {
+	it("get that part as strength in slots: only Latias, Cresselia and Lucario", () => {
+		const credited: string[] = [];
+		for (const p of pokemons.filter((p) => p.isFullyEvolved && getPokemonRarity(p) !== "mythical" && p.frequency > 0)) {
+			const problem = ratingProblem(e(p.name, "Serious", [], { ingredient: "AAA" }));
+			if (problem.role !== "strength") continue;
+			const d = problem.detailOf("Serious", []);
+			if (rankValue(problem, `strength:${p.type}`, "Serious", [], "AAA", d) > d.berryStrength + d.skillStrength + 1e-6) {
+				credited.push(p.name);
+			}
+		}
+		expect(credited.sort()).toEqual(["Cresselia", "Latias", "Lucario"]);
+	});
+
+	it("Latias's energy counts as its share of a plain Slowking's, times a plain Noivern's strength", () => {
+		const latias = rank(e("Latias", "Serious", [], { ingredient: "AAA" }));
+		expect(latias?.category).toBe("strength:dragon");
+		expect(latias?.skillCredit?.best).toBe("Slowking");
+		const refs = rankReferences(rankOptions, rankStrengthOptions);
+		expect(latias?.skillCredit?.amount).toBeCloseTo((latias?.skillCredit?.share ?? 0) * (refs.get("strength:dragon") as number), 6);
+	});
+});

@@ -34,7 +34,7 @@ export default function RankCell(props: { rank: Rank | null | undefined }) {
 	const credit = rank.skillCredit;
 	const extra =
 		(credit
-			? `\n${t("rankSkillCredit", {
+			? `\n${t(rank.category.startsWith("strength:") ? "rankSkillCreditStrength" : "rankSkillCredit", {
 					skill: skillLabel(credit.skill),
 					n: format(credit.amount),
 					ing: unit,

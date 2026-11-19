@@ -94,11 +94,27 @@ function categoryValue(category: RankCategory, d: YieldDetail): number {
 }
 
 /**
- * A hybrid's (ingredients + support skill) skill as the amount of an ingredient it's worth, in slots: its skill
- * as a share of what a neutral Pokémon of the best species with that kind of skill gives, times what a neutral
- * Pokémon of the best gatherer of the ingredient gathers. E.g. half a slot of the best Energy for Everyone user
- * is worth half a slot of the best egg gatherer's eggs. 0 if either has no reference.
+ * A support skill counted in another category, in slots: the skill as a share of what a neutral Pokémon of
+ * the best species with that kind of skill gives, times what a neutral Pokémon of the category's reference
+ * does there. E.g. half a slot of the best Energy for Everyone user is worth half a slot of the best egg
+ * gatherer's eggs. Used for hybrids' ingredients ({@link skillAsIngredient}) and for strength Pokémon whose
+ * skill also does a support skill's job (Latias's Heal Pulse restores energy as Energizing Cheer does).
+ * 0 if either has no reference (e.g. a skill only strength Pokémon have).
  */
+export function supportSkillAs(
+	skill: string,
+	category: RankCategory,
+	detail: YieldDetail,
+	options: YieldOptions,
+	strength: StrengthOptions,
+): number {
+	const refs = rankReferences(options, strength);
+	const perSlot = refs.get(category);
+	const skillPerSlot = refs.get(`skill:${skillKind(skill)}`);
+	return perSlot && skillPerSlot ? (perSlot * skillValueOf(detail)) / skillPerSlot : 0;
+}
+
+/** A hybrid's skill as the amount of an ingredient it's worth, in slots (see {@link supportSkillAs}). */
 export function skillAsIngredient(
 	skill: string,
 	ingredient: string,
@@ -106,16 +122,19 @@ export function skillAsIngredient(
 	options: YieldOptions,
 	strength: StrengthOptions,
 ): number {
-	const refs = rankReferences(options, strength);
-	const perSlot = refs.get(`ingredient:${ingredient}`);
-	const skillPerSlot = refs.get(`skill:${skillKind(skill)}`);
-	return perSlot && skillPerSlot ? (perSlot * skillValueOf(detail)) / skillPerSlot : 0;
+	return supportSkillAs(skill, `ingredient:${ingredient}`, detail, options, strength);
 }
 
-/** A hybrid's skill credit in an ingredient category, in that ingredient (0 for everyone else). */
+/**
+ * The support part of a Pokémon's skill counted in a category (included in its value there): a hybrid's skill
+ * in its ingredients, or a strength Pokémon's support skill (Heal Pulse, Lunar Blessing, Aura Sphere) in its
+ * strength. 0 for everyone else.
+ */
 function skillCredit(problem: RatingProblem, category: RankCategory, detail: YieldDetail): number {
-	if (problem.role !== "hybrid" || !category.startsWith("ingredient:")) return 0;
-	return skillAsIngredient(problem.skill, category.slice("ingredient:".length), detail, problem.options, problem.strength);
+	const counts =
+		(problem.role === "hybrid" && category.startsWith("ingredient:")) ||
+		(problem.role === "strength" && problem.skillHasSupportPart && category.startsWith("strength:"));
+	return counts ? supportSkillAs(problem.skill, category, detail, problem.options, problem.strength) : 0;
 }
 
 /** A category a Pokémon is ranked in, and the ingredient combinations it's measured with in the population. */
@@ -229,8 +248,9 @@ export interface Rank {
 	/** For ingredient ranks: the Pokémon's ingredient strength per day, all its ingredients together. */
 	ingredientStrength?: number;
 	/**
-	 * For a hybrid's ingredient rank: its skill counted as the ingredient (included in `value`), as a share of
-	 * what a neutral Pokémon of the best species with that kind of skill (`best`) gives.
+	 * For a hybrid's ingredient rank, or a strength Pokémon with a support skill: the skill's support part
+	 * counted in the category (included in `value`), as a share of what a neutral Pokémon of the best species
+	 * with that kind of skill (`best`) gives.
 	 */
 	skillCredit?: { amount: number; share: number; skill: string; best: string };
 }
@@ -265,9 +285,9 @@ export function rankEntry(
 			};
 		}
 	}
-	if (best?.category.startsWith("ingredient:")) {
+	if (best) {
 		const detail = problem.detailOf(entry.nature, own);
-		best.ingredientStrength = ingredientStrengthPerDay(detail);
+		if (best.category.startsWith("ingredient:")) best.ingredientStrength = ingredientStrengthPerDay(detail);
 		const amount = skillCredit(problem, best.category, detail);
 		const skillCategory = `skill:${skillKind(problem.skill)}`;
 		const perSlot = rankReferences(options, strength).get(skillCategory);
