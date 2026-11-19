@@ -341,20 +341,37 @@ export function rankTableSteps(job: RankJob, options: YieldOptions, strength: St
 	})();
 }
 
+/** Builds one category's table in one go (a web worker, the build script and tests). */
+export function buildRankTable(job: RankJob, options: YieldOptions, strength: StrengthOptions, rolls = rollSampleSize): RankTable {
+	const steps = rankTableSteps(job, options, strength, rolls);
+	for (;;) {
+		const next = steps.next();
+		if (next.done) return next.value;
+	}
+}
+
 /** Builds every category's table for these settings in one go (the build script and tests). */
 export function buildRankTables(options: YieldOptions, strength: StrengthOptions, note: string, rolls = rollSampleSize): RankTables {
 	const categories: Record<RankCategory, RankTable> = {};
-	for (const [category, job] of rankBest(options, strength)) {
-		const steps = rankTableSteps(job, options, strength, rolls);
-		for (;;) {
-			const next = steps.next();
-			if (next.done) {
-				categories[category] = next.value;
-				break;
-			}
-		}
-	}
+	for (const [category, job] of rankBest(options, strength)) categories[category] = buildRankTable(job, options, strength, rolls);
 	return { note, categories };
+}
+
+/** A job as sent to a web worker (plain data; the species by name). */
+export interface RankJobMessage {
+	pokemonName: string;
+	category: RankCategory;
+	combos: IngredientType[];
+}
+
+export function rankJobMessage(job: RankJob): RankJobMessage {
+	return { pokemonName: job.pokemon.name, category: job.category, combos: job.combos };
+}
+
+export function rankJobOfMessage(message: RankJobMessage): RankJob {
+	const pokemon = pokemons.find((p) => p.name === message.pokemonName);
+	if (!pokemon) throw new Error(`Unknown Pokémon: ${message.pokemonName}`);
+	return { pokemon, category: message.category, combos: message.combos };
 }
 
 /** The categories a Pokémon is ranked in under these settings (its tables must be there for {@link rankEntry}). */

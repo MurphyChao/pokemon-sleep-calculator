@@ -5,12 +5,14 @@ import {
 	type RankTable,
 	type RankTables,
 	rankBest,
+	rankJobMessage,
 	rankOptions,
 	rankSettingsKey,
 	rankStrengthOptions,
 	rankTableSteps,
 } from "../core/rank";
 import type { StrengthOptions, YieldOptions } from "../core/yield";
+import { computePool, type Job } from "./computePool";
 
 /** Time spent building per slice before letting the page update. */
 const sliceMs = 30;
@@ -32,6 +34,8 @@ interface Built {
 }
 /** What's been built or loaded this visit, by settings key. */
 const memory = new Map<string, Built>();
+/** Tables being built by the web workers, by settings key and category. */
+const inflight = new Map<string, { key: string; job: Job<RankTable> }>();
 
 interface CachedTables {
 	version: number;
@@ -77,7 +81,8 @@ export interface RankTablesState {
  * The rank's tables for these settings, for the categories asked for (those the box's Pokémon are ranked in).
  * For the app's defaults, all of them come shipped, loaded separately so they don't hold up the page.
  * Otherwise each category is built in the browser the first time it's needed (finding the best species is
- * quick; rolling it is the slow part), a slice at a time, and cached. Undefined until the shipped tables load.
+ * quick; rolling it is the slow part), in web workers in parallel (see computePool.ts) or, where there are
+ * none, on the page a slice at a time, and cached. Undefined until the shipped tables load.
  */
 export function useRankTables(
 	options: YieldOptions,
@@ -115,6 +120,35 @@ export function useRankTables(
 			.split("\n")
 			.filter((c) => best.has(c) && !built.categories[c])
 			.map((c) => best.get(c) as RankJob);
+		const finish = (category: RankCategory, table: RankTable) => {
+			built.categories = { ...built.categories, [category]: table };
+			writeCache(key, built.categories);
+		};
+		const pool = computePool();
+		if (pool) {
+			// Each table on the least busy worker, in parallel; ones for other settings are dropped.
+			for (const [id, { key: other, job }] of inflight) {
+				if (other !== key) {
+					job.cancel();
+					inflight.delete(id);
+				}
+			}
+			for (const rankJob of todo) {
+				const id = `${key}\n${rankJob.category}`;
+				if (inflight.has(id)) continue;
+				const job = pool.run({ kind: "rankTable", job: rankJobMessage(rankJob), options, strength });
+				inflight.set(id, { key, job });
+				job.promise.then(
+					(table) => {
+						inflight.delete(id);
+						finish(rankJob.category, table);
+						refresh();
+					},
+					() => inflight.delete(id),
+				);
+			}
+			return;
+		}
 		if (todo.length === 0) return;
 		let steps = rankTableSteps(todo[0], options, strength);
 		const step = () => {
@@ -123,8 +157,7 @@ export function useRankTables(
 				const next = steps.next();
 				if (!next.done) continue;
 				const job = todo.shift() as RankJob;
-				built.categories = { ...built.categories, [job.category]: next.value };
-				writeCache(key, built.categories);
+				finish(job.category, next.value);
 				refresh();
 				if (todo.length === 0) return;
 				steps = rankTableSteps(todo[0], options, strength);

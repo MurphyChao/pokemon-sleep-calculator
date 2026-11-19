@@ -71,8 +71,11 @@ calculation. What is measured depends on what the Pokémon is kept for, not just
 
 For the hybrid, each measure is taken relative to the same Pokémon with a neutral nature and no subskills, so the
 two can be added up. The best build (for the tooltip) is found by a local search (`searchBest` in `src/core/rating.ts`); checked
-against an exhaustive search over every Pokémon, it finds the same optimum. Code: `src/core/rating.ts`,
-`src/ui/useRatings.ts`.
+against an exhaustive search over every Pokémon, it finds the same optimum.
+
+Rarity and Rank are computed in web workers, off the page and in parallel: one per spare CPU core, at most 4, each
+species always on the same worker so its rolls are computed once (`src/ui/computePool.ts`). Without web workers the
+page computes them itself, a slice at a time. Code: `src/core/rating.ts`, `src/ui/useRatings.ts`.
 
 ## Rank
 
@@ -101,8 +104,8 @@ the roll's ingredient combination), and **your settings** (inventory limit, slee
 berries, island bonus). The best species and its rolls therefore depend on the settings, and can change with them. For the
 app's defaults the tables are shipped, built by `npm run build-rank-tables` (about 5 seconds) into
 `src/data/rank-tables.json` and loaded separately from the page. For any other settings the browser builds them with the
-same code, but only the categories the box's Pokémon are ranked in, each the first time it's needed, in box order, a
-slice at a time so the page stays usable (their Pokémon show "Rank…" meanwhile). Finding the best species takes a
+same code, but only the categories the box's Pokémon are ranked in, each the first time it's needed, in the web workers
+(see Rarity; their Pokémon show "Rank…" meanwhile). Finding the best species takes a
 fraction of a second; rolling it is the slow part, from about 20 ms (inventory limit off) to about 350 ms (simulated
 energy) per category. Built tables are kept in the browser for the last three settings
 (`pscalc-rank-tables`, not synced). Rerun the script after syncing new Pokémon or changing how ranks are measured (and
