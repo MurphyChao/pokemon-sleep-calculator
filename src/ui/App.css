@@ -1211,6 +1211,16 @@ button.icon-select-button {
 	.filter-row .field-label {
 		min-width: 100%;
 	}
+	/* "Kept for": its label beside smaller pills, all on one line. */
+	.filter-row:has(.filter-text) .field-label {
+		min-width: 0;
+		margin-right: 2px;
+	}
+	.filter-row:has(.filter-text) .filter-all,
+	.filter-row .filter-choice:has(> .filter-text) {
+		padding: 0 7px;
+		font-size: 0.78rem;
+	}
 	.filter-choice .type-icon,
 	.filter-choice .ing-icon {
 		width: 30px;
