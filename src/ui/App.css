@@ -1240,6 +1240,31 @@ button.icon-select-button {
 		width: 24px;
 		height: 24px;
 	}
+	/* Ingredients the same way, with the short label ("Ingredients" for "Ingredients (unlocked)"). */
+	.filter-row:has(.ing-icon) {
+		gap: 2px;
+	}
+	.filter-row:has(.ing-icon) .field-label {
+		min-width: 0;
+		margin-right: 2px;
+	}
+	.filter-row .field-label .label-long {
+		display: none;
+	}
+	.filter-row .field-label .label-short {
+		display: inline;
+	}
+	.filter-row:has(.ing-icon) .filter-all {
+		padding: 0 7px;
+		font-size: 0.78rem;
+	}
+	.filter-row:has(.ing-icon) .filter-choice {
+		padding: 1px;
+	}
+	.filter-row .filter-choice .ing-icon {
+		width: 24px;
+		height: 24px;
+	}
 	.filter-choice .type-icon,
 	.filter-choice .ing-icon {
 		width: 30px;

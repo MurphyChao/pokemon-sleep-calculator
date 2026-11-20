@@ -459,6 +459,7 @@ export default function BoxView(props: {
 						/>
 						<FilterRow
 							label={t("filterIngredient")}
+							shortLabel={t("filterIngredientShort")}
 							choices={ingredientChoices}
 							selected={filter.ingredients}
 							onChange={(ingredients) => setFilter({ ...filter, ingredients })}
@@ -618,17 +619,26 @@ function learnFromReading(reading: ScreenshotReading | undefined, pokemonName: s
  */
 function FilterRow<T extends string>(props: {
 	label: string;
+	/** A shorter label for phones (App.css), e.g. "Ingredients" for "Ingredients (unlocked)". */
+	shortLabel?: string;
 	choices: readonly T[];
 	selected: T[];
 	onChange: (selected: T[]) => void;
 	name: (choice: T) => string;
 	icon: (choice: T) => ReactNode;
 }) {
-	const { label, choices, selected, onChange, name, icon } = props;
+	const { label, shortLabel, choices, selected, onChange, name, icon } = props;
 	const all = selected.length === 0;
 	return (
 		<div className="filter-row" role="group" aria-label={label} title={t("filterHelp")}>
-			<span className="field-label">{label}</span>
+			{shortLabel ? (
+				<span className="field-label">
+					<span className="label-long">{label}</span>
+					<span className="label-short">{shortLabel}</span>
+				</span>
+			) : (
+				<span className="field-label">{label}</span>
+			)}
 			<button type="button" className={all ? "filter-all" : "filter-all secondary"} aria-pressed={all} onClick={() => onChange([])}>
 				{t("filterAll")}
 			</button>
