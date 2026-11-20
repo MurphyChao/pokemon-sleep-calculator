@@ -365,8 +365,13 @@ export default function BoxView(props: {
 								</label>
 								{evolutionChoices(draft).length > 0 && (
 									<label className="evolve-field">
-										{t("evolvesInto")}
+										{/* Phones put this beside the Pokémon, labelled just "→" (App.css). */}
+										<span className="label-long">{t("evolvesInto")}</span>
+										<span className="label-short" aria-hidden="true">
+											→
+										</span>
 										<select
+											aria-label={t("evolvesInto")}
 											value={finalFormOf(draft) ?? ""}
 											onChange={(e) => setDraft({ ...draft, evolveTo: e.target.value })}
 										>

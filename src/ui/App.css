@@ -1603,21 +1603,33 @@ button.icon-select-button {
 		grid-column: 1 / -1;
 		order: 5;
 	}
-	/* "Evolves into" (branching Pokémon only): its own row at the end, the explanation hidden. */
-	.modal .form-grid > :nth-child(6) {
-		grid-column: 1 / -1;
-		order: 6;
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 6px;
+	/*
+	 * "Evolves into" (branching Pokémon only): beside the Pokémon on its row, labelled "→", without the
+	 * explanation: "Pokémon [Ralts] → [Gardevoir ▾]".
+	 */
+	.modal .form-grid:has(> .evolve-field) > :nth-child(1) {
+		grid-column: 1;
 	}
-	.modal .form-grid > :nth-child(6) > select {
+	.modal .form-grid > .evolve-field {
+		grid-column: 2;
+		order: 1;
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+	}
+	.modal .form-grid > .evolve-field > select {
 		flex: 1;
 		width: auto;
+		padding-left: 2px;
+		padding-right: 0;
+		font-size: 0.75rem;
 	}
-	.modal .form-grid > :nth-child(6) > .muted.small {
+	.modal .form-grid > .evolve-field .label-long,
+	.modal .form-grid > .evolve-field > .muted.small {
 		display: none;
+	}
+	.modal .form-grid > .evolve-field .label-short {
+		display: inline;
 	}
 	.modal .form-grid input,
 	.modal .form-grid select {
