@@ -15,7 +15,11 @@ Three options change the Pokémon the numbers are worked out for, on the Box tab
 changing the saved box: **Final evolution** (every Pokémon as its final form, main skill +1 per evolution;
 branching lines become the form chosen for them, see below), **Max Sub Skill Seeds** (unlocked subskills upgraded S → M → L as far as they go) and
 **Level scaling** (lower-level Pokémon counted at the chosen level). The Box table keeps showing the real Pokémon
-and marks what changed (e.g. "→ Venusaur", "10→60", upgraded subskill icons).
+and marks what changed (e.g. "→ Venusaur", "10→60", upgraded subskill icons). Its **Productivity / day** column shows
+what each Pokémon produces with these options and your settings, for what it's kept for (as Rarity sees it): strength
+and skill triggers for strength Pokémon (e.g. Sceptile), skill triggers and what they give (energy, Extra Tasty chance,
+dream shards) for support and ingredients + skill Pokémon (e.g. Gardevoir, Chansey, Cramorant), then everyone's
+ingredients per day (skill ingredients included).
 
 Both solvers count **Helping Bonus**: each slot filled by Pokémon with it makes everyone else on the team help 5%
 faster (pokesleep-tool's model, including the 35% cap with speed subskills). Since that makes each Pokémon's output

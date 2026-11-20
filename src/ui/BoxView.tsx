@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type BoxEntry, defaultEvolution, evolutionChoices, finalFormOf } from "../core/box";
-import type { Rating } from "../core/rating";
+import { type Rating, ratingRole } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
 import pokemons, {
 	getPokemonRarity,
@@ -544,7 +544,7 @@ export default function BoxView(props: {
 										<RankCell rank={ranks.get(e.id)} />
 									</td>
 									<td>
-										<YieldSummary detail={details.get(e.id)} />
+										<YieldSummary detail={details.get(e.id)} pokemonName={a.pokemonName} />
 									</td>
 									<td className="row-actions">
 										<button
@@ -640,8 +640,47 @@ function FilterRow<T extends string>(props: {
 	);
 }
 
-/** Help ingredients first, then skill-only ingredients, e.g. "Soft Potato 16 (+3.1 skill)". */
-function YieldSummary(props: { detail: YieldDetail | undefined }) {
+const specialtyByName = new Map(pokemons.map((p) => [p.name, p.specialty]));
+const skillByName = new Map(pokemons.map((p) => [p.name, p.skill]));
+
+/**
+ * What a Pokémon produces per day, for what it's kept for (its rating role): strength and skill triggers for a
+ * strength Pokémon, skill triggers (and what they give) for a support or hybrid one; nothing extra for an
+ * ingredient Pokémon, whose skill's ingredients are in the ingredients below.
+ */
+function SpecialtySummary(props: { detail: YieldDetail; pokemonName: string }) {
+	const { detail } = props;
+	const role = ratingRole(specialtyByName.get(props.pokemonName) ?? "", detail);
+	if (role === "ingredients") return null;
+	const whole = (n: number) => new Intl.NumberFormat(getLang(), { maximumFractionDigits: 0 }).format(n);
+	const triggers = new Intl.NumberFormat(getLang(), { maximumFractionDigits: 1 }).format(detail.skillsPerDay);
+	// What the skill gives, where it has a unit worth showing.
+	const skill = skillByName.get(props.pokemonName) ?? "";
+	const gives = detail.heal
+		? t("prodEnergy", { n: whole(detail.skillValue) })
+		: detail.tasty
+			? t("prodTasty", { n: whole(detail.skillValue) })
+			: skill.startsWith("Dream Shard")
+				? t("prodShards", { n: whole(detail.skillValue) })
+				: "";
+	return (
+		<>
+			{role === "strength" && (
+				<div className="prod">{t("prodStrength", { n: whole(detail.berryStrength + detail.skillStrength) })}</div>
+			)}
+			<div className="prod">
+				{t("prodSkills", { n: triggers })}
+				{gives && role !== "strength" && <span className="muted"> {gives}</span>}
+			</div>
+		</>
+	);
+}
+
+/**
+ * The Pokémon's productivity per day: its specialty's numbers ({@link SpecialtySummary}), then help
+ * ingredients, then skill-only ingredients, e.g. "Soft Potato 16 (+3.1 skill)".
+ */
+function YieldSummary(props: { detail: YieldDetail | undefined; pokemonName: string }) {
 	const detail = props.detail;
 	if (!detail) return null;
 	const help = Object.entries(detail.help) as [IngredientName, number][];
@@ -650,6 +689,7 @@ function YieldSummary(props: { detail: YieldDetail | undefined }) {
 	const skillKinds = Object.keys(detail.skill).length;
 	return (
 		<>
+			<SpecialtySummary detail={detail} pokemonName={props.pokemonName} />
 			{help.map(([ing, n]) => {
 				const fromSkill = detail.skill[ing] ?? 0;
 				return (

@@ -756,3 +756,27 @@ test("a branching Pokémon evolves into the default form, or the one chosen in t
 	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].evolveTo).toBe("Gallade");
 	expect(within(box).getByRole("button", { name: "→ Gallade" })).toBeTruthy();
 });
+
+test("the productivity column shows each Pokémon's specialty per day before its ingredients", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			entry("sceptile", "Sceptile", "AAA", 4),
+			entry("gardevoir", "Gardevoir", "AAA", 3),
+			entry("chansey", "Chansey", "AAA", 3),
+			entry("sandslash", "Sandslash", "AAA", 4),
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	expect(within(box).getByText("Productivity / day")).toBeTruthy();
+	const cell = (label: string) => (rowOf(box, label).querySelector("td:nth-last-child(2)") as HTMLElement).textContent ?? "";
+	// Strength Pokémon: strength and skill triggers; support: triggers and what they give; hybrid: triggers.
+	expect(cell("Sceptile")).toMatch(/^Strength [\d,]+Skill ×[\d.]+/);
+	expect(cell("Gardevoir")).toMatch(/^Skill ×[\d.]+ \(\+[\d,]+ energy\)/);
+	expect(cell("Chansey")).toMatch(/^Skill ×[\d.]+/);
+	// Ingredient Pokémon: just their ingredients (the skill's included).
+	expect(cell("Sandslash")).not.toMatch(/Strength|Skill ×/);
+	// Everyone still shows ingredients.
+	for (const name of ["Sceptile", "Gardevoir", "Chansey", "Sandslash"]) expect(rowOf(box, name).querySelector("td:nth-last-child(2) .ing-icon")).toBeTruthy();
+});
