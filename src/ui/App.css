@@ -948,6 +948,19 @@ button.icon-select-button {
 .filter-choice.selected {
 	border-color: var(--accent);
 }
+/* Text choices ("Strength", "Skill"…): pills rather than round icons. */
+.filter-choice:has(> .filter-text) {
+	padding: 1px 10px;
+	border: 2px solid var(--border);
+	border-radius: 999px;
+	color: var(--text);
+	font-size: 0.85rem;
+	line-height: 1.5;
+}
+.filter-choice.selected:has(> .filter-text) {
+	border-color: var(--accent);
+	color: var(--accent);
+}
 .filter-choice.dim {
 	opacity: 0.35;
 }

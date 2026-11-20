@@ -788,3 +788,29 @@ test("the productivity column shows each Pokémon's specialty per day before its
 	// Everyone still shows ingredients.
 	for (const name of ["Sceptile", "Gardevoir", "Chansey", "Sandslash"]) expect(rowOf(box, name).querySelector("td:nth-last-child(2) .ing-icon")).toBeTruthy();
 });
+
+test("the Box can be filtered by what each Pokémon is kept for, as its final form", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([
+			entry("sceptile", "Sceptile", "AAA", 4),
+			entry("ralts", "Ralts", "AAA", 2),
+			entry("eevee", "Eevee", "AAA", 1),
+			entry("chansey", "Chansey", "AAA", 3),
+			entry("sandslash", "Sandslash", "AAA", 4),
+		]),
+	);
+	render(<App />);
+	const box = section("Your box");
+	const filter = within(box).getByRole("group", { name: "Kept for" });
+	const shown = () => [...box.querySelectorAll("tbody tr")].map((r) => r.querySelector("td:nth-child(2)")?.textContent?.split(/[→\s]/)[0]);
+	fireEvent.click(within(filter).getByRole("button", { name: "Skill" }));
+	// Ralts counts as Gardevoir (support), Chansey is ingredients + skill.
+	expect(shown().sort()).toEqual(["Chansey", "Ralts"]);
+	fireEvent.click(within(filter).getByRole("button", { name: "Skill" }));
+	fireEvent.click(within(filter).getByRole("button", { name: "Strength" }));
+	// Eevee counts as Espeon by default.
+	expect(shown().sort()).toEqual(["Eevee", "Sceptile"]);
+	fireEvent.click(within(filter).getByRole("button", { name: "Ingredients" }));
+	expect(shown().sort()).toEqual(["Chansey", "Eevee", "Sandslash", "Sceptile"]);
+});

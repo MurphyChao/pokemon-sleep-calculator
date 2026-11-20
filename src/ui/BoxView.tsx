@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type BoxEntry, defaultEvolution, evolutionChoices, finalFormOf } from "../core/box";
-import { type Rating, ratingRole } from "../core/rating";
+import { type Rating, type RatingRole, ratingRole } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
 import pokemons, {
 	getPokemonRarity,
@@ -26,7 +26,7 @@ import { StatGlyph } from "./SubSkillGlyph";
 import RatingCell from "./RatingCell";
 import RankCell from "./RankCell";
 import type { Rank } from "../core/rank";
-import { type BoxFilter, matchesFilter, noFilter, toggleChoice, unlockedIngredients } from "./boxFilter";
+import { type BoxFilter, type Job, jobs, matchesFilter, noFilter, toggleChoice, unlockedIngredients } from "./boxFilter";
 import { TypeIcon } from "./TypeIcon";
 import { comboFromIcons } from "../ocr/combo";
 import type { ScreenshotReading } from "../ocr/read";
@@ -136,8 +136,10 @@ export default function BoxView(props: {
 	ratings: Map<string, Rating | null>;
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
 	ranks: Map<string, Rank | null>;
+	/** What each Pokémon is kept for, as its final form (the job filter). */
+	roles: Map<string, RatingRole | undefined>;
 }) {
-	const { box, adjusted, setBox, details, ratings, ranks, panelOpen, setPanelOpen } = props;
+	const { box, adjusted, setBox, details, ratings, ranks, roles, panelOpen, setPanelOpen } = props;
 	const adjustedById = useMemo(() => new Map(adjusted.map((e) => [e.id, e])), [adjusted]);
 	const [draft, setDraft] = useState<BoxEntry>(emptyDraft);
 	/** What's typed in the Pokémon box (in either language); draft.pokemonName is the English name. */
@@ -194,8 +196,9 @@ export default function BoxView(props: {
 	const filter: BoxFilter = {
 		types: (storedFilter.types ?? []).filter((x) => PokemonTypes.includes(x)),
 		ingredients: (storedFilter.ingredients ?? []).filter((x) => ingredientChoices.includes(x)),
+		jobs: (storedFilter.jobs ?? []).filter((x) => jobs.includes(x)),
 	};
-	const shownBox = sortedBox.filter((e) => matchesFilter(e, adjustedById.get(e.id) ?? e, filter));
+	const shownBox = sortedBox.filter((e) => matchesFilter(e, adjustedById.get(e.id) ?? e, filter, roles.get(e.id)));
 	const validName = pokemonNames.includes(draft.pokemonName);
 	const draftPokemon = pokemons.find((p) => p.name === draft.pokemonName);
 	const maxSkillLevel = draftPokemon ? getMaxSkillLevel(draftPokemon.skill) : 1;
@@ -439,6 +442,14 @@ export default function BoxView(props: {
 				{box.length > 0 && (
 					<div className="box-filters">
 						<FilterRow
+							label={t("filterJob")}
+							choices={jobs}
+							selected={filter.jobs}
+							onChange={(selected) => setFilter({ ...filter, jobs: selected })}
+							name={(job: Job) => t(jobLabels[job])}
+							icon={(job: Job) => <span className="filter-text">{t(jobLabels[job])}</span>}
+						/>
+						<FilterRow
 							label={t("filterType")}
 							choices={PokemonTypes}
 							selected={filter.types}
@@ -640,6 +651,12 @@ function FilterRow<T extends string>(props: {
 		</div>
 	);
 }
+
+const jobLabels: Record<Job, "jobStrength" | "jobIngredients" | "jobSkill"> = {
+	strength: "jobStrength",
+	ingredients: "jobIngredients",
+	skill: "jobSkill",
+};
 
 const specialtyByName = new Map(pokemons.map((p) => [p.name, p.specialty]));
 const skillByName = new Map(pokemons.map((p) => [p.name, p.skill]));

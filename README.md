@@ -137,11 +137,13 @@ bump `cacheVersion` in `src/ui/useRankTables.ts`). Code: `src/core/rank.ts`, `sr
 
 ## Box filters
 
-The Box table can be filtered by type (the game's type icons) and by ingredient: only ingredients a Pokémon has
+The Box table can be filtered by what each Pokémon is kept for (**Strength**, **Ingredients** or **Skill**: its role as
+Rarity rates it, as its final form, so an Eevee counts as an Espeon by default; hybrids like Blissey count as both
+Ingredients and Skill), by type (the game's type icons) and by ingredient: only ingredients a Pokémon has
 unlocked count (at its level, or the scaled level with Level scaling on), and only ingredients someone in the box
 has unlocked are offered. With nothing selected everything is shown; the first click on a choice shows only it,
-further clicks add or remove choices, and "All" clears a row. A Pokémon is shown if it has any selected type and any
-selected ingredient. The filters are remembered.
+further clicks add or remove choices, and "All" clears a row. A Pokémon is shown if it matches a selected choice in every row
+that has a selection. The filters are remembered.
 
 ## Screenshot import
 

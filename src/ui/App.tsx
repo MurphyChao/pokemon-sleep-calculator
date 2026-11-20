@@ -21,7 +21,8 @@ import { useStoredState } from "./storage";
 import { type Theme, themes, useTheme } from "./theme";
 import SyncControl from "./SyncControl";
 import { useRatings } from "./useRatings";
-import { type Rank, type RankCategory, rankEntry, rankEntryCategories, rankSettingsKey } from "../core/rank";
+import { type Rank, type RankCategory, rankEntry, rankEntryJob, rankSettingsKey } from "../core/rank";
+import type { RatingRole } from "../core/rating";
 import { useRankTables } from "./useRankTables";
 
 type Tab = "box" | "slots" | "energy";
@@ -149,18 +150,26 @@ export default function App() {
 	const ratedBox = useMemo(() => evolveToFinal(mathBox, true), [mathBox]);
 	const ratings = useRatings(tab === "box" ? ratedBox : noEntries, options, energy);
 	const rankKey = rankSettingsKey(options, energy);
-	/** The categories each Pokémon is ranked in with these settings (they decide which tables are needed). */
-	const rankCategoriesById = useMemo(() => {
-		const map = new Map<string, RankCategory[]>();
+	/**
+	 * What each Pokémon is kept for, as its final form (the Box's job filter), and the categories it's ranked in
+	 * with these settings (they decide which tables are needed).
+	 */
+	const jobsById = useMemo(() => {
+		const map = new Map<string, { role?: RatingRole; categories: RankCategory[] }>();
 		for (const e of ratedBox) {
 			try {
-				map.set(e.id, rankEntryCategories(e, options, energy));
+				map.set(e.id, rankEntryJob(e, options, energy));
 			} catch {
-				map.set(e.id, []);
+				map.set(e.id, { categories: [] });
 			}
 		}
 		return map;
 	}, [ratedBox, rankKey]);
+	const rankCategoriesById = useMemo(
+		() => new Map([...jobsById].map(([id, job]) => [id, job.categories])),
+		[jobsById],
+	);
+	const rolesById = useMemo(() => new Map([...jobsById].map(([id, job]) => [id, job.role])), [jobsById]);
 	const neededRankCategories = useMemo(() => [...rankCategoriesById.values()].flat(), [rankCategoriesById]);
 	/** The rank's tables for these settings: shipped for the defaults, otherwise built as the box needs them. */
 	const rankTables = useRankTables(options, energy, neededRankCategories);
@@ -386,6 +395,7 @@ export default function App() {
 						details={details}
 						ratings={ratings}
 						ranks={ranks}
+						roles={rolesById}
 						panelOpen={addOpen}
 						setPanelOpen={setAddOpen}
 					/>

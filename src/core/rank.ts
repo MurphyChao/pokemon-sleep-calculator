@@ -35,6 +35,7 @@ import {
 	helpingBonusTeamValue,
 	natureClass,
 	type RatingProblem,
+	type RatingRole,
 	ratingProblem,
 	rollSampleSize,
 	rollSeed,
@@ -477,5 +478,15 @@ export function rankEntryCategories(
 	options: YieldOptions = rankOptions,
 	strength: StrengthOptions = rankStrengthOptions,
 ): RankCategory[] {
-	return rankCategories(ratingProblem(entry, options, strength), toPokemonIv(entry).pokemon).map((c) => c.category);
+	return rankEntryJob(entry, options, strength).categories;
+}
+
+/** What a Pokémon is kept for (its rating role) and the categories it's ranked in, from one rating problem. */
+export function rankEntryJob(
+	entry: BoxEntry,
+	options: YieldOptions = rankOptions,
+	strength: StrengthOptions = rankStrengthOptions,
+): { role: RatingRole; categories: RankCategory[] } {
+	const problem = ratingProblem(entry, options, strength);
+	return { role: problem.role, categories: rankCategories(problem, toPokemonIv(entry).pokemon).map((c) => c.category) };
 }
