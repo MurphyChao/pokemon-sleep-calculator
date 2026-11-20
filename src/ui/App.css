@@ -1024,6 +1024,16 @@ button.icon-select-button {
 	cursor: pointer;
 }
 
+/* The productivity column's compact forms ("26K", the skill icon) are for phones only (below). */
+.prod-compact {
+	display: none;
+}
+.prod .stat-icon {
+	width: 13px;
+	height: 13px;
+	vertical-align: -2px;
+}
+
 /* Shorter labels on phones (below). */
 .label-short {
 	display: none;
@@ -2021,6 +2031,16 @@ button.icon-select-button {
 	.box-list table.stack td:nth-child(9) img.ing-icon {
 		width: 15px;
 		height: 15px;
+	}
+	/* Productivity: compact strength ("26K") and the skill icon instead of "Skill", closer together. */
+	.box-list table.stack td:nth-child(9) > div {
+		margin-right: 7px;
+	}
+	.box-list .prod .prod-full {
+		display: none;
+	}
+	.box-list .prod .prod-compact {
+		display: inline;
 	}
 	.box-list table.stack .subskill-icon {
 		width: 17px;

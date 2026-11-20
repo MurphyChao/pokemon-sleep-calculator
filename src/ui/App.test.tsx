@@ -770,13 +770,21 @@ test("the productivity column shows each Pokémon's specialty per day before its
 	render(<App />);
 	const box = section("Your box");
 	expect(within(box).getByText("Productivity / day")).toBeTruthy();
-	const cell = (label: string) => (rowOf(box, label).querySelector("td:nth-last-child(2)") as HTMLElement).textContent ?? "";
+	// The text as wider screens show it (phones show the .prod-compact forms instead).
+	const cell = (label: string) => {
+		const td = (rowOf(box, label).querySelector("td:nth-last-child(2)") as HTMLElement).cloneNode(true) as HTMLElement;
+		for (const el of td.querySelectorAll(".prod-compact")) el.remove();
+		return td.textContent ?? "";
+	};
 	// Strength Pokémon: strength and skill triggers; support: triggers and what they give; hybrid: triggers.
 	expect(cell("Sceptile")).toMatch(/^Strength [\d,]+Skill ×[\d.]+/);
 	expect(cell("Gardevoir")).toMatch(/^Skill ×[\d.]+ \(\+[\d,]+ energy\)/);
 	expect(cell("Chansey")).toMatch(/^Skill ×[\d.]+/);
 	// Ingredient Pokémon: just their ingredients (the skill's included).
 	expect(cell("Sandslash")).not.toMatch(/Strength|Skill ×/);
+	// Phones get a compact strength ("25.9K"), with the full numbers in the tooltip.
+	expect(rowOf(box, "Sceptile").querySelector(".prod .prod-compact")?.textContent).toMatch(/^[\d.]+K$/);
+	expect(rowOf(box, "Sceptile").querySelector(".prod")?.getAttribute("title")).toMatch(/^Strength [\d,]+ per day/);
 	// Everyone still shows ingredients.
 	for (const name of ["Sceptile", "Gardevoir", "Chansey", "Sandslash"]) expect(rowOf(box, name).querySelector("td:nth-last-child(2) .ing-icon")).toBeTruthy();
 });

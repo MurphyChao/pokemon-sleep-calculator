@@ -22,6 +22,7 @@ import { IngredientIcon, IngredientIcons } from "./IngredientIcons";
 import { NatureEffects } from "./NatureEffects";
 import { SubSkillIcons } from "./SubSkillIcons";
 import { PencilIcon, TrashIcon } from "./icons";
+import { StatGlyph } from "./SubSkillGlyph";
 import RatingCell from "./RatingCell";
 import RankCell from "./RankCell";
 import type { Rank } from "../core/rank";
@@ -663,13 +664,22 @@ function SpecialtySummary(props: { detail: YieldDetail; pokemonName: string }) {
 			: skill.startsWith("Dream Shard")
 				? t("prodShards", { n: whole(detail.skillValue) })
 				: "";
+	const strength = detail.berryStrength + detail.skillStrength;
+	// Phones show the compact forms (App.css): "26K" instead of "26,245", the skill icon instead of "Skill".
+	const compact = new Intl.NumberFormat(getLang(), { notation: "compact", maximumFractionDigits: 1 }).format(strength);
 	return (
 		<>
 			{role === "strength" && (
-				<div className="prod">{t("prodStrength", { n: whole(detail.berryStrength + detail.skillStrength) })}</div>
+				<div className="prod" title={t("prodStrengthTitle", { n: whole(strength) })}>
+					{t("prodStrength")} <span className="prod-full">{whole(strength)}</span>
+					<span className="prod-compact" aria-hidden="true">
+						{compact}
+					</span>
+				</div>
 			)}
-			<div className="prod">
-				{t("prodSkills", { n: triggers })}
+			<div className="prod" title={t("prodSkillsTitle", { n: triggers })}>
+				<span className="prod-full">{t("prodSkills")} </span>
+				<StatGlyph stat="Main skill chance" className="stat-icon prod-compact" />×{triggers}
 				{gives && role !== "strength" && <span className="muted"> {gives}</span>}
 			</div>
 		</>
