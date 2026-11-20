@@ -59,7 +59,7 @@ export default function ScreenshotImport(props: {
 	onReview: (item: ImportItem) => void;
 }) {
 	const { items, setItems, reviewingId, onReview } = props;
-	const [lang, setLang] = useStoredState<ScreenshotLang>("pscalc.screenshotLang", getLang() === "zh-TW" ? "zh-TW" : "en");
+	const [lang, setLang] = useStoredState<ScreenshotLang>("pscalc.screenshotLang", getLang());
 	const [loading, setLoading] = useState<number | undefined>();
 	const [dragging, setDragging] = useState(false);
 	const [error, setError] = useState<string | undefined>();

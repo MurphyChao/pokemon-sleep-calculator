@@ -18,6 +18,8 @@ const extraFiles = [
 	"src/i18n/zh-TW/common.json",
 	"src/i18n/ja/data.json",
 	"src/i18n/ja/pokemons.json",
+	"src/i18n/ja/skills.json",
+	"src/i18n/ja/common.json",
 ];
 
 const seen = new Set(extraFiles);

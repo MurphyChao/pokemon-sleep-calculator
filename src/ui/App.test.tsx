@@ -357,6 +357,39 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(section("Best team").textContent).toMatch(/[\d,]+ strength \/ day/);
 });
 
+test("language: Japanese UI and game terms, typing a Japanese Pokémon name", () => {
+	localStorage.setItem(
+		"pscalc.box.v1",
+		JSON.stringify([{ ...entry("sandslash", "Sandslash", "ABC", 6), nature: "Adamant", subSkills: { lv10: "Helping Speed M" } }]),
+	);
+	render(<App />);
+	fireEvent.change(screen.getByLabelText(/Language/), { target: { value: "ja" } });
+	expect(localStorage.getItem("pscalc.lang")).toBe('"ja"');
+	expect(document.documentElement.lang).toBe("ja");
+	expect(screen.getByText("エナジー計算")).toBeTruthy();
+
+	// Pokémon, nature and subskill names from pokesleep-tool's Japanese translations.
+	const boxTable = section("ボックス");
+	expect(boxTable.textContent).toContain("サンドパン");
+	expect(boxTable.textContent).toContain("いじっぱり");
+	expect(boxTable.querySelector('.subskill-icon[aria-label="おてつだいスピードM"]')).toBeTruthy();
+
+	// Typing a Japanese name selects the Pokémon.
+	fireEvent.click(screen.getByText("+ ポケモンを追加"));
+	fireEvent.change(screen.getByPlaceholderText("入力して検索"), { target: { value: "デデンネ" } });
+	fireEvent.click(screen.getByText("ボックスに追加"));
+	const saved = JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]") as BoxEntry[];
+	expect(saved.map((e) => e.pokemonName)).toEqual(["Sandslash", "Dedenne"]);
+
+	// Energy solver: labels and the recipe name in Japanese.
+	fireEvent.click(screen.getByText("エナジー計算"));
+	expect(section("最適なチーム").textContent).toMatch(/1日 [\d,]+ エナジー/);
+	expect((within(section("料理")).getByLabelText(/レシピ/) as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+		"ごろごろねっとうサラダ · エナジー 25,356 · 鍋 95",
+	);
+	fireEvent.change(screen.getByLabelText(/言語/), { target: { value: "en" } });
+});
+
 test("Box can be sorted by order added, Pokédex number, level and name", () => {
 	const at = (e: BoxEntry, level: number): BoxEntry => ({ ...e, level });
 	localStorage.setItem(

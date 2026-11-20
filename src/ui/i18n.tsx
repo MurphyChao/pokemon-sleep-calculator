@@ -1,8 +1,9 @@
 /**
- * UI language: English or Traditional Chinese.
+ * UI language: English, Traditional Chinese or Japanese.
  *
  * Game terms (Pokémon, skills, subskills, natures, berry types, ingredients, islands) come from
- * pokesleep-tool's translations; Traditional Chinese recipe names from the 52poke wiki (src/data/recipes.zh-TW.json).
+ * pokesleep-tool's translations; Traditional Chinese and Japanese recipe names from the 52poke wiki
+ * (src/data/recipes.zh-TW.json, src/data/recipes.ja.json).
  * The current language is a module-level value; App re-mounts the page when it changes.
  */
 import { Fragment, type ReactNode } from "react";
@@ -12,11 +13,17 @@ import zhData from "../vendor/pokesleep-tool/i18n/zh-TW/data.json";
 import zhPokemons from "../vendor/pokesleep-tool/i18n/zh-TW/pokemons.json";
 import zhSkills from "../vendor/pokesleep-tool/i18n/zh-TW/skills.json";
 import zhRecipes from "../data/recipes.zh-TW.json";
+import jaCommon from "../vendor/pokesleep-tool/i18n/ja/common.json";
+import jaData from "../vendor/pokesleep-tool/i18n/ja/data.json";
+import jaPokemons from "../vendor/pokesleep-tool/i18n/ja/pokemons.json";
+import jaSkills from "../vendor/pokesleep-tool/i18n/ja/skills.json";
+import jaRecipes from "../data/recipes.ja.json";
 
-export type Lang = "en" | "zh-TW";
+export type Lang = "en" | "zh-TW" | "ja";
 export const languages: { lang: Lang; label: string }[] = [
 	{ lang: "en", label: "English" },
 	{ lang: "zh-TW", label: "繁體中文" },
+	{ lang: "ja", label: "日本語" },
 ];
 
 let current: Lang = "en";
@@ -631,7 +638,310 @@ const zh: Record<Key, string> = {
 	colVsBestShort: "比最佳",
 };
 
-const dictionaries: Record<Lang, Record<Key, string>> = { en, "zh-TW": zh };
+const ja: Record<Key, string> = {
+	appTitle: "PokeMasterChef",
+	pageTitle: "PokeMasterChef – ポケモンスリープ料理チーム計算機",
+	subtitle: "1日3食ぶんの料理の食材をそろえるのに、チーム枠がいくつ必要か計算します。",
+	language: "言語",
+	themeTitle: "テーマ：{theme}（クリックで切り替え）",
+	themeAuto: "自動（端末の設定に合わせる）",
+	themeLight: "ライト",
+	themeDark: "ダーク",
+	tabBox: "ボックス ({n})",
+	tabEnergy: "エナジー計算",
+	tabSlots: "枠数計算",
+	inventoryLimit: "最大所持数",
+	inventoryLimitHint: "（オフ：所持あふれしない）",
+	campTicket: "いいキャンプチケット",
+	campTicketHint: "（おてつだいスピードと最大所持数 ×1.2）",
+	energy: "げんき",
+	energyFull: "常に満タン",
+	energySimulated: "シミュレーション（減少し、回復役が回復）",
+	sleepScore: "睡眠スコア",
+	sleepScoreHint: "（100 = 8.5時間睡眠、0 = 睡眠なし）",
+	finalEvolution: "最終進化",
+	finalEvolutionHint: "（ボックスの数値と計算で、すべてのポケモンを最終進化として扱います。イーブイのように分岐する系統はそのまま）",
+	maxSubSkillSeeds: "サブスキルのタネを最大まで",
+	maxSubSkillSeedsHint: "（解放済みのサブスキルを S→M→L とできるだけ強化したものとして扱います。すでに持っているサブスキルにはしません）",
+	seededSubSkill: "{name}（サブスキルのタネ：元は{from}）",
+	levelScaling: "レベル補正",
+	levelScalingOff: "オフ",
+	levelScalingHint: "（これより低いレベルのポケモンを、ボックスの数値と計算でこのレベルとして扱います）",
+	footerData: "ポケモンのデータと食材の計算モデル：",
+	footerRecipes: "レシピ：",
+	footerIcons: "ポケモンのアイコン：",
+	privacyPolicy: "プライバシーポリシー",
+	footerAssumptions:
+		"睡眠スコアは睡眠時間を決めます（100 = 8.5時間、0 = 睡眠なし）。睡眠中は所持品が回収されず、げんきのシミュレーションではこの間にげんきが回復します。げんき「常に満タン」では、すべてのポケモンが一日中最大のおてつだいスピードで働きます。「シミュレーション」は pokesleep-tool のげんきモデル（起きている間に減り、睡眠中に回復）を使います。ボックスと枠数計算では各ポケモンは自分のスキルでのみ回復し、エナジー計算ではチームの回復役も考慮します（げんきオールSは全員、げんきエールSはランダムに1匹、げんきチャージSは自分を回復）。おてつだいボーナスは、どちらの計算でもチームの他のメンバーを速くします（そのポケモンが埋める枠1つにつき5%）。最大所持数をオンにすると、起きている間は3時間ごとに食材を回収し、睡眠中は回収しません。メインスキルによる食材（食材ゲットS、食材セレクトS、ビルドアップ）は期待値として数え、ランダムな食材は均等に分けます。他のスキルを真似するスキルは数えません。幻のポケモンにはまだ対応していません。エナジー計算は枠数計算と同じく5枠を分け合い（一部の時間だけチームにいるポケモンは枠の一部を使います）、きのみ、エナジー系スキル（エナジーチャージ、きのみバースト、おてつだいサポート、おてつだいブーストなど。pokesleep-tool の見積もり）、対象の料理だけを数えます。料理に使わない食材や鍋に入りきらない食材は数えず、食材が足りない食事は0として数えます。",
+	footerRecipeNames: "レシピの日本語名は神奇寶貝百科（52poke）から取得しました。",
+
+	// Box
+	addPokemon: "ポケモンを追加",
+	addPokemonButton: "+ ポケモンを追加",
+	settings: "設定",
+	settingsHelp: "設定の説明",
+	howToRead: "見かた",
+	addPokemonShort: "+ 追加",
+	close: "閉じる",
+	editPokemon: "ポケモンを編集",
+	pokemon: "ポケモン",
+	typeToSearch: "入力して検索",
+	nicknameOptional: "ニックネーム（任意）",
+	nicknamePlaceholder: "例：サンドパン 速M",
+	level: "レベル",
+	ingredientsCombo: "食材（Lv1 / Lv30 / Lv60）",
+	mainSkillLevel: "メインスキル（{skill}）のレベル",
+	mainSkillLevelNoSkill: "メインスキルのレベル",
+	natureField: "せいかく（▲と▼を1つずつ選択）",
+	subskillsField: "サブスキル（Lv10 → 25 → 50 → 70 → 80 の順にクリック）",
+	saveChanges: "変更を保存",
+	addToBox: "ボックスに追加",
+	cancel: "キャンセル",
+	yourBox: "ボックス",
+	sortBy: "並べ替え",
+	sortAdded: "追加順",
+	sortDex: "図鑑番号",
+	sortLevel: "レベル",
+	sortName: "名前",
+	sortRating: "レア度",
+	sortRank: "ランク",
+	sortReverse: "逆順",
+	filterType: "タイプ",
+	filterIngredient: "食材（解放済み）",
+	filterAll: "すべて",
+	filterHelp: "クリックでそれだけを表示、さらにクリックで追加、もう一度クリックで解除。「すべて」ですべてのポケモンを表示します。",
+	filterShowing: "{total}匹中{n}匹を表示中。",
+	noMatches: "条件に合うポケモンがいません。",
+	emptyBox: "まだポケモンがいません。チームに入れそうなポケモンを追加してください。",
+	colLv: "Lv",
+	colIngredients: "食材",
+	colSkillLv: "スキルLv",
+	colSkillLvShort: "スキル",
+	colNature: "せいかく",
+	colSubskills: "サブスキル",
+	colIngPerDay: "食材 / 日",
+	colRating: "レア度",
+	ratingPending: "レア度…",
+	colRank: "ランク",
+	rankPending: "ランク…",
+	rankStrength: "エナジー：{type}",
+	rankIngredient: "食材：{ing}",
+	rankIngredientStrength: "集めるすべての食材のエナジー：1日 {n}。",
+	rankSkillCredit: "スキル（{skill}）を{ing} {n}個として含みます：普通の{best}の{share}の効果で、普通の{gatherer}が集める量の{share}として数えます。",
+	rankSkillCreditStrength: "スキル（{skill}）の補助効果をエナジー {n} として含みます：普通の{best}の{share}の効果で、普通の{gatherer}のエナジーの{share}として数えます。",
+	rankSkill: "スキル：{skill}",
+	rankUnitStrength: "エナジー",
+	rankUnitSkill: "スキル自体の単位：げんき、大成功確率、ゆめのかけら…",
+	rankTooltip:
+		"1日 {value}（{unit}）、中央値は {median}。\nこの部門で最強の{best}のランダムな個体と比較（最終進化・Lv80・サブスキルのタネ使用・あなたの設定）。",
+	roleStrength: "エナジー（きのみ＋スキル）",
+	roleIngredients: "食材（スキル分を含む）",
+	roleHybrid: "食材＋スキル（スキルを食材に換算）",
+	roleSupport: "スキル発動回数",
+	roleIngredientOne: "食材：{ing}",
+	roleHybridOne: "{ing}＋スキル（スキルを{ing}に換算）",
+	ratingIngredient: "いちばん得意な食材「{ing}」で、それを持つあらゆる食材の組み合わせの個体と比較（最適：{combo}）。",
+	ratingTop: "上位 {pct}",
+	ratingOdds: "{n}匹に1匹がこれより良い",
+	ratingOddsNone: "これより良いのは{n}匹に1匹未満",
+	ratingOddsShare: "{pct}の個体がこれより良い",
+	ratingTooltip:
+		"評価基準：{role}\n{odds}（このポケモンのLv80のランダムな個体の中で。せいかくとサブスキル5つはすべて同じ確率。{n}個体から推定）。\n最良のせいかく・サブスキルの{ofBest}%：{best}\n{ingredientNote}{benchmark}\n{helpingBonus}",
+	ratingHelpingBonus: "おてつだいボーナスは、チームの4匹が5%速くなる効果も数えます（サブスキルなしのこのポケモンの生産量の+21%）。",
+	ratingBenchmarkMax: "すべて最終進化・サブスキルのタネ使用・メインスキル最大レベル（Lv{n}）で比較。",
+	ratingBenchmarkOwn: "すべて最終進化・サブスキルのタネ使用・メインスキルは本来のレベル＋スキルレベルアップ（このポケモンはLv{n}）で比較。",
+	edit: "編集",
+	delete: "削除",
+	inclFromSkill: "（スキル分 {n} を含む）",
+	fromSkill: "（スキル分）",
+
+	// Google sync
+	syncTurnOn: "Googleでログイン",
+	syncTurnOff: "ログアウト",
+	syncNow: "今すぐ同期",
+	syncSyncing: "同期中…",
+	syncSigningIn: "ログイン中…",
+	syncSignedIn: "ログイン済み",
+	syncDenied: "Googleへのログインがキャンセルされました。もう一度ログインし、同期のためのアクセスを許可してください。",
+	syncNeedDrive:
+		"同期にはGoogleドライブへのアクセスが必要です。もう一度ログインし、このアプリがGoogleドライブで自分の設定データを表示・作成・削除できるようにするチェックボックスをオンにしてください。",
+	syncOn: "同期オン",
+	syncedAt: "{time}に同期",
+	syncSignIn: "同期するには再ログイン",
+	syncHint: "Googleアカウントでログインすると、ボックスと設定をGoogleドライブの非公開アプリフォルダに保存します。ログインしたすべての端末で共有されます。",
+	syncConflict: "前回の同期以降、この端末とGoogleドライブの両方が変更されています。どちらを残しますか？",
+	syncKeepLocal: "この端末のデータを残す",
+	syncUseRemote: "Googleドライブのデータを使う",
+	syncUseRemoteAt: "Googleドライブのデータを使う（{time}に保存）",
+
+	// Screenshot import
+	importTitle: "スクリーンショットから読み込む",
+	importHowItWorks: "使い方",
+	importHelp:
+		"ポケモンの詳細画面を、サブスキルとせいかくが両方見えるまでスクロールしてスクリーンショットを撮ってください。スクリーンショットは端末内で読み取られ、アップロードされません。初回は文字認識エンジン（約6MB）をダウンロードします。",
+	screenshotLang: "ゲームの言語",
+	chooseScreenshots: "スクリーンショットを選ぶ",
+	orDropPaste: "または画像をここにドロップ・貼り付け",
+	loadingOcr: "文字認識エンジンを読み込み中… {pct}%",
+	importEngineFailed: "文字認識エンジンを読み込めませんでした。接続を確認してもう一度お試しください。",
+	importWaiting: "待機中…",
+	importReading: "読み取り中…",
+	importComplete: "すべて読み取りました",
+	importToCheck: "要確認 {n}件",
+	importReview: "確認",
+	importDiscard: "破棄",
+	reviewPokemon: "読み込んだポケモンを確認",
+	reviewHelp: "下の値をスクリーンショットと見比べ、間違いを直してからボックスに追加してください。",
+	warnLayout: "サブスキルとせいかくが見つかりませんでした。両方が見えるまでスクロールしたポケモンの詳細画面を使ってください。",
+	warnPokemon: "ポケモンを認識できませんでした：下で選んでください。",
+	warnIconName: "アイコンは{icon}に見えますが、名前は{name}と読めました。アイコンを優先したので、ポケモンを確認してください。",
+	warnForm: "この名前には複数の姿があります（サイズやイベントの姿など）：正しいものが選ばれているか確認してください。",
+	warnLevel: "レベルを認識できませんでした。",
+	warnSkillLevel: "メインスキルのレベルを認識できませんでした。",
+	warnNature: "せいかくを認識できませんでした。",
+	warnIngredients: "食材を認識できませんでした：下で選んでください。",
+	warnIngredientsSeen: "食材：下で組み合わせを選んでください（スクリーンショットではLv30が{lv30}、Lv60が{lv60}）。",
+	warnSubskill: "{lv}のサブスキルを認識できませんでした。",
+
+	// Nature and subskill pickers
+	statHelpSpeed: "おてつだいスピード",
+	statEnergy: "げんき",
+	statIngredients: "食材",
+	statSkill: "スキル",
+	statExp: "EXP",
+	increaseStat: "{stat}を上げる",
+	decreaseStat: "{stat}を下げる",
+	neutral: "無補正",
+	noEffect: "効果なし",
+	pickStat: "{arrow}の項目を選んでください（現在は{name}）",
+	removeSubskill: "{name}を外す",
+	clear: "クリア",
+
+	// Dish
+	dish: "料理",
+	dishType: "種類",
+	recipe: "レシピ",
+	yourPotSize: "鍋容量",
+	optional: "任意",
+	curry: "カレー・シチュー",
+	salad: "サラダ",
+	dessert: "デザート・ドリンク",
+	recipeBonus: "レシピボーナス {n}%",
+	recipeOption: "{name} · エナジー {energy} · 鍋 {pot}",
+	potNeeded: "必要な鍋容量：",
+	yourPot: "あなたの鍋",
+	withCampTicket: "（キャンプチケットあり）",
+	monSat: "月〜土",
+	sunday: "日曜",
+	tooSmallWeekday: "月〜土は足りない（日曜は入る）",
+	tooSmallEveryDay: "毎日足りない",
+	colIngredient: "食材",
+	perMeal: "1食あたり",
+	perDayMeals: "1日あたり（{n}食）",
+
+	// Slot solver
+	addOnBoxFirst: "まずボックスタブでポケモンを追加してください。",
+	shortfall: "ボックス全体でも1日{n}食分の食材を集められません：",
+	shortfallLine: "{ing}：1日 {have} / {need}",
+	shortfallNote: "下の枠数は、ボックスで集められる量で計算しています。不足分を補うには、これらを集めるポケモンを追加してください。",
+	currentTeam: "現在のチーム",
+	autoFill: "最適なチームを自動で組む",
+	slotsNeeded: "必要な枠：{n}",
+	nPokemon: "{n}匹",
+	cantCover: "このチームではこの料理を作れません",
+	tastyChanceLine: "大成功確率：月〜土 **{wd}**（料理エナジー ×{wm}）· 日曜 **{sd}**（×{sm}）",
+	moreThanTeam: "{n}匹を超えます：この料理は1チームでは完全にはまかなえません。",
+	slotHelp:
+		"「必要な枠」は、各ポケモンを料理に必要な生産量の割合で数えます。80%のポケモンは、食材の20%が余ることを意味します。固定したポケモンは常に1枠として数えます。**おてつだいボーナス**は、そのポケモンが埋める枠1つにつき他の全員を5%速くし、必要な枠とチームの生産量に反映されます。**大成功**：スキルで大成功確率を上げるポケモン（料理チャンスS、ビルドアップ、マジカルフレイム）がもたらす料理エナジーの増加分を枠数で表します。0.50は食材半枠分の料理エナジーに相当します。月〜土（料理 ×2）と日曜（料理 ×3）で表示します。",
+	bench: "ベンチ",
+	benchHelp:
+		"**節約（現在のチーム）**：上のチームに加えたときに節約できる枠数。リストはこの順に並びます。**節約（いない場合の最適との差）**：ボックス全体でそのポケモンなしの最適チームと、ありの最適チームとの差。現在のチームの組み方に左右されません。**大成功**：加えたときの料理エナジーの増加分（枠数、月〜土 / 日曜）。リストは節約枠数と週平均の大成功の値の合計で並びます。",
+	colSlotUsed: "使用枠",
+	colSlotUsedShort: "枠",
+	colExtraTasty: "大成功（月〜土 / 日）",
+	colExtraTastyShort: "大成功",
+	pin: "固定",
+	toBench: "ベンチへ",
+	toTeam: "チームへ",
+	notNeeded: "0（不要）",
+	totalNeeded: "合計 / 必要",
+	makesPossible: "これで作れる",
+	coverageGain: "充足率 +{n}",
+	essential: "必須",
+	allOnTeam: "ボックスのポケモンが全員チームに入っています。",
+	savesCurrent: "節約（現在のチーム）",
+	savesVsBest: "節約（いない場合の最適との差）",
+	savesCurrentShort: "節約",
+	savesVsBestShort: "最適差",
+	replaces: "置き換え",
+	weeklyAverageSlots: "週平均：{n}枠",
+
+	// Energy solver
+	island: "フィールド",
+	favoriteBerries: "好みきのみ（×2）",
+	none: "なし",
+	greengrassChoose: "ワカクサ本島（3つ選択）",
+	allBerries: "すべてのきのみ",
+	islandBonus: "フィールドボーナス（%）",
+	islandBonusShort: "ボーナス（%）",
+	recipeLevel: "レシピレベル",
+	recipeLevelDown: "レシピレベルを下げる",
+	recipeLevelUp: "レシピレベルを上げる",
+	berryN: "きのみ{n}",
+	bestTeam: "最適なチーム",
+	strengthPerDay: "1日 {n} エナジー",
+	slotsOf: "{used} / {total} 枠",
+	breakdown: "きのみ {b} · スキル {s} · 料理 {d}",
+	dishLineStart: "料理：1食 {per} × {meals}食 × 作れた割合",
+	dishLineEnd: "× 大成功 ×{mult}（週平均）",
+	energyIsSimulated: "げんきはシミュレーション中：日中に減っていきます。",
+	healersRestore: "このチームの回復役は**1匹あたり1日約 {n} げんき**を回復し、下の数値に含まれています。",
+	noTeamHealer: "このチームには全員のげんきを回復する回復役がいません。",
+	energyFullNote: "げんきは常に満タンなので、回復役の効果はありません。数えるには上の「げんき」をシミュレーションに切り替えてください。",
+	colBerries: "きのみ",
+	colSkill: "スキル",
+	colWithoutIt: "いない場合",
+	colWithoutItShort: "なし",
+	colBestWithIt: "入れた場合の最適チーム",
+	colBestWithItShort: "入れた場合",
+	tagExtraTasty: "大成功",
+	tagHealer: "回復役",
+	tagHelpingBonus: "おてつだいボーナス",
+	helpingBonusLine: "おてつだいボーナスを考慮：そのポケモンが {n} 枠を埋めるので、他の全員が最大 {pct} 速くなります（スピード系サブスキルと合わせて最大35%）。",
+	tagExcluded: "除外",
+	exclude: "除外",
+	forceIn: "必ず入れる",
+	allow: "許可",
+	energyTeamHelp:
+		"**使用枠**：枠数計算と同じく、そのポケモンがチームにいる時間の割合。合計は最大{n}枠なので、入れ替えで{n}匹より多くのポケモンが参加できます（例：料理に各食材の半分しか要らないときは、食材集め2匹をそれぞれ0.50）。きのみ・スキル・食材の列は、1日中チームにいた場合の値で、合計は使用枠で重み付けします。大成功のポケモンと回復役は0、½、1枠で試します。**おてつだいボーナス**は、そのポケモンが埋める枠1つにつき他の全員を5%速くし、列と合計に反映されます。何か変わるたびにチームを最適化し直します：**固定**は1枠を与え、**除外**はチームに入れません。**いない場合**：このポケモンなしの最適チームの1日のエナジーと、このチームとの差。",
+	energyBenchHelp: "**入れた場合の最適チーム**：このポケモンに1枠を与えた最適チームの1日のエナジーと、最適チームとの差。この順に並びます。",
+	swapPartner: "入れ替えパートナー",
+	swapNoTasty: "ボックスに大成功確率を上げるポケモン（料理チャンスS、ビルドアップ、マジカルフレイム）がいないので、大成功ボーナスによる入れ替えはありません。",
+	swapHelp:
+		"2匹で1枠を分け合い、残りの{n}枠はその2匹を除いた最適チームに使います。2匹は料理画面に表示される大成功確率に応じて毎食後に入れ替えます：確率が低いうちは大成功のポケモン、高くなったらパートナー。スキルによる上昇分は大成功するまで持ち越されるので、確率が高いときにスキルが発動してもほとんど無駄になります。8時間ずつ3つの時間帯、夜も入れ替え、入れ替え前に所持品を回収、入れ替えによる他の影響（げんき、スキル確率の進み）はないものとして計算します。",
+	extraTastyPokemon: "大成功のポケモン",
+	onTeamSuffix: "（チーム内）",
+	partner: "パートナー",
+	pickPartner: "パートナーを選んでください。",
+	ruleAlways: "常に{name}",
+	ruleWhile: "確率 ≤ {wd}（日曜 {sd}）の間は{name}",
+	ruleOtherwise: "、それ以外は{name}",
+	vsBestTeam: "最適チームとの差",
+	onTeamShare: "{name}がチームにいる割合 {n}",
+	swapTasty: "大成功 月〜土 {wd}、日曜 {sd}",
+	shareSlot: "2匹で {n} 枠を共有",
+	allThresholds: "すべての基準",
+	colRule: "ルール",
+	colOnTeam: "{name}がチームにいる割合",
+	colOnTeamShort: "チーム内",
+	colCooked: "作れた割合",
+	colStrengthPerDay: "エナジー / 日",
+	colStrengthShort: "エナジー",
+	colVsBest: "最適チームとの差",
+	colVsBestShort: "最適差",
+};
+
+const dictionaries: Record<Lang, Record<Key, string>> = { en, "zh-TW": zh, ja };
 
 /** UI text in the current language, with {name} placeholders filled in. */
 export function t(key: Key, vars: Record<string, string | number> = {}): string {
@@ -667,11 +977,10 @@ type DataJson = {
 	types: Record<string, string>;
 	ingredients: Record<string, string>;
 };
-const zhGame = zhData as unknown as DataJson;
 const enGame = enData as unknown as DataJson;
-const zhPokemonNames = (zhPokemons as { pokemons: Record<string, string> }).pokemons;
-const zhSkillNames = (zhSkills as { skills: Record<string, { name?: string }> }).skills;
-const zhAreas = (zhCommon as { area: string[] }).area;
+const names = (json: unknown) => (json as { pokemons: Record<string, string> }).pokemons;
+const skillNames = (json: unknown) => (json as { skills: Record<string, { name?: string }> }).skills;
+const areas = (json: unknown) => (json as { area: string[] }).area;
 const enAreas = [
 	"Greengrass Isle",
 	"Cyan Beach",
@@ -682,11 +991,34 @@ const enAreas = [
 	"Amber Canyon",
 ];
 
-const zhOnly = (map: Record<string, string | undefined>, key: string) => (current === "zh-TW" ? map[key] : undefined);
+/** Game terms in each translated language (English uses the data's own names, or enGame/enAreas). */
+const gameTerms: Record<Exclude<Lang, "en">, {
+	data: DataJson;
+	pokemons: Record<string, string>;
+	skills: Record<string, { name?: string }>;
+	areas: string[];
+	recipes: Record<string, string>;
+}> = {
+	"zh-TW": {
+		data: zhData as unknown as DataJson,
+		pokemons: names(zhPokemons),
+		skills: skillNames(zhSkills),
+		areas: areas(zhCommon),
+		recipes: zhRecipes as Record<string, string>,
+	},
+	ja: {
+		data: jaData as unknown as DataJson,
+		pokemons: names(jaPokemons),
+		skills: skillNames(jaSkills),
+		areas: areas(jaCommon),
+		recipes: jaRecipes as Record<string, string>,
+	},
+};
+const terms = () => (current === "en" ? undefined : gameTerms[current]);
 
 /** Pokémon name in the current language (the stored name is always English). */
 export function pokemonLabel(name: string): string {
-	return zhOnly(zhPokemonNames, name) ?? name;
+	return terms()?.pokemons[name] ?? name;
 }
 
 /** English Pokémon name for text typed in either language, if it names one of `names`. */
@@ -696,34 +1028,32 @@ export function pokemonFromLabel(text: string, names: string[]): string | undefi
 }
 
 export function ingredientLabel(name: string): string {
-	return (current === "zh-TW" ? zhGame : enGame).ingredients[name] ?? name;
+	return (terms()?.data ?? enGame).ingredients[name] ?? name;
 }
 
 export function skillLabel(name: string): string {
-	return (current === "zh-TW" ? zhSkillNames[name]?.name : undefined) ?? name;
+	return terms()?.skills[name]?.name ?? name;
 }
 
 export function subSkillLabel(name: string): string {
-	return zhOnly(zhGame.subskill, name) ?? name;
+	return terms()?.data.subskill[name] ?? name;
 }
 
 export function natureLabel(name: string): string {
-	return zhOnly(zhGame.natures, name) ?? name;
+	return terms()?.data.natures[name] ?? name;
 }
 
-/** Berry type, e.g. "grass" → "Grass" / "草". */
+/** Berry type, e.g. "grass" → "Grass" / "草" / "くさ". */
 export function typeLabel(type: string): string {
-	return (current === "zh-TW" ? zhGame : enGame).types[type] ?? type;
+	return (terms()?.data ?? enGame).types[type] ?? type;
 }
 
 /** Island name by pokesleep-tool field index (0 = Greengrass Isle … 6 = Amber Canyon). */
 export function islandLabel(index: number): string {
-	return (current === "zh-TW" ? zhAreas[index] : enAreas[index]) ?? enAreas[index] ?? "";
+	return terms()?.areas[index] ?? enAreas[index] ?? "";
 }
-
-const zhRecipeNames = zhRecipes as Record<string, string>;
 
 /** Recipe name in the current language. */
 export function recipeLabel(recipe: { id: string; name: string }): string {
-	return zhOnly(zhRecipeNames, recipe.id) ?? recipe.name;
+	return terms()?.recipes[recipe.id] ?? recipe.name;
 }

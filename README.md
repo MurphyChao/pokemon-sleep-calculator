@@ -1,6 +1,7 @@
 # PokeMasterChef – Pokémon Sleep dish team calculator
 
-Given the Pokémon in your box and a dish to cook at every meal (3 a day), two solvers:
+In English, Traditional Chinese and Japanese. Given the Pokémon in your box and a dish to cook at every meal (3 a day),
+two solvers:
 
 - **Energy solver:** the best use of 5 team slots for strength per day from berries, strength skills and the dish
   (scaled by the share of meals the team can gather ingredients for, and by Extra Tasty), and how much
@@ -225,10 +226,11 @@ Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
 - **Pokémon data and ingredient-yield model:** copied unmodified from
   [nitoyon/pokesleep-tool](https://github.com/nitoyon/pokesleep-tool) (MIT) into `src/vendor/pokesleep-tool`.
   To update: `git clone https://github.com/nitoyon/pokesleep-tool.git .upstream/pokesleep-tool && npm run sync-upstream`.
-- **Traditional Chinese names** (Pokémon, skills, subskills, natures, berry types, ingredients, islands): from
-  pokesleep-tool's `zh-TW` translations, also copied into `src/vendor/pokesleep-tool/i18n`. The UI text is in
-  `src/ui/i18n.tsx`. Japanese names (used only to read Japanese screenshots) come from the same place.
-  Traditional Chinese recipe names (`src/data/recipes.zh-TW.json`) are from the
+- **Traditional Chinese and Japanese names** (Pokémon, skills, subskills, natures, berry types, ingredients,
+  islands): from pokesleep-tool's `zh-TW` and `ja` translations, also copied into `src/vendor/pokesleep-tool/i18n`.
+  The UI text (English, Traditional Chinese, Japanese) is in `src/ui/i18n.tsx`; the Japanese UI text was translated
+  for this app using the game's terms as pokesleep-tool writes them (エナジー, げんき, 大成功…).
+  Recipe names (`src/data/recipes.zh-TW.json`, `src/data/recipes.ja.json`) are from the
   [52poke wiki](https://wiki.52poke.com/zh-hant/料理（Pokémon_Sleep）), matched by official English name.
 - **Pokémon icons:** `src/data/pokemon-icons/`, the Scarlet/Violet box icons from
   [Pokémon Database](https://pokemondb.net/sprites) (images © Nintendo/Game Freak; pokemondb.net says the sprites are
