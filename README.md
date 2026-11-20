@@ -13,7 +13,7 @@ two solvers:
 
 Three options change the Pokémon the numbers are worked out for, on the Box tab and in both solvers, without
 changing the saved box: **Final evolution** (every Pokémon as its final form, main skill +1 per evolution;
-branching lines stay), **Max Sub Skill Seeds** (unlocked subskills upgraded S → M → L as far as they go) and
+branching lines become the form chosen for them, see below), **Max Sub Skill Seeds** (unlocked subskills upgraded S → M → L as far as they go) and
 **Level scaling** (lower-level Pokémon counted at the chosen level). The Box table keeps showing the real Pokémon
 and marks what changed (e.g. "→ Venusaur", "10→60", upgraded subskill icons).
 
@@ -31,8 +31,13 @@ The Box table's **Rarity** rates each Pokémon's nature, subskills and ingredien
 rolls of the same Pokémon (same species and main skill level, any ingredient combination): "Top 3%" means 3% of random rolls would be better, shown
 as odds too ("1 in 33 rolls is better"). Grades: S top 3%, A top 15%, B top 50%, C top 80%, D the rest. The box can
 be sorted by it (the solvers' benches show the Rank below instead). Rarity and Rank always judge a Pokémon as its final
-form (branching lines like Eevee stay as they are), with Sub Skill Seeds used, whatever the Final evolution and Max Sub
-Skill Seeds options say, so they tell how good it can become. The tooltip also gives the share of the best possible nature and subskills,
+form, with Sub Skill Seeds used, whatever the Final evolution and Max Sub
+Skill Seeds options say, so they tell how good it can become.
+
+For lines that branch, each Pokémon's final form can be chosen in its edit pop-up (**Evolves into**; the card shows it
+as e.g. "→ Gardevoir", a tap away from changing it). Defaults: Ralts and Kirlia → Gardevoir, Slowpoke → Slowking,
+Eevee → Espeon. The choice is used everywhere the Pokémon counts as its final form: Rarity, Rank and, with Final
+evolution on, the solvers. Toxel evolves by its nature, as in the game. The tooltip also gives the share of the best possible nature and subskills,
 and what that best build is.
 
 A roll is an ingredient combination, a nature and 5 different subskills, each equally likely (the game doesn't publish the real odds; gold

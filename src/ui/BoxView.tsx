@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import type { BoxEntry } from "../core/box";
+import { type BoxEntry, defaultEvolution, evolutionChoices, finalFormOf } from "../core/box";
 import type { Rating } from "../core/rating";
 import type { YieldDetail } from "../core/yield";
 import pokemons, {
@@ -279,7 +279,13 @@ export default function BoxView(props: {
 											const name = pokemonFromLabel(e.target.value, pokemonNames) ?? e.target.value;
 											// While reviewing a screenshot, the recognized ingredient icons fill in the combination.
 											const combo = reviewing?.reading && comboFromIcons(name, reviewing.reading.ingredientIcons);
-											setDraft({ ...draft, pokemonName: name, skillLevel: undefined, ...(combo && { ingredient: combo }) });
+											setDraft({
+												...draft,
+												pokemonName: name,
+												skillLevel: undefined,
+												evolveTo: undefined,
+												...(combo && { ingredient: combo }),
+											});
 										}}
 										placeholder={t("typeToSearch")}
 									/>
@@ -357,6 +363,23 @@ export default function BoxView(props: {
 										))}
 									</select>
 								</label>
+								{evolutionChoices(draft).length > 0 && (
+									<label className="evolve-field">
+										{t("evolvesInto")}
+										<select
+											value={finalFormOf(draft) ?? ""}
+											onChange={(e) => setDraft({ ...draft, evolveTo: e.target.value })}
+										>
+											{evolutionChoices(draft).map((name) => (
+												<option key={name} value={name}>
+													{pokemonLabel(name)}
+													{defaultEvolution[draft.pokemonName] === name ? t("defaultSuffix") : ""}
+												</option>
+											))}
+										</select>
+										<span className="muted small">{t("evolvesIntoHint")}</span>
+									</label>
+								)}
 							</div>
 							<div className="subskill-field">
 								<span className="field-label">{t("natureField")}</span>
@@ -467,10 +490,28 @@ export default function BoxView(props: {
 											pokemonLabel(e.pokemonName)
 										)}
 										{duplicateNumber(labels.get(e.id)) && <span className="tag">{duplicateNumber(labels.get(e.id))}</span>}
-										{a.evolvedFrom && (
-											<div className="muted small" title={t("finalEvolution")}>
-												→ {pokemonLabel(a.pokemonName)}
+										{evolutionChoices(e).length > 0 ? (
+											// A branching line: what it's counted as when evolved, a tap away from changing it.
+											<div className="muted small">
+												<button
+													type="button"
+													className="evolve-tag"
+													title={t("evolvesIntoChange")}
+													onClick={() => {
+														setReviewingId(undefined);
+														startDraft(e);
+														setPanelOpen(true);
+													}}
+												>
+													→ {pokemonLabel(finalFormOf(e) ?? e.pokemonName)}
+												</button>
 											</div>
+										) : (
+											a.evolvedFrom && (
+												<div className="muted small" title={t("finalEvolution")}>
+													→ {pokemonLabel(a.pokemonName)}
+												</div>
+											)
 										)}
 										<div>
 											<IngredientIcons entry={a} />

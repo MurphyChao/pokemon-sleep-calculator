@@ -738,3 +738,21 @@ test("the theme button cycles Auto → Light → Dark, saved per device (not syn
 	expect(document.documentElement.dataset.theme).toBeUndefined();
 	expect(Object.keys(localStorage).filter((k) => k.startsWith("pscalc.") && k.includes("theme"))).toEqual([]);
 });
+
+test("a branching Pokémon evolves into the default form, or the one chosen in the pop-up, everywhere", async () => {
+	localStorage.setItem("pscalc.box.v1", JSON.stringify([{ ...entry("ralts", "Ralts", "AAA", 3), nature: "Calm" }]));
+	render(<App />);
+	const box = section("Your box");
+	// The card shows what it's counted as; Rarity and Rank judge it as a Gardevoir.
+	expect(within(box).getByRole("button", { name: "→ Gardevoir" })).toBeTruthy();
+	await waitFor(() => expect(rowOf(box, "Ralts").querySelector(".rank")?.getAttribute("title")).toMatch(/random rolls of Gardevoir/));
+
+	// Choosing Gallade in the pop-up.
+	fireEvent.click(within(box).getByRole("button", { name: "→ Gardevoir" }));
+	const select = screen.getByLabelText(/Evolves into/) as HTMLSelectElement;
+	expect([...select.options].map((o) => o.textContent)).toEqual(expect.arrayContaining(["Gardevoir (default)", "Gallade"]));
+	fireEvent.change(select, { target: { value: "Gallade" } });
+	fireEvent.click(screen.getByText("Save changes"));
+	expect(JSON.parse(localStorage.getItem("pscalc.box.v1") ?? "[]")[0].evolveTo).toBe("Gallade");
+	expect(within(box).getByRole("button", { name: "→ Gallade" })).toBeTruthy();
+});

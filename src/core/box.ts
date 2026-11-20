@@ -20,6 +20,11 @@ export interface BoxEntry {
 	ingredient: IngredientType;
 	nature: string;
 	subSkills: Partial<Record<SubSkillLevel, SubSkillType | null>>;
+	/**
+	 * For a branching line (Ralts, Slowpoke, Eevee): the final form the user plans to evolve it into, used
+	 * whenever it's counted as its final form ({@link evolveToFinal}). Missing: {@link defaultEvolution}.
+	 */
+	evolveTo?: string;
 	/** Set only on the solvers' level-scaled copies (never saved): the entry's real level. */
 	scaledFrom?: number;
 	/** Set only on the solvers' evolved copies (never saved): the Pokémon before evolving. */
@@ -63,19 +68,54 @@ export function maxSubSkillSeeds(box: BoxEntry[], on: boolean | undefined): BoxE
 }
 
 /**
+ * What a branching line evolves into by default: the form most players evolve it into for the job it's
+ * kept for (Ralts and Slowpoke keep their skill; Eevee most often becomes Espeon). The user can choose
+ * another ({@link BoxEntry.evolveTo}).
+ */
+export const defaultEvolution: Record<string, string> = {
+	Ralts: "Gardevoir",
+	Kirlia: "Gardevoir",
+	Slowpoke: "Slowking",
+	Eevee: "Espeon",
+};
+
+/**
+ * The final forms a Pokémon can evolve into, when there's a choice (Ralts → Gardevoir or Gallade); empty
+ * when it's final already, doesn't evolve, or has one path (Toxel's is decided by its nature).
+ */
+export function evolutionChoices(entry: Pick<BoxEntry, "pokemonName" | "nature">): string[] {
+	try {
+		const iv = toPokemonIv({ id: "", level: 30, ingredient: "AAA", subSkills: {}, ...entry });
+		const finals = iv.decendants.filter((f) => f.id !== iv.pokemon.id);
+		return finals.length > 1 ? finals.map((f) => f.name) : [];
+	} catch {
+		return [];
+	}
+}
+
+/** The final form an entry is counted as: its only one, or for a branching line the user's choice or the default. */
+export function finalFormOf(entry: BoxEntry): string | undefined {
+	const choices = evolutionChoices(entry);
+	if (choices.length === 0) return undefined;
+	return [entry.evolveTo, defaultEvolution[entry.pokemonName]].find((name) => name && choices.includes(name));
+}
+
+/**
  * The box as the solvers see it with "final evolution": every Pokémon that can still evolve becomes its
  * final form, with the main skill level +1 per evolution (capped at the new skill's maximum), as
- * pokesleep-tool's "evolved" option does. Lines that branch (Eevee, Ralts, Slowpoke…) are left as they
- * are, since which form the user would pick isn't known; Toxel evolves by nature. Ingredients, nature
- * and subskills stay. Returns the box itself when off.
+ * pokesleep-tool's "evolved" option does. Lines that branch (Eevee, Ralts, Slowpoke) become the form the
+ * user chose, or {@link defaultEvolution}; Toxel evolves by nature. Ingredients, nature and subskills
+ * stay. Returns the box itself when off.
  */
 export function evolveToFinal(box: BoxEntry[], on: boolean | undefined): BoxEntry[] {
 	if (!on) return box;
 	return box.map((e) => {
 		try {
 			const iv = toPokemonIv(e);
-			const finals = iv.decendants;
-			// Already final, doesn't evolve, or a branching line (decendants already narrows Toxel by nature).
+			// A branching line: the chosen (or default) form; one with no choice made and no default stays.
+			const branch = finalFormOf(e);
+			const finals = branch ? iv.decendants.filter((f) => f.name === branch) : iv.decendants;
+			// Already final, doesn't evolve, or a branching line without a choice (Toxel's is decided by nature).
 			if (finals.length !== 1 || finals[0].id === iv.pokemon.id) return e;
 			const final = finals[0];
 			const evolved = iv.clone({ pokemonName: final.name });

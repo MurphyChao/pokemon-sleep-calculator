@@ -1,4 +1,4 @@
-import { type BoxEntry, evolveToFinal, maxSubSkillSeeds, nextSubSkill, scaleLevels } from "./box";
+import { type BoxEntry, evolutionChoices, evolveToFinal, maxSubSkillSeeds, nextSubSkill, scaleLevels } from "./box";
 
 const e = (pokemonName: string, extra: Partial<BoxEntry> = {}): BoxEntry => ({
 	id: pokemonName,
@@ -29,11 +29,23 @@ describe("evolveToFinal", () => {
 		expect(evolved.skillLevel).toBeLessThan(99);
 	});
 
-	it("evolves Toxel by nature but leaves branching lines alone", () => {
+	it("evolves Toxel by nature, and branching lines into the chosen form or the default", () => {
 		expect(evolveToFinal([e("Toxel", { nature: "Hardy" })], true)[0].pokemonName).toBe("Toxtricity (Amped)");
 		expect(evolveToFinal([e("Toxel", { nature: "Calm" })], true)[0].pokemonName).toBe("Toxtricity (Low Key)");
-		const branching = [e("Eevee"), e("Ralts"), e("Kirlia")];
-		expect(evolveToFinal(branching, true)).toEqual(branching);
+		expect(evolutionChoices(e("Toxel", { nature: "Calm" }))).toEqual([]);
+		// Defaults: Ralts and Kirlia → Gardevoir, Slowpoke → Slowking, Eevee → Espeon.
+		const names = (box: BoxEntry[]) => evolveToFinal(box, true).map((x) => x.pokemonName);
+		expect(names([e("Ralts"), e("Kirlia"), e("Slowpoke"), e("Eevee")])).toEqual(["Gardevoir", "Gardevoir", "Slowking", "Espeon"]);
+		// The user's choice wins; one that isn't a final form of the line is ignored (the default is used).
+		expect(names([e("Ralts", { evolveTo: "Gallade" }), e("Eevee", { evolveTo: "Sylveon" }), e("Slowpoke", { evolveTo: "Gallade" })])).toEqual([
+			"Gallade",
+			"Sylveon",
+			"Slowking",
+		]);
+		expect(evolutionChoices(e("Ralts")).sort()).toEqual(["Gallade", "Gardevoir"]);
+		expect(evolutionChoices(e("Eevee"))).toHaveLength(8);
+		expect(evolutionChoices(e("Bulbasaur"))).toEqual([]);
+		expect(evolutionChoices(e("Gardevoir"))).toEqual([]);
 	});
 
 	it("combines with level scaling", () => {
