@@ -6,7 +6,7 @@
 		<title>Privacy Policy – PokeMasterChef</title>
 		<style>
 			body {
-				font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif;
+				font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Noto Sans JP", sans-serif;
 				line-height: 1.6;
 				max-width: 46rem;
 				margin: 0 auto;
@@ -24,7 +24,7 @@
 		</style>
 	</head>
 	<body>
-		<nav><a href="./">← Back to PokeMasterChef</a> · <a href="#zh-TW">繁體中文</a></nav>
+		<nav id="top"><a href="./">← Back to PokeMasterChef</a> · <a href="#zh-TW">繁體中文</a> · <a href="#ja">日本語</a></nav>
 
 		<main lang="en">
 			<h1>Privacy Policy</h1>
@@ -142,7 +142,7 @@
 		<hr />
 
 		<main lang="zh-TW" id="zh-TW">
-			<nav><a href="./">← 回到寶睡廚神</a></nav>
+			<nav><a href="./">← 回到寶睡廚神</a> · <a href="#top">English</a> · <a href="#ja">日本語</a></nav>
 			<h1>隱私權政策</h1>
 			<p class="muted">寶睡廚神（PokeMasterChef）· 最後更新：2026 年 11 月 18 日</p>
 
@@ -219,6 +219,85 @@
 			<p>
 				關於本政策的問題或請求，請至
 				<a href="https://github.com/MurphyChao/pokemon-sleep-calculator/issues">github.com/MurphyChao/pokemon-sleep-calculator/issues</a> 建立 issue。
+			</p>
+		</main>
+
+		<hr />
+
+		<main lang="ja" id="ja">
+			<nav><a href="./">← PokeMasterChef に戻る</a> · <a href="#top">English</a> · <a href="#zh-TW">繁體中文</a></nav>
+			<h1>プライバシーポリシー</h1>
+			<p class="muted">PokeMasterChef · 最終更新日：2026年11月18日</p>
+
+			<p>
+				PokeMasterChef（以下「本アプリ」。ポケモンスリープの料理チーム計算機、
+				<a href="https://murphychao.github.io/pokemon-sleep-calculator/">murphychao.github.io/pokemon-sleep-calculator</a>）は、無料・非営利のファンツールです。静的なウェブサイトで、独自のサーバーも独自のユーザーアカウントもなく、広告やトラッキングもありません。訪問数を匿名で数えるだけです（「訪問統計」を参照）。このポリシーでは、本アプリが扱うデータとその行き先を説明します。
+			</p>
+
+			<h2>端末に保存されるデータ</h2>
+			<p>
+				ボックスに追加したポケモンと設定（選んだ料理、チーム、固定したポケモン、オプション、言語）は、あなた自身の端末のブラウザのローカルストレージに保存されます。Googleでのログイン（下記）をオンにしない限り、どこにも送信されません。ブラウザでこのサイトのデータを消去すれば、いつでも削除できます。
+			</p>
+
+			<h2>スクリーンショットの読み込み</h2>
+			<p>ゲームのスクリーンショットからポケモンを読み込む場合、画像はすべてブラウザ内で、本アプリが同じウェブサイトからダウンロードする文字認識エンジンによって読み取られます。スクリーンショットが本アプリによってアップロードされたり保存されたりすることはありません。</p>
+
+			<h2>Googleでのログイン</h2>
+			<p>ログインは任意です。ご自身のGoogleアカウントを使って、ボックスと設定を複数の端末で同期できます。ログイン時、本アプリは次の権限を求めます。</p>
+			<ul>
+				<li>
+					<strong>基本プロフィール（名前、メールアドレス、プロフィール写真）</strong>（<code>openid</code>、<code>email</code>、<code>profile</code>）。どのアカウントでログインしているかを表示するためだけに使います。端末のブラウザのローカルストレージに保存され、他のどこにも送信されません。
+				</li>
+				<li>
+					<strong>Googleドライブのアプリデータ</strong>（<code>https://www.googleapis.com/auth/drive.appdata</code>）。本アプリは、ボックスと設定を含むファイル <code>pokemon-sleep-calculator.json</code> を1つ、あなた自身のGoogleドライブの非表示のアプリデータフォルダに保存し、他の端末で読み込みます。この権限は本アプリ自身が作成したファイルにのみ適用され、本アプリがGoogleドライブの他のファイルを表示・読み取り・変更することはできません。
+				</li>
+			</ul>
+			<p>
+				すべての通信は、あなたのブラウザとGoogleの間でHTTPSを通じて直接行われます。Googleが発行するアクセストークンは現在のブラウザセッション中（セッションストレージ）にのみ保持され、上記の目的でGoogleのAPIを呼び出すためだけに使われます。開発者があなたのGoogleデータ、トークン、ボックスを受け取ることはありません。受け取るサーバーが存在しないためです。
+			</p>
+
+			<h2>Googleユーザーデータの利用と共有</h2>
+			<ul>
+				<li>Googleユーザーデータは、上記の同期機能をあなたに提供するためだけに使われます。</li>
+				<li>販売されず、広告に使われず、誰にも譲渡・開示されません。</li>
+				<li>誰も閲覧せず、AIや機械学習モデルの学習にも使われません。</li>
+			</ul>
+			<p>
+				本アプリによるGoogle APIから受け取った情報の利用と移転は、限定使用の要件を含む
+				<a href="https://developers.google.com/terms/api-services-user-data-policy">Google API サービスのユーザーデータに関するポリシー</a>に準拠しています。
+			</p>
+
+			<h2>データの削除とアクセスの取り消し</h2>
+			<ul>
+				<li>本アプリで<strong>ログアウト</strong>すると、同期が止まり、本アプリのアクセストークンが取り消されます。</li>
+				<li>本アプリのアクセスを完全に取り除くには、<a href="https://myaccount.google.com/connections">Googleアカウント → サードパーティ製のアプリとサービス</a>で「PokeMasterChef」を削除してください。</li>
+				<li>同期されたファイルを削除するには、<a href="https://drive.google.com/">Googleドライブ</a> → 設定 → アプリの管理 で本アプリを探し、「非表示のアプリデータを削除」を選んでください。</li>
+				<li>端末上のデータを削除するには、そのブラウザでこのサイトのデータを消去してください。</li>
+			</ul>
+
+			<h2>ホスティング</h2>
+			<p>
+				本ウェブサイトはGitHub Pagesでホストされています。ページが要求された際、GitHubがIPアドレスなどの技術情報を記録することがあります。詳しくは
+				<a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub のプライバシーに関する声明</a>をご覧ください。本アプリ自体はCookieを設定しません。
+			</p>
+
+			<h2>訪問統計</h2>
+			<p>
+				おおよその利用者数を知るために、本アプリはプライバシーに配慮した解析サービス
+				<a href="https://www.goatcounter.com/">GoatCounter</a> で訪問数を数えています。ページを開くと、GoatCounterはページのアドレス、参照元サイト、ブラウザと画面サイズ、言語を受け取ります。接続から国を推定しますが、IPアドレスは保存せず、Cookieも使わず、あなたのプロフィールも作成しません。集計は合計値としてのみ見られます。ボックス、スクリーンショット、Googleアカウントの情報は一切送信されません。スクリプトをブロックしても（コンテンツブロッカーなど）本アプリには影響しません。詳しくは
+				<a href="https://www.goatcounter.com/help/privacy">GoatCounter のプライバシーポリシー</a>をご覧ください。
+			</p>
+
+			<h2>子どもについて</h2>
+			<p>本アプリは、子どもを含め、誰からも意図的に個人情報を収集しません。</p>
+
+			<h2>変更</h2>
+			<p>このポリシーを変更する場合は、新しい「最終更新日」とともにこのページに掲載します。</p>
+
+			<h2>お問い合わせ</h2>
+			<p>
+				このポリシーに関するご質問やご依頼は、
+				<a href="https://github.com/MurphyChao/pokemon-sleep-calculator/issues">github.com/MurphyChao/pokemon-sleep-calculator/issues</a> で issue を作成してお送りください。
 			</p>
 		</main>
 	</body>
