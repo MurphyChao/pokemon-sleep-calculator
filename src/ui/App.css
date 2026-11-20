@@ -1221,6 +1221,25 @@ button.icon-select-button {
 		padding: 0 7px;
 		font-size: 0.78rem;
 	}
+	/* Type: its label beside smaller icons, packed closer, in two lines instead of four. */
+	.filter-row:has(.type-icon) {
+		gap: 2px;
+	}
+	.filter-row:has(.type-icon) .field-label {
+		min-width: 0;
+		margin-right: 2px;
+	}
+	.filter-row:has(.type-icon) .filter-all {
+		padding: 0 7px;
+		font-size: 0.78rem;
+	}
+	.filter-row:has(.type-icon) .filter-choice {
+		padding: 1px;
+	}
+	.filter-row .filter-choice .type-icon {
+		width: 24px;
+		height: 24px;
+	}
 	.filter-choice .type-icon,
 	.filter-choice .ing-icon {
 		width: 30px;
