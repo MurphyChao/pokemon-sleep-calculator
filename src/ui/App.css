@@ -2044,7 +2044,11 @@ button.icon-select-button {
 		height: 16px;
 		vertical-align: -3px;
 	}
-	table.stack .rank .rank-ing-icon + .rank-category {
+	/*
+	 * Strength and skill categories are always the Pokémon's own berry type or skill, so phones leave them out
+	 * (the tooltip still says), keeping Rarity and Rank on one line; only an ingredient's icon stays.
+	 */
+	table.stack .rank .rank-category {
 		display: none;
 	}
 
