@@ -1450,8 +1450,40 @@ button.icon-select-button {
 	 * Dish card: "Type [ ]  Your pot size [ ]" on one row with the labels beside the fields, the recipe below
 	 * without its label (the dropdown shows it); ingredients as "🎃 20 / 60" chips on one row.
 	 */
-	.dish-card h2 {
-		margin-bottom: 4px;
+	/*
+	 * The title shares the first row with Type and the pot size ("Dish  Type [Salad ▾]  Pot [69]"): the card
+	 * is a grid and the field grid's labels become its items; the recipe and the summary span the full width.
+	 */
+	.dish-card {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr);
+		align-items: center;
+		column-gap: 8px;
+	}
+	.dish-card > h2 {
+		margin: 0;
+	}
+	.dish-card > .form-grid {
+		display: contents;
+	}
+	.dish-card > .form-grid > label:nth-child(1) {
+		order: 1;
+	}
+	.dish-card > .form-grid > label:nth-child(3) {
+		order: 2;
+	}
+	.dish-card > .form-grid > label:nth-child(2) {
+		margin-top: 6px;
+	}
+	.dish-card > .recipe-summary {
+		grid-column: 1 / -1;
+		order: 4;
+	}
+	.dish-card .label-long {
+		display: none;
+	}
+	.dish-card .label-short {
+		display: inline;
 	}
 	.dish-card .form-grid {
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

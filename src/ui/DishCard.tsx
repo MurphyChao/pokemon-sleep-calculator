@@ -79,8 +79,13 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					</select>
 				</label>
 				<label>
-					<span className="field-text">{t("yourPotSize")}</span>
+					{/* Phones label it just "Pot", beside the card's title (App.css). */}
+					<span className="field-text">
+						<span className="label-long">{t("yourPotSize")}</span>
+						<span className="label-short">{t("potShort")}</span>
+					</span>
 					<input
+						aria-label={t("yourPotSize")}
 						type="number"
 						min={0}
 						value={potSize || ""}
