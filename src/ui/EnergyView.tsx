@@ -63,9 +63,8 @@ export default function EnergyView(props: {
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
 	ranks: Map<string, Rank | null>;
 	settings: EnergySettings;
-	setSettings: (s: EnergySettings) => void;
 }) {
-	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings, setSettings } = props;
+	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -167,7 +166,6 @@ export default function EnergyView(props: {
 
 	return (
 		<div className="energy-view">
-			<EnergySettingsCard settings={settings} setSettings={setSettings} />
 			{box.length === 0 ? (
 				<section className="card">
 					<p className="muted">{t("addOnBoxFirst")}</p>
@@ -406,7 +404,8 @@ function Diff(props: { value: number }) {
 	return <span className={v > 0 ? "ok" : "warn"}>{`${v > 0 ? "+" : "−"}${formatStrength(Math.abs(v))}`}</span>;
 }
 
-function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: EnergySettings) => void }) {
+/** The Island card: favorite berries, island bonus and recipe level (shown above the Dish card, see App). */
+export function EnergySettingsCard(props: { settings: EnergySettings; setSettings: (s: EnergySettings) => void }) {
 	const { settings, setSettings } = props;
 	const key = favoritesKey(settings.favorites);
 	const setRecipeLevel = (n: number) =>

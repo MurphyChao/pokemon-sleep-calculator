@@ -14,7 +14,7 @@ import {
 import BoxView, { keyLevels } from "./BoxView";
 import type { TastySource } from "../core/tasty";
 import DishCard, { useDish } from "./DishCard";
-import EnergyView, { defaultEnergySettings, type EnergySettings } from "./EnergyView";
+import EnergyView, { defaultEnergySettings, EnergySettingsCard, type EnergySettings } from "./EnergyView";
 import { type Key, type Lang, languages, setLang, t } from "./i18n";
 import SolverView from "./SolverView";
 import { useStoredState } from "./storage";
@@ -401,6 +401,7 @@ export default function App() {
 					/>
 				) : (
 					<div className="solver-view">
+						{tab === "energy" && <EnergySettingsCard settings={energy} setSettings={setEnergy} />}
 						<DishCard dish={dish} campTicket={options.campTicket} />
 						{tab === "slots" ? (
 							<SolverView
@@ -421,7 +422,6 @@ export default function App() {
 								helpedDetail={helpedDetail}
 								ranks={ranks}
 								settings={energy}
-								setSettings={setEnergy}
 							/>
 						)}
 					</div>
