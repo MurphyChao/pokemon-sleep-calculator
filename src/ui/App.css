@@ -1261,6 +1261,51 @@ button.icon-select-button {
 	.settings-bar > .event-bonus {
 		grid-column: 1 / -1;
 	}
+	/*
+	 * Custom event pop-up: each effect's name beside a small dropdown ("Skill rate [×1.25]"), two to a row,
+	 * smaller type icons, tighter spacing.
+	 */
+	.event-dialog .card h2 {
+		margin-bottom: 6px;
+	}
+	.event-fields {
+		gap: 5px 10px;
+	}
+	.event-fields label {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 4px;
+		font-size: 0.72rem;
+		line-height: 1.2;
+	}
+	.event-fields select,
+	.event-fields input {
+		flex: none;
+		width: 5.4em;
+		padding: 2px 2px;
+		font-size: 0.8rem;
+	}
+	/* "Applies to" needs room for "All Pokémon"; it takes a row of its own. */
+	.event-fields > label:first-child {
+		grid-column: 1 / -1;
+		justify-content: flex-start;
+	}
+	.event-fields > label:first-child select {
+		width: auto;
+	}
+	.event-types {
+		margin-top: 8px;
+	}
+	.event-types .filter-choice .type-icon {
+		width: 22px;
+		height: 22px;
+	}
+	.event-dialog .card > p.muted.small {
+		margin: 6px 0 0;
+		font-size: 0.72rem;
+	}
+
 	/* Event bonus: buttons sized like Level scaling's, the description small enough for one line. */
 	.settings-bar .event-bonus .key-levels button {
 		padding: 1px 8px;
