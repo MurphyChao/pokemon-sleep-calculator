@@ -1047,7 +1047,11 @@ button.icon-select-button {
 	vertical-align: -2px;
 }
 
-/* Event bonus setting: its three buttons, then what the chosen event does. */
+/* Event bonus setting: its three buttons, then what the chosen event does; on a row of its own (it'd otherwise
+   join Level scaling's row whenever the description is short, e.g. with Base). */
+.settings-bar > .event-bonus {
+	flex-basis: 100%;
+}
 .event-bonus .key-levels {
 	display: inline-flex;
 	gap: 4px;
