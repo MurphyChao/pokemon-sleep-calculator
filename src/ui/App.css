@@ -1261,6 +1261,16 @@ button.icon-select-button {
 	.settings-bar > .event-bonus {
 		grid-column: 1 / -1;
 	}
+	/* Event bonus: buttons sized like Level scaling's, the description small enough for one line. */
+	.settings-bar .event-bonus .key-levels button {
+		padding: 1px 8px;
+		font-size: 0.78rem;
+	}
+	.settings-bar .event-bonus .event-summary {
+		flex-basis: 100%;
+		font-size: 0.68rem;
+		line-height: 1.3;
+	}
 	.settings-bar > .level-scale {
 		grid-column: 1 / -1;
 	}
