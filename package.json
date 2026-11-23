@@ -10,6 +10,7 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "sync-upstream": "node scripts/sync-upstream.mjs",
+    "update-events": "node scripts/update-events.mjs",
     "fetch-pokemon-icons": "node scripts/fetch-pokemon-icons.ts",
     "build-sleep-icons": "node scripts/build-sleep-icons.mjs",
     "build-rank-tables": "node scripts/build-rank-tables.mjs"

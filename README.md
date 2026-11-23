@@ -246,6 +246,13 @@ npm run build    # typecheck + production build to dist/
 Every push to `master` runs the tests, builds, and deploys to GitHub Pages via
 `.github/workflows/deploy.yml` (repo Settings → Pages → Source must be "GitHub Actions").
 
+
+**Event list:** `.github/workflows/update-events.yml` runs daily (and from the Actions tab): it fetches
+pokesleep-tool's event list (`npm run update-events`, which checks its shape first), and if it changed, runs the
+tests, commits `src/vendor/pokesleep-tool/data/event.json` and starts the deploy. So the **Default** event bonus picks
+up new events within a day of pokesleep-tool adding them. GitHub pauses scheduled workflows after 60 days without
+activity in the repository; re-enable it in the Actions tab if that happens.
+
 ## Data sources
 
 - **Pokémon data and ingredient-yield model:** copied unmodified from

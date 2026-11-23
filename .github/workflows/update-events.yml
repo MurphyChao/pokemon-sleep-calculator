@@ -1,0 +1,44 @@
+# Keeps the event bonus list current: once a day, fetches pokesleep-tool's event list (scripts/update-events.mjs)
+# and, if it changed, runs the tests, commits it and starts the deploy. A push made with the workflow's own token
+# doesn't trigger other workflows, so the deploy is started explicitly (workflow_dispatch is allowed).
+name: Update event list
+
+on:
+  schedule:
+    # 18:30 UTC = 03:30 in Japan, before events start (04:00 Japan time).
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: update-events
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: events
+        run: npm run update-events
+      - if: steps.events.outputs.changed == 'true'
+        run: npx vitest run
+      - if: steps.events.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/vendor/pokesleep-tool/data/event.json
+          git commit -m "Update the event list from pokesleep-tool"
+          git push
+      - if: steps.events.outputs.changed == 'true'
+        run: gh workflow run deploy.yml --ref master
+        env:
+          GH_TOKEN: ${{ github.token }}
