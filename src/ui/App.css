@@ -1052,7 +1052,10 @@ button.icon-select-button {
 	display: inline-flex;
 	gap: 4px;
 }
+/* Each as wide as its label, on one line (Chinese and Japanese could otherwise break between any characters). */
 .event-bonus .key-levels button {
+	flex: none;
+	white-space: nowrap;
 	padding: 1px 10px;
 	font-size: 0.85rem;
 }
