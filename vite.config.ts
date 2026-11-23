@@ -54,6 +54,8 @@ function tesseractAssets(): Plugin {
 
 export default defineConfig({
 	base: "./",
+	// Identifies the build, so results saved in the browser by an older one (e.g. Rarity) aren't reused.
+	define: { __BUILD_ID__: JSON.stringify(String(Date.now())) },
 	plugins: [react(), tesseractAssets()],
 	test: {
 		globals: true,

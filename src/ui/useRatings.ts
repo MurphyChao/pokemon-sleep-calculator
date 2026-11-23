@@ -9,6 +9,42 @@ import { computePool, type Job } from "./computePool";
 const sliceMs = 30;
 
 /**
+ * Ratings are kept in the browser (not under "pscalc.", so Google sync leaves them alone) for this build of the
+ * app, so a reload or a later visit shows them at once; a new build (which may rate differently) starts over.
+ */
+const storageKey = "pscalc-ratings";
+const maxStored = 600;
+/** Ratings by everything they depend on (see keyOf), shared by every use of the hook. */
+let stored: Map<string, Rating | null> | undefined;
+
+function storedRatings(): Map<string, Rating | null> {
+	if (!stored) {
+		stored = new Map();
+		try {
+			const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null");
+			if (saved?.build === __BUILD_ID__ && Array.isArray(saved.entries)) stored = new Map(saved.entries);
+		} catch {
+			// Unreadable: start over.
+		}
+	}
+	return stored;
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+/** Saves the ratings a moment later (once for many arriving together), the most recent ones if there are many. */
+function saveRatingsSoon() {
+	clearTimeout(saveTimer);
+	saveTimer = setTimeout(() => {
+		try {
+			const entries = [...storedRatings()].slice(-maxStored);
+			localStorage.setItem(storageKey, JSON.stringify({ build: __BUILD_ID__, entries }));
+		} catch {
+			// Storage full or unavailable: they stay in memory for this visit.
+		}
+	}, 1000);
+}
+
+/**
  * Ratings of the box's Pokémon by entry id. A species' first rating takes a search and a sample of random
  * rolls (~100 ms to a second), so ratings are worked out after rendering: in web workers, in parallel (each
  * species on one worker, see computePool.ts), or where there are none, on the page a slice at a time.
@@ -25,7 +61,7 @@ export function useRatings(box: BoxEntry[], options: YieldOptions, strength: Str
 		eventKey(options),
 	]);
 	/** Ratings by everything they depend on, so unchanged entries keep theirs. */
-	const cache = useRef(new Map<string, Rating | null>());
+	const cache = useRef(storedRatings());
 	const [ratings, setRatings] = useState(() => new Map<string, Rating | null>());
 	/** Ratings being worked out by the workers, by key. */
 	const inflight = useRef(new Map<string, Job<Rating | null>>());
@@ -81,6 +117,7 @@ export function useRatings(box: BoxEntry[], options: YieldOptions, strength: Str
 				inflight.current.set(key, job);
 				const done = (rating: Rating | null) => {
 					cache.current.set(key, rating);
+					saveRatingsSoon();
 					inflight.current.delete(key);
 					schedule();
 				};
@@ -107,6 +144,7 @@ export function useRatings(box: BoxEntry[], options: YieldOptions, strength: Str
 						rating = null;
 					}
 					cache.current.set(key, rating);
+					saveRatingsSoon();
 				}
 				next.set(e.id, cache.current.get(key) ?? null);
 			}

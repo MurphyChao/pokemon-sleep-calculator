@@ -847,3 +847,14 @@ test("the event bonus setting: this week's event by default, none, or a custom o
 		vi.setSystemTime(new Date("2026-11-05T12:00:00"));
 	}
 });
+
+test("rarity results are kept in the browser for this build (not synced)", async () => {
+	localStorage.setItem("pscalc.box.v1", JSON.stringify([entry("sceptile", "Sceptile", "AAA", 4)]));
+	render(<App />);
+	const box = section("Your box");
+	await waitFor(() => expect(within(box).queryByText("Rarity…")).toBeNull());
+	await waitFor(() => expect(localStorage.getItem("pscalc-ratings")).toBeTruthy(), { timeout: 3000 });
+	const saved = JSON.parse(localStorage.getItem("pscalc-ratings") ?? "{}");
+	expect(saved.build).toBe(__BUILD_ID__);
+	expect(saved.entries.some(([key, rating]: [string, { grade: string } | null]) => key.includes("Sceptile") && rating?.grade)).toBe(true);
+});

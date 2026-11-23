@@ -107,7 +107,13 @@ against an exhaustive search over every Pokémon, it finds the same optimum.
 
 Rarity and Rank are computed in web workers, off the page and in parallel: one per spare CPU core, at most 4, each
 species always on the same worker so its rolls are computed once (`src/ui/computePool.ts`). Without web workers the
-page computes them itself, a slice at a time. Code: `src/core/rating.ts`, `src/ui/useRatings.ts`.
+page computes them itself, a slice at a time. Rarity results are kept in the browser (`pscalc-ratings`, not synced) for
+the current build, so a reload or a later visit shows them at once; a new deploy starts over.
+
+The energy solver's results (best team, with/without teams, default swap partner; `src/core/energyTab.ts`) are worked
+out ahead by the same web workers whenever the box, settings, dish, pins or exclusions change while another tab is
+shown, and the last few are kept for the visit (`src/ui/energyCache.ts`), so opening or revisiting the tab, or going
+back to a recent dish or setting, doesn't wait for them. Code: `src/core/rating.ts`, `src/ui/useRatings.ts`.
 
 ## Rank
 

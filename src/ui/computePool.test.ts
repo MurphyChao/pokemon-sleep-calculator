@@ -13,7 +13,7 @@ class FakeWorker {
 		FakeWorker.all.push(this);
 	}
 	postMessage({ id, task }: { id: number; task: Parameters<typeof runComputeTask>[0] }) {
-		this.received.push(task.kind === "rate" ? task.entry.pokemonName : task.job.category);
+		this.received.push(task.kind === "rate" ? task.entry.pokemonName : task.kind === "rankTable" ? task.job.category : task.kind);
 		setTimeout(() => this.onmessage?.({ data: { id, result: runComputeTask(task) } }), 0);
 	}
 }

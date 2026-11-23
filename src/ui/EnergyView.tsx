@@ -1,19 +1,16 @@
 import { type ReactNode, useMemo, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import type { Rank } from "../core/rank";
+import { type EnergyMember, type EnergyProblem, maxRecipeLevel, type SwapOption, teamHealSources } from "../core/energy";
 import {
-	type BestTeam,
-	bestEnergyTeam,
-	dishStrength,
-	type EnergyMember,
-	type EnergyProblem,
-	maxRecipeLevel,
-	resolveMembers,
-	teamHealSources,
-	weightedHealSources,
-	type SwapOption,
-	swapAnalysis,
-} from "../core/energy";
+	analyzeEnergy,
+	type EnergyAnalysis,
+	energyMembers,
+	energyProblem,
+	swapCandidates,
+	swapResult,
+	teamSlots,
+} from "../core/energyTab";
 import { sundayBaseChance, weekdayBaseChance } from "../core/tasty";
 import { dailyDemand, mealsPerDay, type Recipe } from "../core/recipes";
 import type { Heal, StrengthOptions, YieldDetail } from "../core/yield";
@@ -21,7 +18,7 @@ import { getFavoriteBerries } from "../vendor/pokesleep-tool/data/fields";
 import { type IngredientName, type PokemonType, PokemonTypes } from "../vendor/pokesleep-tool/data/pokemons";
 import { islandLabel, Rich, t, tRich, typeLabel } from "./i18n";
 import { buildEntryLabelParts, buildEntryLabels, type EntryLabelParts, entryTooltip, formatAmount, formatPercent } from "./names";
-import { useStoredState } from "./storage";
+import { cacheEnergy, cacheEnergySwap, cachedEnergy } from "./energyCache";
 import { PokemonIconCell } from "./PokemonIcon";
 import { EntryLabel, InlineEntry } from "./EntryLabel";
 import IconSelect from "./IconSelect";
@@ -35,9 +32,6 @@ export interface EnergySettings extends StrengthOptions {
 }
 
 export const defaultEnergySettings: EnergySettings = { favorites: "none", fieldBonus: 0, recipeLevel: 1 };
-
-/** Team slots shared by all Pokémon. */
-const teamSlots = 5;
 
 /** Common recipe levels, for one-click entry. */
 const keyRecipeLevels = [30, 40, 50, 60, 70];
@@ -65,80 +59,36 @@ export default function EnergyView(props: {
 	settings: EnergySettings;
 	/** The event bonus's dish strength multiplier (1 without one). */
 	dishMultiplier: number;
+	/** Identifies the results (see core/energyTab.ts): the same key, the same team. */
+	energyKey: string;
+	/** Pinned and excluded Pokémon in the box (kept by App, which works the results out ahead too). */
+	pinned: string[];
+	excluded: string[];
+	setPinned: (ids: string[]) => void;
+	setExcluded: (ids: string[]) => void;
 }) {
-	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings, dishMultiplier } = props;
-	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
-	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
+	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings, dishMultiplier, energyKey } = props;
+	const { pinned, excluded, setPinned, setExcluded } = props;
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
 	const labels = useMemo(() => buildEntryLabels(box), [box]);
 	const shortLabels = useMemo(() => buildEntryLabelParts(box, { ingredients: false }), [box]);
-	const pinned = pinnedRaw.filter((id) => byId.has(id));
-	const excluded = excludedRaw.filter((id) => byId.has(id) && !pinned.includes(id));
 
-	const members: EnergyMember[] = useMemo(() => {
-		/** `heal`: healing received on the team, or "solo" for the Pokémon on its own (as in `details`). */
-		const toMember = (id: string, d: YieldDetail | undefined, heal: Heal | undefined | "solo"): EnergyMember => {
-			const m: EnergyMember = {
-				id,
-				yield: d?.total ?? {},
-				berry: d?.berryStrength ?? 0,
-				skill: d?.skillStrength ?? 0,
-				...(d?.tasty && { tasty: d.tasty }),
-				...(d?.heal && { heal: d.heal }),
-				...(d?.helpingBonus && { helpingBonus: true }),
-			};
-			if (healedDetail) m.at = (h) => toMember(id, healedDetail(id, h), h);
-			m.withHelpers = (helpers) =>
-				toMember(
-					id,
-					heal === "solo" || !healedDetail ? helpedDetail(id, helpers) : healedDetail(id, heal, helpers),
-					heal,
-				);
-			return m;
-		};
-		return box.map((e) => toMember(e.id, details.get(e.id), "solo"));
-	}, [box, details, healedDetail, helpedDetail]);
+	const members: EnergyMember[] = useMemo(
+		() => energyMembers(box, { details, helpedDetail, healedDetail }),
+		[box, details, healedDetail, helpedDetail],
+	);
 	const problem: EnergyProblem = useMemo(
-		() => ({ recipe, dishStrength: dishStrength(recipe, settings.recipeLevel, settings.fieldBonus) * dishMultiplier }),
+		() => energyProblem(recipe, settings.recipeLevel, settings.fieldBonus, dishMultiplier),
 		[recipe, settings.recipeLevel, settings.fieldBonus, dishMultiplier],
 	);
-
-	const pinKey = pinned.join(",");
-	const exKey = excluded.join(",");
+	// Worked out ahead in the background (useEnergyWarmup) or earlier on this tab, or now.
 	const analysis = useMemo(() => {
-		const best = bestEnergyTeam(members, problem, pinned, excluded);
-		const others = members.filter((m) => !best.ids.includes(m.id)).map((m) => m.id);
-		/** Strength lost if a team member is left out (and the rest re-optimised). */
-		const without = new Map<string, BestTeam>();
-		for (const id of best.ids) {
-			without.set(
-				id,
-				bestEnergyTeam(
-					members,
-					problem,
-					pinned.filter((x) => x !== id),
-					[...excluded, id],
-				),
-			);
-		}
-		/** Best team that includes a bench member. */
-		const withIt = new Map<string, BestTeam>();
-		for (const id of others) {
-			withIt.set(
-				id,
-				bestEnergyTeam(
-					members,
-					problem,
-					[...pinned, id],
-					excluded.filter((x) => x !== id),
-				),
-			);
-		}
-		const bench = [...others].sort(
-			(a, b) => (withIt.get(b)?.energy.total ?? 0) - (withIt.get(a)?.energy.total ?? 0),
-		);
-		return { best, without, withIt, bench };
-	}, [members, problem, pinKey, exKey]);
+		const cached = cachedEnergy(energyKey);
+		if (cached) return cached.analysis;
+		const fresh = analyzeEnergy(members, problem, pinned, excluded);
+		cacheEnergy(energyKey, { analysis: fresh });
+		return fresh;
+	}, [energyKey, members, problem]);
 	const { best, without, withIt, bench } = analysis;
 	const e = best.energy;
 
@@ -303,8 +253,8 @@ export default function EnergyView(props: {
 					<SwapCard
 						members={members}
 						problem={problem}
-						best={best}
-						withIt={withIt}
+						analysis={analysis}
+						energyKey={energyKey}
 						pinned={pinned}
 						excluded={excluded}
 						labels={labels}
@@ -547,8 +497,8 @@ function ruleText(o: SwapOption, swapIn: ReactNode, partner: ReactNode, last: bo
 function SwapCard(props: {
 	members: EnergyMember[];
 	problem: EnergyProblem;
-	best: BestTeam;
-	withIt: Map<string, BestTeam>;
+	analysis: EnergyAnalysis;
+	energyKey: string;
 	pinned: string[];
 	excluded: string[];
 	labels: Map<string, string>;
@@ -556,67 +506,24 @@ function SwapCard(props: {
 	entries: Map<string, BoxEntry>;
 	shortLabels: Map<string, EntryLabelParts>;
 }) {
-	const { members, problem, best, withIt, pinned, excluded, labels, entries, shortLabels } = props;
+	const { members, problem, analysis: teams, energyKey, pinned, excluded, labels, entries, shortLabels } = props;
+	const { best } = teams;
 	const [chosenIn, setChosenIn] = useState<string | null>(null);
 	const [chosenPartner, setChosenPartner] = useState<string | null>(null);
-	const byId = new Map(members.map((m) => [m.id, m]));
-	const tastyIds = members.filter((m) => m.tasty && !excluded.includes(m.id)).map((m) => m.id);
-
-	// Default: an Extra Tasty Pokémon on the team and whoever replaces it in the best team without it,
-	// or the best Extra Tasty Pokémon on the bench and whoever it would replace.
-	const defaultIn =
-		best.ids.find((id) => tastyIds.includes(id)) ??
-		[...tastyIds].sort((a, b) => (withIt.get(b)?.energy.total ?? 0) - (withIt.get(a)?.energy.total ?? 0))[0];
-	const swapInId = chosenIn !== null && tastyIds.includes(chosenIn) ? chosenIn : defaultIn;
-	const partnerChoices = members.map((m) => m.id).filter((id) => id !== swapInId && !excluded.includes(id));
-
-	/**
-	 * The pair shares exactly one slot; the other slots go to the best team without the two of them.
-	 * Those members keep their shares and output; the pair is healed by their healers (and its own).
-	 */
-	const analyse = (inId: string, partnerId: string) => {
-		const rest = bestEnergyTeam(
-			members,
-			problem,
-			pinned.filter((id) => id !== inId && id !== partnerId),
-			[...excluded, inId, partnerId],
-			teamSlots - 1,
-		);
-		const others = rest.entries;
-		const slotSize = Math.min(1, teamSlots - rest.slots);
-		// Healers among the others heal for the share of the time they're on the team; a healer sharing the
-		// slot heals for its time in the slot (approximated by the slot size).
-		const othersHeal = weightedHealSources(
-			others.map((o) => ({ member: byId.get(o.member.id) as EnergyMember, share: o.share })),
-		);
-		const resolve = (id: string) => {
-			const m = byId.get(id) as EnergyMember;
-			return resolveMembers([m], [...othersHeal, ...weightedHealSources([{ member: m, share: slotSize }])])[0];
-		};
-		const analysis = swapAnalysis(others, resolve(inId), resolve(partnerId), problem, slotSize);
-		return analysis && { ...analysis, slotSize, rest };
-	};
-
+	const tastyIds = swapCandidates(members, excluded);
+	// The default pair is worked out ahead with the rest (useEnergyWarmup); a chosen one now.
 	const result = useMemo(() => {
-		if (swapInId === undefined) return undefined;
-		if (chosenPartner !== null && partnerChoices.includes(chosenPartner)) {
-			return { partnerId: chosenPartner, analysis: analyse(swapInId, chosenPartner) };
+		if (chosenIn === null && chosenPartner === null) {
+			const cached = cachedEnergy(energyKey)?.swap;
+			if (cached) return cached;
+			const fresh = swapResult(members, problem, teams, pinned, excluded, null, null);
+			cacheEnergySwap(energyKey, fresh);
+			return fresh;
 		}
-		// Default partner: the best of the team's members and the top of the bench.
-		const benchTop = [...partnerChoices]
-			.filter((id) => !best.ids.includes(id))
-			.sort((a, b) => (withIt.get(b)?.energy.total ?? 0) - (withIt.get(a)?.energy.total ?? 0))
-			.slice(0, 3);
-		const candidates = [...best.ids.filter((id) => partnerChoices.includes(id)), ...benchTop];
-		let pick: { partnerId: string; analysis: ReturnType<typeof analyse> } | undefined;
-		for (const id of candidates) {
-			const analysis = analyse(swapInId, id);
-			if (!pick || (analysis?.best.energy.total ?? 0) > (pick.analysis?.best.energy.total ?? 0)) {
-				pick = { partnerId: id, analysis };
-			}
-		}
-		return pick;
-	}, [swapInId, chosenPartner, members, problem, best, pinned.join(","), excluded.join(",")]);
+		return swapResult(members, problem, teams, pinned, excluded, chosenIn, chosenPartner);
+	}, [energyKey, chosenIn, chosenPartner, members, problem, teams]);
+	const swapInId = result?.swapInId;
+	const partnerChoices = result?.partnerChoices ?? [];
 	const partnerId = result?.partnerId;
 
 	if (tastyIds.length === 0) {

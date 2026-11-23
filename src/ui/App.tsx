@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { type BoxEntry, evolveToFinal, maxSubSkillSeeds, scaleLevels } from "../core/box";
 import { eventDishMultiplier, eventKey, eventPotMultiplier } from "../core/event";
+import { type EnergyTabInput, energyTabKey, energyYields } from "../core/energyTab";
+import { useEnergyWarmup } from "./useEnergyWarmup";
 import { EventBonusSetting } from "./EventBonus";
 import {
-	dailyIngredientYieldDetail,
 	defaultYieldOptions,
-	emptyYieldDetail,
-	type Heal,
 	type IngredientYield,
-	soloYieldDetail,
-	type YieldDetail,
 	type YieldOptions,
-	withHelpers,
 } from "../core/yield";
 import BoxView, { keyLevels } from "./BoxView";
 import type { TastySource } from "../core/tasty";
@@ -83,76 +79,53 @@ export default function App() {
 	/** The box the numbers below are computed for, on every tab: evolved, level-scaled and seeded if on. */
 	const mathBox = solverBox;
 
-	const details = useMemo(() => {
-		const map = new Map<string, YieldDetail>();
-		for (const e of mathBox) {
-			try {
-				map.set(e.id, soloYieldDetail(e, options, energy));
-			} catch {
-				map.set(e.id, emptyYieldDetail);
-			}
-		}
-		return map;
-	}, [
-		mathBox,
-		options.inventoryLimit,
-		options.campTicket,
-		options.energy,
-		options.sleepScore,
-		eventKey(options),
-		JSON.stringify(energy.favorites),
-		energy.fieldBonus,
-	]);
-
 	/**
-	 * A Pokémon's yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus
-	 * (0–4, can be fractional; cached).
+	 * Every Pokémon's yields with these settings: on its own (`details`), with teammates' Helping Bonus
+	 * (`helpedDetail`), and with simulated energy healed by the team's healers (`healedDetail`); cached.
 	 */
-	const helpedDetail = useMemo(() => {
-		const cache = new Map<string, YieldDetail>();
-		const byId = new Map(mathBox.map((e) => [e.id, e]));
-		const at = (id: string, helpers: number): YieldDetail => {
-			if (helpers === 0) return details.get(id) ?? emptyYieldDetail;
-			const key = `${id}|${helpers}`;
-			let d = cache.get(key);
-			if (d === undefined) {
-				const e = byId.get(id);
-				try {
-					d = e ? soloYieldDetail(e, options, energy, helpers) : emptyYieldDetail;
-				} catch {
-					d = emptyYieldDetail;
-				}
-				cache.set(key, d);
-			}
-			return d;
-		};
-		return (id: string, helpers: number) => withHelpers((k) => at(id, k), helpers);
-	}, [details]);
-
-	/** With simulated energy: a Pokémon's yields when healed by `heal`, with `helpers` as above (cached). */
-	const healedDetail = useMemo(() => {
-		if (options.energy !== "simulated") return undefined;
-		const cache = new Map<string, YieldDetail>();
-		const byId = new Map(mathBox.map((e) => [e.id, e]));
-		const at = (id: string, heal: Heal | undefined, helpers: number): YieldDetail => {
-			const key = `${id}|${helpers}|${heal ? `${heal.count}|${heal.energy.toFixed(3)}` : "-"}`;
-			let d = cache.get(key);
-			if (d === undefined) {
-				const e = byId.get(id);
-				try {
-					// The heal it gives others is the one worked out on its own (with its own healing).
-					d = e
-						? { ...dailyIngredientYieldDetail(e, options, energy, heal, helpers), heal: helpedDetail(id, helpers).heal }
-						: emptyYieldDetail;
-				} catch {
-					d = emptyYieldDetail;
-				}
-				cache.set(key, d);
-			}
-			return d;
-		};
-		return (id: string, heal: Heal | undefined, helpers = 0) => withHelpers((k) => at(id, heal, k), helpers);
-	}, [details, helpedDetail]);
+	const boxYields = useMemo(
+		() => energyYields(mathBox, options, energy),
+		[
+			mathBox,
+			options.inventoryLimit,
+			options.campTicket,
+			options.energy,
+			options.sleepScore,
+			eventKey(options),
+			JSON.stringify(energy.favorites),
+			energy.fieldBonus,
+		],
+	);
+	const { details, helpedDetail, healedDetail } = boxYields;
+	/** The energy solver's pins and exclusions (here, so the background warm-up works out the same team). */
+	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
+	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
+	const mathIds = new Set(mathBox.map((e) => e.id));
+	const pinned = pinnedRaw.filter((id) => mathIds.has(id));
+	const excluded = excludedRaw.filter((id) => mathIds.has(id) && !pinned.includes(id));
+	const dishMultiplier = eventDishMultiplier(options);
+	/** What the energy solver works out from, and its cache key (see core/energyTab.ts). */
+	const energyInput: EnergyTabInput = {
+		box: mathBox,
+		options,
+		strength: energy,
+		recipe: dish.recipe,
+		recipeLevel: energy.recipeLevel,
+		dishMultiplier,
+		pinned,
+		excluded,
+	};
+	const energyKey = useMemo(() => energyTabKey(energyInput), [
+		mathBox,
+		rankSettingsKey(options, energy),
+		dish.recipe.id,
+		energy.recipeLevel,
+		dishMultiplier,
+		pinned.join(","),
+		excluded.join(","),
+	]);
+	// Worked out ahead in the background while another tab is shown, so opening the energy solver is instant.
+	useEnergyWarmup(energyInput, energyKey, tab !== "energy");
 	/** Box tab only (benches show the rank): each Pokémon's rarity among rolls of its species. */
 	/**
 	 * Rarity and rank always judge a Pokémon as its final form (and with Sub Skill Seeds, which they apply
@@ -434,7 +407,12 @@ export default function App() {
 								helpedDetail={helpedDetail}
 								ranks={ranks}
 								settings={energy}
-								dishMultiplier={eventDishMultiplier(options)}
+								dishMultiplier={dishMultiplier}
+								energyKey={energyKey}
+								pinned={pinned}
+								excluded={excluded}
+								setPinned={setPinned}
+								setExcluded={setExcluded}
 							/>
 						)}
 					</div>
