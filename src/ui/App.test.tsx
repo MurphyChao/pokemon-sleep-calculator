@@ -159,6 +159,7 @@ test("inventory limit, camp ticket and energy settings are saved", () => {
 		campTicket: true,
 		energy: "simulated",
 		sleepScore: 85,
+		eventBonus: "default",
 	});
 });
 
@@ -818,4 +819,31 @@ test("the Box can be filtered by what each Pokémon is kept for, as its final fo
 	expect(shown().sort()).toEqual(["Eevee", "Sceptile"]);
 	fireEvent.click(within(filter).getByRole("button", { name: "Ingredients" }));
 	expect(shown().sort()).toEqual(["Chansey", "Eevee", "Sandslash", "Sceptile"]);
+});
+
+test("the event bonus setting: this week's event by default, none, or a custom one edited in a pop-up", () => {
+	vi.setSystemTime(new Date("2026-11-24T12:00:00"));
+	try {
+		render(<App />);
+		const group = screen.getByRole("group", { name: "Event bonus" });
+		expect(within(group).getByRole("button", { name: "Default" }).getAttribute("aria-pressed")).toBe("true");
+		expect(group.textContent).toMatch(/skill rate ×1\.25 · dream shard skills ×1\.5 · until/);
+		fireEvent.click(within(group).getByRole("button", { name: "Base" }));
+		expect(group.textContent).toContain("No event bonus");
+		expect(JSON.parse(localStorage.getItem("pscalc.yieldOptions") ?? "{}").eventBonus).toBe("base");
+
+		// Custom starts from this week's event, edited in a pop-up and saved as it changes.
+		fireEvent.click(within(group).getByRole("button", { name: "Custom" }));
+		const dialog = screen.getByRole("dialog", { name: "Custom event bonus" });
+		expect((within(dialog).getByLabelText("skill rate") as HTMLSelectElement).value).toBe("1.25");
+		fireEvent.change(within(dialog).getByLabelText("dish strength"), { target: { value: "1.5" } });
+		fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+		expect(screen.queryByRole("dialog", { name: "Custom event bonus" })).toBeNull();
+		const saved = JSON.parse(localStorage.getItem("pscalc.yieldOptions") ?? "{}");
+		expect(saved.eventBonus).toBe("custom");
+		expect(saved.customEvent.effects).toMatchObject({ skillTrigger: 1.25, dreamShard: 1.5, dish: 1.5 });
+		expect(group.textContent).toMatch(/dish strength ×1\.5/);
+	} finally {
+		vi.setSystemTime(new Date("2026-11-05T12:00:00"));
+	}
 });

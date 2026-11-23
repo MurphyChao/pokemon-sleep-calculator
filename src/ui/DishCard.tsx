@@ -39,7 +39,8 @@ export function useDish(): DishState {
 	return { recipe, recipeType, setRecipeType, setRecipeId, potSize, setPotSize };
 }
 
-export default function DishCard(props: { dish: DishState; campTicket: boolean }) {
+/** `potMultiplier`: the event bonus's pot size multiplier (1 without one). */
+export default function DishCard(props: { dish: DishState; campTicket: boolean; potMultiplier: number }) {
 	const { recipe, recipeType, setRecipeType, setRecipeId, potSize, setPotSize } = props.dish;
 	const typeRecipes = recipesOfType(recipeType);
 	return (
@@ -94,22 +95,22 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean }
 					/>
 				</label>
 			</div>
-			<RecipeSummary recipe={recipe} potSize={potSize} campTicket={props.campTicket} />
+			<RecipeSummary recipe={recipe} potSize={potSize} campTicket={props.campTicket} potMultiplier={props.potMultiplier} />
 		</section>
 	);
 }
 
 /** Pot capacity: doubled on Sunday, ×1.5 with a Good Camp Ticket (as in SleepAPI). */
-function effectivePot(potSize: number, sunday: boolean, campTicket: boolean): number {
-	return Math.round(potSize * (sunday ? 2 : 1) * (campTicket ? 1.5 : 1));
+function effectivePot(potSize: number, sunday: boolean, campTicket: boolean, multiplier: number): number {
+	return Math.round(potSize * (sunday ? 2 : 1) * (campTicket ? 1.5 : 1) * multiplier);
 }
 
-function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boolean }) {
-	const { recipe, potSize, campTicket } = props;
+function RecipeSummary(props: { recipe: Recipe; potSize: number; campTicket: boolean; potMultiplier: number }) {
+	const { recipe, potSize, campTicket, potMultiplier } = props;
 	const demand = dailyDemand(recipe);
 	const needed = potSizeNeeded(recipe);
-	const weekdayPot = effectivePot(potSize, false, campTicket);
-	const sundayPot = effectivePot(potSize, true, campTicket);
+	const weekdayPot = effectivePot(potSize, false, campTicket, potMultiplier);
+	const sundayPot = effectivePot(potSize, true, campTicket, potMultiplier);
 	return (
 		<div className="recipe-summary">
 			<p>

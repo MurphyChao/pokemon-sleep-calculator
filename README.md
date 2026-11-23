@@ -21,6 +21,15 @@ and skill triggers for strength Pokémon (e.g. Sceptile), skill triggers and wha
 dream shards) for support and ingredients + skill Pokémon (e.g. Gardevoir, Chansey, Cramorant), then everyone's
 ingredients per day (skill ingredients included).
 
+The **Event bonus** setting chooses the event whose bonuses apply: **Base** (none), **Default** (the event running
+now, from pokesleep-tool's event list, e.g. skill rate ×1.25 and dream shard skills ×1.5; its effects and end date are
+shown) or **Custom** (a pop-up sets which Pokémon it applies to and its effects, with the values the game's events use;
+it starts from the event running now). pokesleep-tool's model applies an event's effects to helps and skills (skill
+rate and level, extra berries and ingredients, dream shards, skill ingredients, Berry Burst, inventory); this app
+applies its dish strength and pot size multipliers. It counts everywhere: the Box, both solvers, Rarity and Rank (the
+shipped rank tables are without an event, so with one running the browser builds its own). Code: `src/core/event.ts`,
+`src/ui/EventBonus.tsx`.
+
 Both solvers count **Helping Bonus**: each slot filled by Pokémon with it makes everyone else on the team help 5%
 faster (pokesleep-tool's model, including the 35% cap with speed subskills). Since that makes each Pokémon's output
 depend on the team, the solvers try team Helping Bonus totals of 0, ½, 1, … (up to 5): for each, everyone's output is

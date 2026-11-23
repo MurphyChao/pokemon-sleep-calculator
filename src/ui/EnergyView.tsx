@@ -63,8 +63,10 @@ export default function EnergyView(props: {
 	/** Each Pokémon's cross-species rank (see core/rank.ts). */
 	ranks: Map<string, Rank | null>;
 	settings: EnergySettings;
+	/** The event bonus's dish strength multiplier (1 without one). */
+	dishMultiplier: number;
 }) {
-	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings } = props;
+	const { box, recipe, details, healedDetail, helpedDetail, ranks, settings, dishMultiplier } = props;
 	const [pinnedRaw, setPinned] = useStoredState<string[]>("pscalc.energy.pinned", []);
 	const [excludedRaw, setExcluded] = useStoredState<string[]>("pscalc.energy.excluded", []);
 	const byId = useMemo(() => new Map(box.map((e) => [e.id, e])), [box]);
@@ -97,8 +99,8 @@ export default function EnergyView(props: {
 		return box.map((e) => toMember(e.id, details.get(e.id), "solo"));
 	}, [box, details, healedDetail, helpedDetail]);
 	const problem: EnergyProblem = useMemo(
-		() => ({ recipe, dishStrength: dishStrength(recipe, settings.recipeLevel, settings.fieldBonus) }),
-		[recipe, settings.recipeLevel, settings.fieldBonus],
+		() => ({ recipe, dishStrength: dishStrength(recipe, settings.recipeLevel, settings.fieldBonus) * dishMultiplier }),
+		[recipe, settings.recipeLevel, settings.fieldBonus, dishMultiplier],
 	);
 
 	const pinKey = pinned.join(",");

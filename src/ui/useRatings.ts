@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { BoxEntry } from "../core/box";
 import { type Rating, rateEntry } from "../core/rating";
+import { eventKey } from "../core/event";
 import type { StrengthOptions, YieldOptions } from "../core/yield";
 import { computePool, type Job } from "./computePool";
 
@@ -21,6 +22,7 @@ export function useRatings(box: BoxEntry[], options: YieldOptions, strength: Str
 		options.sleepScore,
 		strength.favorites,
 		strength.fieldBonus,
+		eventKey(options),
 	]);
 	/** Ratings by everything they depend on, so unchanged entries keep theirs. */
 	const cache = useRef(new Map<string, Rating | null>());

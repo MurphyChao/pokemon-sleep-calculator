@@ -1,4 +1,5 @@
 import { type IngredientName, IngredientNames } from "../vendor/pokesleep-tool/data/pokemons";
+import { type EventOptions, eventParameter } from "./event";
 import { getIngredientDrawIngredients } from "../vendor/pokesleep-tool/util/MainSkill";
 import type PokemonIv from "../vendor/pokesleep-tool/util/PokemonIv";
 import PokemonStrength, { type StrengthResult } from "../vendor/pokesleep-tool/util/PokemonStrength";
@@ -14,7 +15,7 @@ import type { TastySource } from "./tasty";
 
 export type IngredientYield = Partial<Record<IngredientName, number>>;
 
-export interface YieldOptions {
+export interface YieldOptions extends EventOptions {
 	/**
 	 * true: the bag can fill up (collected every 3 hours while awake, not while asleep).
 	 * false: ingredients are collected continuously, so the bag never fills.
@@ -34,7 +35,13 @@ export interface YieldOptions {
 	sleepScore: number;
 }
 
-export const defaultYieldOptions: YieldOptions = { inventoryLimit: true, campTicket: false, energy: "full", sleepScore: 0 };
+export const defaultYieldOptions: YieldOptions = {
+	inventoryLimit: true,
+	campTicket: false,
+	energy: "full",
+	sleepScore: 0,
+	eventBonus: "default",
+};
 
 /** A main skill that restores energy, per trigger. */
 export interface HealSource {
@@ -209,6 +216,8 @@ export function dailyIngredientYieldDetail(
 		fieldIndex: favorites === "none" ? noFavoriteFieldIndex : favorites === "all" ? allFavoriteFieldIndex : 0,
 		...(Array.isArray(favorites) && { favoriteType: favorites }),
 		...(!options.inventoryLimit && { tapFrequencyAwake: AlwaysTap, tapFrequencyAsleep: AlwaysTap }),
+		// The event bonus that applies (none, this week's, or the user's own), applied by the model.
+		...eventParameter(options),
 	});
 	const result = new PokemonStrength(iv, param).calculate();
 	const help: IngredientYield = {};

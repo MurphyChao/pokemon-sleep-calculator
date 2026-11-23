@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { type BoxEntry, evolveToFinal, maxSubSkillSeeds, scaleLevels } from "../core/box";
+import { eventDishMultiplier, eventKey, eventPotMultiplier } from "../core/event";
+import { EventBonusSetting } from "./EventBonus";
 import {
 	dailyIngredientYieldDetail,
 	defaultYieldOptions,
@@ -91,7 +93,16 @@ export default function App() {
 			}
 		}
 		return map;
-	}, [mathBox, options.inventoryLimit, options.campTicket, options.energy, options.sleepScore, JSON.stringify(energy.favorites), energy.fieldBonus]);
+	}, [
+		mathBox,
+		options.inventoryLimit,
+		options.campTicket,
+		options.energy,
+		options.sleepScore,
+		eventKey(options),
+		JSON.stringify(energy.favorites),
+		energy.fieldBonus,
+	]);
 
 	/**
 	 * A Pokémon's yields on its own (as in `details`) with `helpers` teammates' worth of Helping Bonus
@@ -376,6 +387,7 @@ export default function App() {
 						</div>
 						<span className="muted small">{t("levelScalingHint")}</span>
 					</div>
+					<EventBonusSetting options={options} setOptions={setOptions} />
 					<button
 						type="button"
 						className="secondary help-toggle settings-help-toggle"
@@ -402,7 +414,7 @@ export default function App() {
 				) : (
 					<div className="solver-view">
 						{tab === "energy" && <EnergySettingsCard settings={energy} setSettings={setEnergy} />}
-						<DishCard dish={dish} campTicket={options.campTicket} />
+						<DishCard dish={dish} campTicket={options.campTicket} potMultiplier={eventPotMultiplier(options)} />
 						{tab === "slots" ? (
 							<SolverView
 								box={solverBox}
@@ -422,6 +434,7 @@ export default function App() {
 								helpedDetail={helpedDetail}
 								ranks={ranks}
 								settings={energy}
+								dishMultiplier={eventDishMultiplier(options)}
 							/>
 						)}
 					</div>

@@ -1047,6 +1047,64 @@ button.icon-select-button {
 	vertical-align: -2px;
 }
 
+/* Event bonus setting: its three buttons, then what the chosen event does. */
+.event-bonus .key-levels {
+	display: inline-flex;
+	gap: 4px;
+}
+.event-bonus .key-levels button {
+	padding: 1px 10px;
+	font-size: 0.85rem;
+}
+.event-summary {
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+
+/* Custom event pop-up: a narrow one, its effects in two columns. */
+.modal.event-dialog {
+	max-width: 32rem;
+}
+.event-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 6px 12px;
+	font-size: 0.85rem;
+}
+.event-fields label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: var(--muted);
+}
+/* The effect names double as phrases in the summary ("skill rate ×1.25"), so they're capitalized here. */
+.event-field-name {
+	display: block;
+}
+.event-field-name::first-letter {
+	text-transform: uppercase;
+}
+.event-types {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px;
+	margin-top: 10px;
+	font-size: 0.85rem;
+}
+.event-types .field-label {
+	margin-right: 4px;
+	color: var(--muted);
+}
+.event-types .filter-all {
+	padding: 0 8px;
+	font-size: 0.8rem;
+}
+.event-types .type-icon {
+	width: 24px;
+	height: 24px;
+}
+
 /* Shorter labels on phones (below). */
 .label-short {
 	display: none;
@@ -1192,6 +1250,9 @@ button.icon-select-button {
 	}
 	.settings-bar select {
 		flex: 1;
+	}
+	.settings-bar > .event-bonus {
+		grid-column: 1 / -1;
 	}
 	.settings-bar > .level-scale {
 		grid-column: 1 / -1;

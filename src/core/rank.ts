@@ -29,6 +29,7 @@ import { type IngredientType, IngredientTypes } from "../vendor/pokesleep-tool/u
 import { ingredientStrength } from "../vendor/pokesleep-tool/util/PokemonRp";
 import type { SubSkillType } from "../vendor/pokesleep-tool/util/SubSkill";
 import { type BoxEntry, subSkillLevels, toPokemonIv } from "./box";
+import { eventKey } from "./event";
 import {
 	type Grade,
 	gradeOf,
@@ -51,8 +52,11 @@ import {
 	type YieldOptions,
 } from "./yield";
 
-/** The settings the shipped tables (src/data/rank-tables.json) are built with: the app's defaults. */
-export const rankOptions = defaultYieldOptions;
+/**
+ * The settings the shipped tables (src/data/rank-tables.json) are built with: the app's defaults, without an
+ * event (with one running, the browser builds tables for it, as for any other settings).
+ */
+export const rankOptions: YieldOptions = { ...defaultYieldOptions, eventBonus: "base" };
 export const rankStrengthOptions = defaultStrengthOptions;
 
 /** Identifies the settings a population is built with (only what changes yields or strength). */
@@ -64,6 +68,7 @@ export function rankSettingsKey(options: YieldOptions, strength: StrengthOptions
 		options.sleepScore,
 		strength.favorites,
 		strength.fieldBonus,
+		eventKey(options),
 	]);
 }
 
