@@ -687,7 +687,8 @@ function SpecialtySummary(props: { detail: YieldDetail; pokemonName: string }) {
 	const gives = detail.heal
 		? t("prodEnergy", { n: whole(detail.skillValue) })
 		: detail.tasty
-			? t("prodTasty", { n: whole(detail.skillValue) })
+			? // From the Extra Tasty part itself: Bulk Up's skill value is its ingredients.
+				t("prodTasty", { n: whole(detail.tasty.perTrigger * detail.tasty.triggersPerDay) })
 			: skill.startsWith("Dream Shard")
 				? t("prodShards", { n: whole(detail.skillValue) })
 				: "";

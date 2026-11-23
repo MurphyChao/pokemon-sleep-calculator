@@ -215,3 +215,19 @@ describe("strength Pokémon whose skill also does a support job", () => {
 		expect(latias?.skillCredit?.amount).toBeCloseTo((latias?.skillCredit?.share ?? 0) * (refs.get("strength:dragon") as number), 6);
 	});
 });
+
+it("Heracross (Bulk Up) is a skill Pokémon, ranked with Tasty Chance users by its Extra Tasty plus its random ingredients", () => {
+	const heracross = e("Heracross", "Serious", [], { ingredient: "AAA" });
+	expect(ratingProblem(heracross).role).toBe("support");
+	const r = rank(heracross);
+	expect(r?.category).toBe("skill:Tasty Chance S");
+	expect(r?.best).toBe("Dedenne");
+	// Its random ingredients count as their share of a plain Toxtricity's Ingredient Magnet haul, times a plain Dedenne's Extra Tasty.
+	expect(r?.skillCredit?.best).toBe("Toxtricity (Amped)");
+	const refs = rankReferences(rankOptions, rankStrengthOptions);
+	expect(r?.skillCredit?.amount).toBeCloseTo((r?.skillCredit?.share ?? 0) * (refs.get("skill:Tasty Chance S") as number), 6);
+	// Bulk Up's own Extra Tasty: 5% a trigger, half of Tasty Chance S.
+	const d = ratingProblem(heracross).detailOf("Serious", []);
+	expect(r?.value).toBeCloseTo((d.tasty?.perTrigger ?? 0) * (d.tasty?.triggersPerDay ?? 0) + (r?.skillCredit?.amount ?? 0), 6);
+	expect(d.tasty?.perTrigger).toBe(5);
+});

@@ -283,7 +283,9 @@ export function ratingRole(specialty: string, detail: YieldDetail): RatingRole {
 		const supportsTeam = detail.tasty !== undefined || (detail.heal?.team ?? 0) > 0;
 		return supportsTeam && !givesIngredients ? "hybrid" : "ingredients";
 	}
-	if (givesIngredients) return "ingredients";
+	// A skill giving ingredients is an ingredient skill, unless it also raises the Extra Tasty chance (Heracross's
+	// Bulk Up: random ingredients plus half a Tasty Chance), whose random ingredients only add to that.
+	if (givesIngredients && !detail.tasty) return "ingredients";
 	return detail.skillStrength > 0 ? "strength" : "support";
 }
 

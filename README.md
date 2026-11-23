@@ -77,7 +77,7 @@ calculation. What is measured depends on what the Pokémon is kept for, not just
 | Strength | berry + main skill strength per day | Berries specialists; Skills specialists with strength skills (e.g. Sceptile); a skill's support part counted as strength (below) |
 | Ingredients | ingredients per day, including from the main skill | Ingredients specialists; Ingredient Draw/Magnet users (e.g. Sandslash) |
 | Ingredients + skill | ingredients per day, plus the skill counted as ingredients | Ingredients specialists with a team healing, Energizing Cheer or Tasty Chance skill (Chansey, Comfey, Drampa, Cramorant) |
-| Skill triggers | main skill triggers per day | other Skills specialists |
+| Skill triggers | main skill triggers per day | other Skills specialists (including Heracross, whose Bulk Up also gives random ingredients) |
 
 For the hybrid, the skill is counted in slots, as the Slot solver counts Extra Tasty: its skill as a share of what a
 plain Pokémon of the best species with that kind of skill gives, times what a plain Pokémon of the best pure gatherer of
@@ -88,7 +88,12 @@ Rank's (below).
 The same goes for the three strength Pokémon whose skill also does a support skill's job: Latias (Heal Pulse restores
 energy like Energizing Cheer, besides its extra helps), Cresselia (Lunar Blessing: energy for everyone) and Lucario
 (Aura Sphere: dream shards). That part counts as strength in slots: e.g. Latias's energy as a share of a plain Slowking's
-Energizing Cheer, times a plain Noivern's strength (the Dragon strength reference). The best build (for the tooltip) is found by a local search (`searchBest` in `src/core/rating.ts`); checked
+Energizing Cheer, times a plain Noivern's strength (the Dragon strength reference).
+
+Heracross's Bulk Up gives random ingredients and raises the Extra Tasty chance by half as much as Tasty Chance S. It's
+rated as a skill Pokémon and ranked with Tasty Chance users (against Dedenne) by its Extra Tasty chance per day plus its
+random ingredients in slots: their share of what a plain Toxtricity's Ingredient Magnet gives, times what a plain
+Dedenne adds. The best build (for the tooltip) is found by a local search (`searchBest` in `src/core/rating.ts`); checked
 against an exhaustive search over every Pokémon, it finds the same optimum.
 
 Rarity and Rank are computed in web workers, off the page and in parallel: one per spare CPU core, at most 4, each

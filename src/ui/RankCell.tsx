@@ -34,14 +34,22 @@ export default function RankCell(props: { rank: Rank | null | undefined }) {
 	const credit = rank.skillCredit;
 	const extra =
 		(credit
-			? `\n${t(rank.category.startsWith("strength:") ? "rankSkillCreditStrength" : "rankSkillCredit", {
-					skill: skillLabel(credit.skill),
-					n: format(credit.amount),
-					ing: unit,
-					share: `${Math.round(credit.share * 100)}%`,
-					best: pokemonLabel(credit.best),
-					gatherer: pokemonLabel(rank.best),
-				})}`
+			? `\n${t(
+					credit.ingredients !== undefined
+						? "rankSkillCreditIngredients"
+						: rank.category.startsWith("strength:")
+							? "rankSkillCreditStrength"
+							: "rankSkillCredit",
+					{
+						skill: skillLabel(credit.skill),
+						n: format(credit.amount),
+						count: format(credit.ingredients ?? 0),
+						ing: unit,
+						share: `${Math.round(credit.share * 100)}%`,
+						best: pokemonLabel(credit.best),
+						gatherer: pokemonLabel(rank.best),
+					},
+				)}`
 			: "") +
 		(rank.ingredientStrength !== undefined
 			? `\n${t("rankIngredientStrength", { n: format(rank.ingredientStrength) })}`

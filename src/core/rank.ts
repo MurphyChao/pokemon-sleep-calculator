@@ -75,6 +75,15 @@ export function skillKind(skill: string): string {
 	return skill.replace(/\s*\(.*\)\s*$/, "");
 }
 
+/**
+ * The skill category a support skill is ranked in: its kind, except Bulk Up (Cooking Assist S), which raises
+ * the Extra Tasty chance like Tasty Chance S and is ranked with it, in the same unit.
+ */
+export function skillCategoryOf(skill: string): RankCategory {
+	const kind = skillKind(skill);
+	return `skill:${kind === "Cooking Assist S" ? "Tasty Chance S" : kind}`;
+}
+
 /** Ingredient strength per day: each ingredient's base strength × count (shown with ingredient ranks). */
 export function ingredientStrengthPerDay(d: YieldDetail): number {
 	return (Object.entries(d.total) as [IngredientName, number][]).reduce(
@@ -88,10 +97,47 @@ function skillValueOf(d: YieldDetail): number {
 	return d.skillValue > 0 ? d.skillValue : d.skillsPerDay;
 }
 
+/** Extra Tasty chance (percentage points) a Pokémon's skill adds per day. */
+function tastyPerDay(d: YieldDetail): number {
+	return d.tasty ? d.tasty.perTrigger * d.tasty.triggersPerDay : 0;
+}
+
+/** A skill that raises the Extra Tasty chance and gives random ingredients (Bulk Up). */
+function tastyWithIngredients(d: YieldDetail): boolean {
+	return d.tasty !== undefined && Object.keys(d.skill).length > 0;
+}
+
 function categoryValue(category: RankCategory, d: YieldDetail): number {
 	if (category.startsWith("strength:")) return d.berryStrength + d.skillStrength;
 	if (category.startsWith("ingredient:")) return d.total[category.slice("ingredient:".length) as IngredientName] ?? 0;
-	return skillValueOf(d);
+	// Bulk Up's own value is its ingredients; it's ranked by its Extra Tasty (its ingredients via skillCredit).
+	return tastyWithIngredients(d) ? tastyPerDay(d) : skillValueOf(d);
+}
+
+/** All the ingredients a skill gives per day. */
+function skillIngredients(d: YieldDetail): number {
+	return (Object.values(d.skill) as number[]).reduce((a, b) => a + b, 0);
+}
+
+const magnetCache = new Map<string, { name: string; perDay: number }>();
+
+/**
+ * The most random ingredients a plain Pokémon's skill gives per day, among regular fully evolved Ingredient
+ * Magnet users (Toxtricity): what a "slot" of random ingredients is worth, for Bulk Up's.
+ */
+export function randomIngredientReference(options: YieldOptions, strength: StrengthOptions): { name: string; perDay: number } {
+	const key = rankSettingsKey(options, strength);
+	let ref = magnetCache.get(key);
+	if (!ref) {
+		ref = { name: "", perDay: 0 };
+		for (const p of pokemons.filter((p) => p.isFullyEvolved && getPokemonRarity(p) === "normal" && p.skill.startsWith("Ingredient Magnet"))) {
+			const problem = ratingProblem({ id: "", pokemonName: p.name, level: 80, ingredient: "AAA", nature: "Serious", subSkills: {} }, options, strength);
+			const perDay = skillIngredients(problem.detailOf("Serious", []));
+			if (perDay > ref.perDay) ref = { name: p.name, perDay };
+		}
+		magnetCache.set(key, ref);
+	}
+	return ref;
 }
 
 /**
@@ -132,6 +178,13 @@ export function skillAsIngredient(
  * strength. 0 for everyone else.
  */
 function skillCredit(problem: RatingProblem, category: RankCategory, detail: YieldDetail): number {
+	// Bulk Up's random ingredients in its Extra Tasty category: their share of a plain best Ingredient Magnet
+	// user's, times what a plain best Tasty Chance user adds.
+	if (problem.role === "support" && category.startsWith("skill:") && tastyWithIngredients(detail)) {
+		const ref = randomIngredientReference(problem.options, problem.strength);
+		const perSlot = rankReferences(problem.options, problem.strength).get(category);
+		return ref.perDay > 0 && perSlot ? (skillIngredients(detail) / ref.perDay) * perSlot : 0;
+	}
 	const counts =
 		(problem.role === "hybrid" && category.startsWith("ingredient:")) ||
 		(problem.role === "strength" && problem.skillHasSupportPart && category.startsWith("strength:"));
@@ -153,7 +206,7 @@ export function rankCategories(problem: RatingProblem, pokemon: PokemonData): Ra
 		[...new Set([pokemon.ing1?.name, pokemon.ing2?.name, pokemon.ing3?.name])]
 			.filter((n): n is IngredientName => !!n)
 			.map((name) => ({ category: `ingredient:${name}`, combos: all.filter((c) => [...c].some((l) => slot[l] === name)) }));
-	const skill = { category: `skill:${skillKind(pokemon.skill)}`, combos: all };
+	const skill = { category: skillCategoryOf(pokemon.skill), combos: all };
 	switch (problem.role) {
 		case "strength":
 			return [{ category: `strength:${pokemon.type}`, combos: all }];
@@ -253,7 +306,14 @@ export interface Rank {
 	 * counted in the category (included in `value`), as a share of what a neutral Pokémon of the best species
 	 * with that kind of skill (`best`) gives.
 	 */
-	skillCredit?: { amount: number; share: number; skill: string; best: string };
+	skillCredit?: {
+		amount: number;
+		share: number;
+		skill: string;
+		best: string;
+		/** Bulk Up only: the random ingredients per day counted (as `share` of a plain `best`'s Ingredient Magnet haul). */
+		ingredients?: number;
+	};
 }
 
 /**
@@ -290,11 +350,23 @@ export function rankEntry(
 		const detail = problem.detailOf(entry.nature, own);
 		if (best.category.startsWith("ingredient:")) best.ingredientStrength = ingredientStrengthPerDay(detail);
 		const amount = skillCredit(problem, best.category, detail);
-		const skillCategory = `skill:${skillKind(problem.skill)}`;
-		const perSlot = rankReferences(options, strength).get(skillCategory);
-		const skillBest = rankBest(options, strength).get(skillCategory);
-		if (amount > 0 && perSlot && skillBest) {
-			best.skillCredit = { amount, share: skillValueOf(detail) / perSlot, skill: problem.skill, best: skillBest.pokemon.name };
+		if (amount > 0 && best.category.startsWith("skill:")) {
+			// Bulk Up: its random ingredients, as a share of a plain best Ingredient Magnet user's.
+			const ref = randomIngredientReference(options, strength);
+			best.skillCredit = {
+				amount,
+				share: skillIngredients(detail) / ref.perDay,
+				skill: problem.skill,
+				best: ref.name,
+				ingredients: skillIngredients(detail),
+			};
+		} else if (amount > 0) {
+			const skillCategory = `skill:${skillKind(problem.skill)}`;
+			const perSlot = rankReferences(options, strength).get(skillCategory);
+			const skillBest = rankBest(options, strength).get(skillCategory);
+			if (perSlot && skillBest) {
+				best.skillCredit = { amount, share: skillValueOf(detail) / perSlot, skill: problem.skill, best: skillBest.pokemon.name };
+			}
 		}
 	}
 	return best;

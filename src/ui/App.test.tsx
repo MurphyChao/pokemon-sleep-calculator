@@ -765,6 +765,7 @@ test("the productivity column shows each Pokémon's specialty per day before its
 			entry("gardevoir", "Gardevoir", "AAA", 3),
 			entry("chansey", "Chansey", "AAA", 3),
 			entry("sandslash", "Sandslash", "AAA", 4),
+			entry("heracross", "Heracross", "AAA", 4),
 		]),
 	);
 	render(<App />);
@@ -780,6 +781,10 @@ test("the productivity column shows each Pokémon's specialty per day before its
 	expect(cell("Sceptile")).toMatch(/^Strength [\d,]+Skill ×[\d.]+/);
 	expect(cell("Gardevoir")).toMatch(/^Skill ×[\d.]+ \(\+[\d,]+ energy\)/);
 	expect(cell("Chansey")).toMatch(/^Skill ×[\d.]+/);
+	// Heracross: its Extra Tasty chance, not its skill's ingredient count (100 or more a day).
+	const tasty = Number(cell("Heracross").match(/^Skill ×[\d.]+ \(\+(\d+)% Extra Tasty\)/)?.[1]);
+	expect(tasty).toBeGreaterThan(0);
+	expect(tasty).toBeLessThan(50);
 	// Ingredient Pokémon: just their ingredients (the skill's included).
 	expect(cell("Sandslash")).not.toMatch(/Strength|Skill ×/);
 	// Phones get a compact strength ("25.9K"), with the full numbers in the tooltip.
