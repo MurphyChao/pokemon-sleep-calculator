@@ -2411,12 +2411,13 @@ table.cooking-week {
 	text-underline-offset: 3px;
 }
 button.cooking-cell {
+	position: relative;
 	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	justify-content: center;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 8px;
 	width: 100%;
-	min-height: 3em;
+	min-height: 3.4em;
 	padding: 4px 8px;
 	border: 1px dashed var(--border);
 	background: transparent;
@@ -2431,20 +2432,22 @@ button.cooking-cell.tasty {
 	border-color: #f06595;
 	background: rgba(240, 101, 149, 0.12);
 }
-.cooking-dish {
+/* A logged meal: the dish's picture, then its name over its energy. */
+.cooking-cell img.cooking-cell-icon {
+	width: 40px;
+	height: 40px;
+	margin: 0;
+}
+.cooking-cell-text {
 	display: flex;
-	align-items: center;
-	max-width: 100%;
-	font-size: 0.85rem;
+	flex-direction: column;
+	min-width: 0;
 }
 .cooking-dish-name {
-	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-.cooking-dish img.dish-icon {
-	margin: -2px 6px -2px 0;
+	font-size: 0.85rem;
 }
 .cooking-best {
 	display: inline-flex;
@@ -2486,13 +2489,25 @@ button.cooking-cell.tasty {
 		width: 4.5em;
 		font-size: 0.75rem;
 	}
+	/*
+	 * The dish's picture, centred, stands for its name (too long for a phone's cell), with the energy under it;
+	 * Extra Tasty shows as the cell's colour.
+	 */
 	button.cooking-cell {
-		padding: 3px 4px;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 2px;
+		padding: 4px 2px;
 		min-height: 2.6em;
+		text-align: center;
 	}
-	/* The dish's picture stands for its name (too long for a phone's cell); Extra Tasty shows as the cell's colour. */
-	.cooking-dish {
-		font-size: 0.7rem;
+	.cooking-cell img.cooking-cell-icon {
+		width: 36px;
+		height: 36px;
+	}
+	.cooking-cell-text {
+		align-items: center;
 	}
 	/* A meal with only the cooking screen's chance. */
 	button.cooking-cell > .muted {
@@ -2507,11 +2522,6 @@ button.cooking-cell.tasty {
 		overflow: hidden;
 		clip-path: inset(50%);
 		white-space: nowrap;
-	}
-	.cooking-dish img.dish-icon {
-		width: 24px;
-		height: 24px;
-		margin: 0;
 	}
 	.cooking-energy {
 		font-size: 0.8rem;

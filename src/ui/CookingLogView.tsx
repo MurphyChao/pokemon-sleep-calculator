@@ -519,14 +519,15 @@ export default function CookingLogView() {
 											>
 												{cooked ? (
 													<>
-														<span className="cooking-dish">
-															<DishIcon recipeId={r.recipeId} decorative />
+														{/* Picture beside the name and energy; on phones above the energy, centred (App.css). */}
+														<DishIcon recipeId={r.recipeId} decorative className="cooking-cell-icon" />
+														<span className="cooking-cell-text">
 															<span className="cooking-dish-name">
 																{r.extraTasty && <span aria-label={t("cookingExtraTasty")}>★ </span>}
 																{dishName(r.recipeId)}
 															</span>
+															<span className="cooking-energy">{r.energy !== undefined ? fmt(r.energy) : "—"}</span>
 														</span>
-														<span className="cooking-energy">{r.energy !== undefined ? fmt(r.energy) : "—"}</span>
 													</>
 												) : (
 													<span className="muted">{r?.tastyBonus !== undefined ? t("cookingChance", { pct: tastyChance(r) }) : "+"}</span>
