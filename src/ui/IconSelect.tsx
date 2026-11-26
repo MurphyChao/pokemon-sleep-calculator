@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 export interface IconSelectOption {
 	value: string;
@@ -6,6 +6,8 @@ export interface IconSelectOption {
 	content: ReactNode;
 	/** Plain-text form, for the button's tooltip and typing to find an option. */
 	text: string;
+	/** Heading of the group the option is in: a heading row is shown wherever it changes (like <optgroup>). */
+	group?: string;
 }
 
 /**
@@ -142,20 +144,26 @@ export default function IconSelect(props: {
 					onKeyDown={onListKey}
 				>
 					{options.map((o, i) => (
-						<li
-							key={o.value}
-							id={`${id}-${i}`}
-							data-index={i}
-							role="option"
-							aria-selected={o.value === value}
-							aria-label={o.text}
-							className={`${i === active ? "active" : ""} ${o.value === value ? "selected" : ""}`}
-							onMouseEnter={() => setActive(i)}
-							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => pick(i)}
-						>
-							{o.content}
-						</li>
+						<Fragment key={o.value}>
+							{o.group !== undefined && o.group !== options[i - 1]?.group && (
+								<li role="presentation" className="icon-select-group" onMouseDown={(e) => e.preventDefault()}>
+									{o.group}
+								</li>
+							)}
+							<li
+								id={`${id}-${i}`}
+								data-index={i}
+								role="option"
+								aria-selected={o.value === value}
+								aria-label={o.text}
+								className={`${i === active ? "active" : ""} ${o.value === value ? "selected" : ""}`}
+								onMouseEnter={() => setActive(i)}
+								onMouseDown={(e) => e.preventDefault()}
+								onClick={() => pick(i)}
+							>
+								{o.content}
+							</li>
+						</Fragment>
 					))}
 				</ul>
 			)}

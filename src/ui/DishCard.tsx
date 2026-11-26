@@ -2,6 +2,8 @@ import { dishStrength } from "../core/energy";
 import { dailyDemand, mealsPerDay, potSizeNeeded, type Recipe, type RecipeType, recipes } from "../core/recipes";
 import type { IngredientName } from "../vendor/pokesleep-tool/data/pokemons";
 import { type Key, recipeLabel, t } from "./i18n";
+import DishIcon from "./DishIcon";
+import IconSelect from "./IconSelect";
 import { IngredientIcon } from "./IngredientIcons";
 import { ingredientLabel } from "./names";
 import { useStoredState } from "./storage";
@@ -67,17 +69,27 @@ export default function DishCard(props: { dish: DishState; campTicket: boolean; 
 				<label>
 					{/* Phones hide this label (the dropdown shows the recipe); the select keeps its name. */}
 					<span className="field-text">{t("recipe")}</span>
-					<select aria-label={t("recipe")} value={recipe.id} onChange={(e) => setRecipeId(e.target.value)}>
-						{typeRecipes.map((r) => (
-							<option key={r.id} value={r.id}>
-								{t("recipeOption", {
-									name: recipeLabel(r),
-									energy: baseEnergy(r).toLocaleString("en-US"),
-									pot: potSizeNeeded(r),
-								})}
-							</option>
-						))}
-					</select>
+					<IconSelect
+						value={recipe.id}
+						onChange={setRecipeId}
+						options={typeRecipes.map((r) => {
+							const text = t("recipeOption", {
+								name: recipeLabel(r),
+								energy: baseEnergy(r).toLocaleString("en-US"),
+								pot: potSizeNeeded(r),
+							});
+							return {
+								value: r.id,
+								text,
+								content: (
+									<>
+										<DishIcon recipeId={r.id} decorative />
+										{text}
+									</>
+								),
+							};
+						})}
+					/>
 				</label>
 				<label>
 					{/* Phones label it just "Pot", beside the card's title (App.css). */}

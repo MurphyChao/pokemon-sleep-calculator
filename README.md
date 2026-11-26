@@ -312,6 +312,11 @@ activity in the repository; re-enable it in the Actions tab if that happens.
   Run it after syncing new Pokémon from upstream; a test fails if any Pokémon lacks an icon. Event costumes
   (Halloween Pikachu, Holiday Eevee…) use the plain species' icon; real forms map to their own in
   `src/data/pokemonIconSlug.ts`.
+- **Dish pictures:** `src/data/dish-art/<recipe id>.png`, from SleepAPI (now
+  [Neroli's Lab](https://github.com/nerolis-lab/nerolis-lab), `frontend/public/images/recipe/`; the pictures are the
+  game's artwork, © Nintendo/Creatures/GAME FREAK), shrunk to 96 px by `npm run fetch-dish-art`, which downloads only
+  pictures not there yet. Run it after importing new recipes; a test fails if any recipe lacks a picture. Shown in the
+  dish pickers and the cooking log.
 - **Type icons:** `src/data/type-icons/`, the 18 type icons cut from a screenshot of Pokémon Sleep's box filter
   screen (images © Nintendo/The Pokémon Company), each cropped to its circle with a transparent background.
 - **Recipes:** `src/data/recipes.json`, generated from [SleepAPI](https://github.com/SleepAPI/SleepAPI) (Apache-2.0)

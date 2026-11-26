@@ -17,6 +17,11 @@ const row = (startsWith: string) => {
 };
 const cell = (day: string, meal: number) => within(row(day)).getAllByRole("button")[meal];
 const stats = () => (document.querySelector(".cooking-stats") as HTMLElement).textContent;
+/** Picks a dish in the meal editor's picture dropdown. */
+const pickDish = (name: string) => {
+	fireEvent.click(within(screen.getByRole("dialog")).getByLabelText("Recipe"));
+	fireEvent.click(screen.getByRole("option", { name }));
+};
 
 test("cooking log: a week of meals, entered by hand, with its totals", () => {
 	render(<App />);
@@ -30,7 +35,7 @@ test("cooking log: a week of meals, entered by hand, with its totals", () => {
 	// Thursday lunch: Extra Tasty guacamole, with a 20% bonus from the cooking screen.
 	fireEvent.click(cell("Thu", 1));
 	const dialog = screen.getByRole("dialog");
-	fireEvent.change(within(dialog).getByLabelText("Recipe"), { target: { value: "bulldoze_guacamole_and_chips" } });
+	pickDish('"Bulldoze" Guacamole and Chips');
 	fireEvent.change(within(dialog).getByLabelText("Final energy"), { target: { value: "211909" } });
 	fireEvent.click(within(dialog).getByLabelText(/^Extra Tasty \(×2\)/));
 	fireEvent.change(within(dialog).getByLabelText("Extra Tasty bonus (%)"), { target: { value: "20" } });
@@ -39,9 +44,10 @@ test("cooking log: a week of meals, entered by hand, with its totals", () => {
 	expect(screen.queryByRole("dialog")).toBeNull();
 
 	expect(cell("Thu", 1).textContent).toBe("★ \"Bulldoze\" Guacamole and Chips211,909");
+	expect(cell("Thu", 1).querySelector("img.dish-icon")?.getAttribute("src")).toMatch(/bulldoze_guacamole_and_chips/);
 	// Sunday dinner, not Extra Tasty.
 	fireEvent.click(cell("Sun", 2));
-	fireEvent.change(screen.getByLabelText("Recipe"), { target: { value: "honey_gather_chocolate_waffles" } });
+	pickDish('"Honey Gather" Chocolate Waffles');
 	fireEvent.change(screen.getByLabelText("Final energy"), { target: { value: "140142" } });
 	expect(screen.getByRole("dialog").textContent).toContain("Sunday: 30% base chance");
 	fireEvent.click(screen.getByText("Save"));

@@ -349,7 +349,7 @@ test("language: Traditional Chinese UI and game terms, typing a Chinese Pokémon
 	expect(section("最佳隊伍").textContent).toMatch(/每日 [\d,]+ 能量/);
 	expect(section("料理").textContent).toContain("所需鍋子容量");
 	// Recipe names in Chinese too (the default dish is "Scald" Chunky Salad).
-	expect((within(section("料理")).getByLabelText(/食譜/) as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+	expect(within(section("料理")).getByLabelText(/食譜/).getAttribute("title")).toBe(
 		"大塊滿滿熱水沙拉・能量 25,356・鍋 95",
 	);
 
@@ -385,7 +385,7 @@ test("language: Japanese UI and game terms, typing a Japanese Pokémon name", ()
 	// Energy solver: labels and the recipe name in Japanese.
 	fireEvent.click(screen.getByText("エナジー計算"));
 	expect(section("最適なチーム").textContent).toMatch(/1日 [\d,]+ エナジー/);
-	expect((within(section("料理")).getByLabelText(/レシピ/) as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+	expect(within(section("料理")).getByLabelText(/レシピ/).getAttribute("title")).toBe(
 		"ごろごろねっとうサラダ · エナジー 25,356 · 鍋 95",
 	);
 	fireEvent.change(screen.getByLabelText(/言語/), { target: { value: "en" } });
@@ -714,14 +714,21 @@ test("max Sub Skill Seeds: solvers use upgraded subskills, the box keeps the rea
 
 test("recipes are listed by energy, highest first, and changing the dish type picks the top one", () => {
 	renderSolver([]);
-	const recipe = screen.getByLabelText("Recipe") as HTMLSelectElement;
-	const energies = () => [...recipe.options].map((o) => Number(/· ([\d,]+) energy/.exec(o.text)?.[1].replace(/,/g, "")));
+	// The recipe picker shows each dish's picture: open it to read its options.
+	const options = () => {
+		fireEvent.click(screen.getByLabelText("Recipe"));
+		const names = within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.getAttribute("aria-label") ?? "");
+		fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+		return names;
+	};
+	const energies = () => options().map((o) => Number(/· ([\d,]+) energy/.exec(o)?.[1].replace(/,/g, "")));
 	expect(energies().length).toBeGreaterThan(10);
 	expect(energies()).toEqual([...energies()].sort((a, b) => b - a));
+	expect(document.querySelectorAll(".dish-card .icon-select-button img.dish-icon")).toHaveLength(1);
 	fireEvent.change(screen.getByLabelText("Type"), { target: { value: "dessert" } });
-	expect(recipe.selectedIndex).toBe(0);
+	expect(screen.getByLabelText("Recipe").getAttribute("title")).toBe(options()[0]);
 	expect(energies()).toEqual([...energies()].sort((a, b) => b - a));
-	expect([...recipe.options].some((o) => o.text.startsWith("Slowpoke Tail Roll Cake"))).toBe(true);
+	expect(options().some((o) => o.startsWith("Slowpoke Tail Roll Cake"))).toBe(true);
 });
 
 test("the theme button cycles Auto → Light → Dark, saved per device (not synced)", () => {

@@ -694,7 +694,8 @@ button.icon-select-button {
 
 .icon-select-list {
 	position: fixed;
-	z-index: 20;
+	/* Above pop-ups (.modal-backdrop), which can contain these pickers. */
+	z-index: 200;
 	overflow-y: auto;
 	margin: 0;
 	padding: 4px;
@@ -721,6 +722,24 @@ button.icon-select-button {
 
 .icon-select-list li.selected {
 	font-weight: 600;
+}
+
+.icon-select-list li.icon-select-group {
+	padding: 8px 8px 2px;
+	color: var(--muted);
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: default;
+}
+
+/* Dish pictures (src/data/dish-art), beside dish names. */
+img.dish-icon {
+	width: 28px;
+	height: 28px;
+	margin: -4px 6px -4px 0;
+	vertical-align: middle;
+	object-fit: contain;
+	flex: none;
 }
 
 .poke-icon.small {
@@ -2413,11 +2432,23 @@ button.cooking-cell.tasty {
 	background: rgba(240, 101, 149, 0.12);
 }
 .cooking-dish {
+	display: flex;
+	align-items: center;
 	max-width: 100%;
+	font-size: 0.85rem;
+}
+.cooking-dish-name {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 0.85rem;
+}
+.cooking-dish img.dish-icon {
+	margin: -2px 6px -2px 0;
+}
+.cooking-best {
+	display: inline-flex;
+	align-items: center;
 }
 .cooking-energy {
 	font-weight: 600;
@@ -2459,8 +2490,28 @@ button.cooking-cell.tasty {
 		padding: 3px 4px;
 		min-height: 2.6em;
 	}
+	/* The dish's picture stands for its name (too long for a phone's cell); Extra Tasty shows as the cell's colour. */
 	.cooking-dish {
 		font-size: 0.7rem;
+	}
+	/* A meal with only the cooking screen's chance. */
+	button.cooking-cell > .muted {
+		font-size: 0.65rem;
+		line-height: 1.2;
+	}
+	/* Hidden from view but still read out (the picture beside it has no alt text). */
+	.cooking-dish-name {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.cooking-dish img.dish-icon {
+		width: 24px;
+		height: 24px;
+		margin: 0;
 	}
 	.cooking-energy {
 		font-size: 0.8rem;

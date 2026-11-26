@@ -23,6 +23,8 @@ import { type RecipeType, recipes } from "../core/recipes";
 import type { CookingReading, CookingWarning } from "../ocr/cooking";
 import type { ScreenshotLang } from "../ocr/tesseract";
 import { getLang, type Key, Rich, recipeLabel, t } from "./i18n";
+import DishIcon from "./DishIcon";
+import IconSelect, { type IconSelectOption } from "./IconSelect";
 import { screenshotLangs } from "./ScreenshotImport";
 import { useStoredState } from "./storage";
 import TableHelp from "./TableHelp";
@@ -85,23 +87,27 @@ async function takenAt(file: File): Promise<{ time: string; source: TimeSource }
 	return { time: localTime(new Date(file.lastModified || Date.now())), source: "fileDate" };
 }
 
-function RecipeSelect(props: { value: string | undefined; onChange: (id: string | undefined) => void; id?: string }) {
-	return (
-		<select id={props.id} value={props.value ?? ""} onChange={(e) => props.onChange(e.target.value || undefined)}>
-			<option value="">{t("cookingPickDish")}</option>
-			{recipeTypes.map((rt) => (
-				<optgroup key={rt.type} label={t(rt.label)}>
-					{recipes
-						.filter((r) => r.type === rt.type)
-						.map((r) => (
-							<option key={r.id} value={r.id}>
-								{recipeLabel(r)}
-							</option>
-						))}
-				</optgroup>
-			))}
-		</select>
-	);
+/** Picker of every dish with its picture, grouped by type. */
+function RecipeSelect(props: { value: string | undefined; onChange: (id: string | undefined) => void }) {
+	const options: IconSelectOption[] = [
+		{ value: "", text: t("cookingPickDish"), content: <span className="muted">{t("cookingPickDish")}</span> },
+		...recipeTypes.flatMap((rt) =>
+			recipes
+				.filter((r) => r.type === rt.type)
+				.map((r) => ({
+					value: r.id,
+					text: recipeLabel(r),
+					group: t(rt.label),
+					content: (
+						<>
+							<DishIcon recipeId={r.id} decorative />
+							{recipeLabel(r)}
+						</>
+					),
+				})),
+		),
+	];
+	return <IconSelect value={props.value ?? ""} options={options} onChange={(id) => props.onChange(id || undefined)} />;
 }
 
 /** Editable fields of a record: the dish and its result, or the pot's bonus (or both, when editing a meal). */
@@ -477,7 +483,8 @@ export default function CookingLogView() {
 					{stats.best && (
 						<div>
 							<span className="muted small">{t("cookingBest")}</span>
-							<strong>
+							<strong className="cooking-best">
+								<DishIcon recipeId={stats.best.recipeId} decorative />
 								{dishName(stats.best.recipeId)} {fmt(stats.best.energy ?? 0)}
 							</strong>
 						</div>
@@ -513,8 +520,11 @@ export default function CookingLogView() {
 												{cooked ? (
 													<>
 														<span className="cooking-dish">
-															{r.extraTasty && <span aria-label={t("cookingExtraTasty")}>★ </span>}
-															{dishName(r.recipeId)}
+															<DishIcon recipeId={r.recipeId} decorative />
+															<span className="cooking-dish-name">
+																{r.extraTasty && <span aria-label={t("cookingExtraTasty")}>★ </span>}
+																{dishName(r.recipeId)}
+															</span>
 														</span>
 														<span className="cooking-energy">{r.energy !== undefined ? fmt(r.energy) : "—"}</span>
 													</>
