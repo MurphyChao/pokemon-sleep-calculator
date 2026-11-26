@@ -1,6 +1,6 @@
 /**
  * Builds the reference icons the screenshot importer recognizes Pokémon by (src/data/sleep-icons/) from
- * screenshots of the game's "Pokémon details" screen in ./screenshots: the round icon on the name card is
+ * screenshots of the game's "Pokémon details" screen in ./screenshots/pokemon: the round icon on the name card is
  * cut out and stored normalized, named after the Pokémon (see src/data/sleepIconSlug.ts).
  *
  * Which Pokémon a screenshot shows comes from src/ocr/__fixtures__/screenshots.expected.json when it's
@@ -24,7 +24,7 @@ import { createServer } from "vite";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dirArg = process.argv.indexOf("--dir");
-const shotsDir = dirArg >= 0 ? process.argv[dirArg + 1] : join(root, "screenshots");
+const shotsDir = dirArg >= 0 ? process.argv[dirArg + 1] : join(root, "screenshots", "pokemon");
 const outDir = join(root, "src/data/sleep-icons");
 const ingredientDir = join(root, "src/data/ingredient-icons");
 const langArg = process.argv.indexOf("--lang");

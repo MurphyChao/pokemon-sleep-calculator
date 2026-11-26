@@ -179,7 +179,7 @@ The Pokémon is recognized by its icon first: the round icon on the name card is
 nicknamed Pokémon is still recognized, and when icon and name disagree the review form says so. The reference icons
 come from two places:
 
-- **Built in:** `src/data/sleep-icons/`, cut from screenshots in `screenshots/` by `npm run build-sleep-icons`. It
+- **Built in:** `src/data/sleep-icons/`, cut from screenshots in `screenshots/pokemon/` by `npm run build-sleep-icons`. It
   uses the Pokémon listed in `src/ocr/__fixtures__/screenshots.expected.json` for those screenshots and reads the
   name (with the importer's OCR) for others; check its output, since a misread name would teach a wrong icon.
   Different-looking icons of the same Pokémon (shiny, costumes) are kept as extra icons.
@@ -199,8 +199,9 @@ checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 
 `src/ocr/screenshots.test.ts` checks the importer against real screenshots listed in
 `src/ocr/__fixtures__/screenshots.expected.json`, three ways: by name, by icon, and with a nickname in place of the
-name. The screenshots aren't committed: put them in `screenshots/`
-to run it (it's skipped otherwise).
+name. The screenshots aren't committed: put them in `screenshots/pokemon/`
+to run it (it's skipped otherwise). Screenshots of the cooking result screen, for the upcoming cooking log, go in
+`screenshots/cooking/` (also not committed).
 
 ## Visit statistics
 

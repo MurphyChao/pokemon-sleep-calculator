@@ -16,7 +16,7 @@ import type { IconReference } from "./pokemonIcon";
 import { readScreenshot, type TextReader } from "./read";
 import { createOcrEngine, type OcrEngine, type ScreenshotLang, tesseractLang } from "./tesseract";
 
-const dir = "screenshots";
+const dir = "screenshots/pokemon";
 const iconDir = "src/data/ingredient-icons";
 const available = existsSync(dir) ? expected.filter((e) => existsSync(join(dir, e.file))) : [];
 
