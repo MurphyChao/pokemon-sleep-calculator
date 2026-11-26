@@ -1,0 +1,29 @@
+[
+	{
+		"file": "70182082-3883-4F6D-ABD1-207A1DB9A50A.png",
+		"lang": "zh-TW",
+		"kind": "result",
+		"recipeId": "bulldoze_guacamole_and_chips",
+		"energy": 211909,
+		"extraTasty": true,
+		"takenAt": "2026-11-23T07:36:56"
+	},
+	{
+		"file": "8BFC24F4-BC19-4FCF-A124-E43C3D795180.png",
+		"lang": "zh-TW",
+		"kind": "result",
+		"recipeId": "honey_gather_chocolate_waffles",
+		"energy": 140142,
+		"extraTasty": false,
+		"takenAt": "2026-11-16T11:20:39"
+	},
+	{
+		"file": "photo_2026-11-26_12-26-53.jpg",
+		"lang": "zh-TW",
+		"kind": "pot",
+		"tastyBonus": 20,
+		"takenAt": "2026-11-26T12:26:53",
+		"note": "A 588 px copy sent through a chat app: the label is too small to read the + and % for sure, so it's flagged.",
+		"warnings": ["tastyBonus"]
+	}
+]

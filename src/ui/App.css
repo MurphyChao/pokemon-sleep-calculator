@@ -2302,3 +2302,211 @@ button.icon-select-button {
 		padding: 2.25rem 0.5rem 0.5rem;
 	}
 }
+
+/* ---------- Cooking log ---------- */
+.cooking-review {
+	list-style: none;
+	margin: 0.75rem 0 0;
+	padding: 0;
+}
+.cooking-review > li {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-start;
+	padding: 0.6rem 0.25rem;
+	border-bottom: 1px solid var(--border);
+}
+.cooking-review img {
+	width: 64px;
+	height: 120px;
+	object-fit: cover;
+	object-position: center 40%;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+}
+.cooking-review-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.cooking-review .warnings {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: var(--warn);
+}
+.cooking-fields {
+	grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+}
+.form-grid label.cooking-check {
+	flex-direction: row;
+	align-items: center;
+	align-self: end;
+	gap: 6px;
+	padding-bottom: 6px;
+	color: var(--text);
+}
+.cooking-week-nav {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.cooking-week-nav h2 {
+	margin: 0;
+}
+.cooking-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 28px;
+	margin: 12px 0 4px;
+}
+.cooking-stats > div {
+	display: flex;
+	flex-direction: column;
+}
+.cooking-stats strong {
+	font-size: 1.15rem;
+}
+table.cooking-week {
+	table-layout: fixed;
+}
+.cooking-week th:first-child {
+	width: 7.5em;
+}
+.cooking-week th.num,
+.cooking-week td.num {
+	width: 8em;
+	text-align: right;
+	position: relative;
+	font-variant-numeric: tabular-nums;
+}
+.cooking-week td {
+	padding: 3px 4px;
+}
+.cooking-week tr.sunday th[scope="row"] {
+	color: var(--danger);
+}
+.cooking-week tr.today th[scope="row"] {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+button.cooking-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	width: 100%;
+	min-height: 3em;
+	padding: 4px 8px;
+	border: 1px dashed var(--border);
+	background: transparent;
+	color: var(--text);
+	text-align: left;
+}
+button.cooking-cell.cooked {
+	border-style: solid;
+	background: var(--bg);
+}
+button.cooking-cell.tasty {
+	border-color: #f06595;
+	background: rgba(240, 101, 149, 0.12);
+}
+.cooking-dish {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.85rem;
+}
+.cooking-energy {
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+/* The day's share of the best day's energy, as a thin bar under its total. */
+.cooking-bar {
+	position: absolute;
+	right: 8px;
+	bottom: 6px;
+	height: 4px;
+	max-width: calc(100% - 16px);
+	background: var(--accent);
+	opacity: 0.5;
+	border-radius: 2px;
+}
+.modal.cooking-editor {
+	max-width: 560px;
+}
+
+@media (max-width: 640px) {
+	.cooking-review img {
+		width: 48px;
+		height: 90px;
+	}
+	.cooking-week th {
+		font-size: 0.75rem;
+		padding: 4px 3px;
+	}
+	.cooking-week th:first-child {
+		width: 4.2em;
+	}
+	.cooking-week th.num,
+	.cooking-week td.num {
+		width: 4.5em;
+		font-size: 0.75rem;
+	}
+	button.cooking-cell {
+		padding: 3px 4px;
+		min-height: 2.6em;
+	}
+	.cooking-dish {
+		font-size: 0.7rem;
+	}
+	.cooking-energy {
+		font-size: 0.8rem;
+	}
+	.cooking-stats {
+		gap: 6px 18px;
+	}
+	.cooking-stats strong {
+		font-size: 1rem;
+	}
+	/* Review fields two by two: day and meal, the dish on its own row, then energy and Extra Tasty. */
+	.cooking-review .cooking-fields {
+		grid-template-columns: 1fr 1fr;
+		gap: 6px 10px;
+	}
+	.cooking-review .cooking-fields > label:nth-child(3) {
+		grid-column: 1 / -1;
+	}
+	.cooking-review .cooking-fields input,
+	.cooking-review .cooking-fields select {
+		min-width: 0;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.cooking-review .cooking-fields input[type="checkbox"] {
+		width: auto;
+	}
+	/* The meal editor's fields in their own order, labels above (not the Add Pokémon pop-up's layout above). */
+	.modal.cooking-editor .form-grid > * {
+		grid-column: auto;
+		order: 0;
+	}
+	.modal.cooking-editor .form-grid > :nth-child(1) {
+		grid-column: 1 / -1;
+	}
+	.modal.cooking-editor .form-grid > label:nth-child(1),
+	.modal.cooking-editor .form-grid > label:nth-child(2) {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 4px;
+	}
+	.modal.cooking-editor .form-grid > label.cooking-check {
+		flex-direction: row;
+		align-items: center;
+	}
+	.modal.cooking-editor .form-grid input[type="checkbox"] {
+		width: auto;
+	}
+}

@@ -42,13 +42,13 @@ export async function createOcrEngine(
 		},
 	});
 	await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
-	let digitsOnly = false;
+	let whitelist = "";
 	return {
 		async read(img, readOpts) {
-			const digits = !!readOpts?.digits;
-			if (digits !== digitsOnly) {
-				await worker.setParameters({ tessedit_char_whitelist: digits ? "Lv.0123456789" : "" });
-				digitsOnly = digits;
+			const chars = readOpts?.chars ?? (readOpts?.digits ? "Lv.0123456789" : "");
+			if (chars !== whitelist) {
+				await worker.setParameters({ tessedit_char_whitelist: chars });
+				whitelist = chars;
 			}
 			// biome-ignore lint/suspicious/noExplicitAny: tesseract.js accepts several image types
 			const { data } = await worker.recognize(toImage(img) as any);

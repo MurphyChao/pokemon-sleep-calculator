@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import TableHelp from "./TableHelp";
 import type { ImportWarning, ScreenshotReading } from "../ocr/read";
-import type { OcrEngine, ScreenshotLang } from "../ocr/tesseract";
+import type { ScreenshotLang } from "../ocr/tesseract";
 import { getLang, ingredientLabel, type Key, pokemonLabel, t } from "./i18n";
 import { readLearnedIcons } from "./learnedIcons";
 import { useStoredState } from "./storage";
+import { useOcrEngine } from "./useOcrEngine";
 
 export interface ImportItem {
 	id: string;
@@ -15,7 +16,7 @@ export interface ImportItem {
 	reading?: ScreenshotReading;
 }
 
-const screenshotLangs: { lang: ScreenshotLang; label: string }[] = [
+export const screenshotLangs: { lang: ScreenshotLang; label: string }[] = [
 	{ lang: "zh-TW", label: "繁體中文" },
 	{ lang: "ja", label: "日本語" },
 	{ lang: "en", label: "English" },
@@ -60,37 +61,11 @@ export default function ScreenshotImport(props: {
 }) {
 	const { items, setItems, reviewingId, onReview } = props;
 	const [lang, setLang] = useStoredState<ScreenshotLang>("pscalc.screenshotLang", getLang());
-	const [loading, setLoading] = useState<number | undefined>();
+	const { getEngine, loading } = useOcrEngine(lang);
 	const [dragging, setDragging] = useState(false);
 	const [error, setError] = useState<string | undefined>();
-	const engine = useRef<{ lang: ScreenshotLang; engine: Promise<OcrEngine> } | undefined>(undefined);
 	const queue = useRef(Promise.resolve());
 	const fileInput = useRef<HTMLInputElement>(null);
-
-	useEffect(
-		() => () => {
-			engine.current?.engine.then((e) => e.terminate());
-		},
-		[],
-	);
-
-	const getEngine = async (): Promise<OcrEngine> => {
-		if (engine.current?.lang !== lang) {
-			const old = engine.current;
-			const { createBrowserOcrEngine } = await import("../ocr/browser");
-			setLoading(0);
-			engine.current = { lang, engine: createBrowserOcrEngine(lang, (p) => setLoading(p)) };
-			old?.engine.then((e) => e.terminate());
-		}
-		try {
-			return await engine.current.engine;
-		} catch (e) {
-			engine.current = undefined;
-			throw e;
-		} finally {
-			setLoading(undefined);
-		}
-	};
 
 	const addFiles = (files: File[]) => {
 		const images = files.filter((f) => f.type.startsWith("image/"));

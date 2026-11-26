@@ -11,6 +11,8 @@ two solvers:
 - **Slot solver:** the smallest team whose ingredient output covers the dish, and how many slots a particular
   Pokémon (e.g. a multi-ingredient gatherer like Sandslash) saves compared with the best team without it.
 
+A **Cooking log** tab records the week's dishes from screenshots of the game (see [Cooking log](#cooking-log)).
+
 Three options change the Pokémon the numbers are worked out for, on the Box tab and in both solvers, without
 changing the saved box: **Final evolution** (every Pokémon as its final form, main skill +1 per evolution;
 branching lines become the form chosen for them, see below), **Max Sub Skill Seeds** (unlocked subskills upgraded S → M → L as far as they go) and
@@ -200,8 +202,41 @@ checked in the Add Pokémon form before it's saved. Code: `src/ocr/`.
 `src/ocr/screenshots.test.ts` checks the importer against real screenshots listed in
 `src/ocr/__fixtures__/screenshots.expected.json`, three ways: by name, by icon, and with a nickname in place of the
 name. The screenshots aren't committed: put them in `screenshots/pokemon/`
-to run it (it's skipped otherwise). Screenshots of the cooking result screen, for the upcoming cooking log, go in
-`screenshots/cooking/` (also not committed).
+to run it (it's skipped otherwise).
+
+## Cooking log
+
+The **Cooking log** tab records what was cooked at each of the week's 21 meals (Monday to Sunday, like the game's
+weekly research): the dish, its final energy, whether it was Extra Tasty, and the Extra Tasty bonus built up before
+it. Meals are added from screenshots or by clicking a meal in the week's table. Above the table: the week's total
+energy, meals cooked, Extra Tasty dishes against the expected number (each meal's chance added up: 10%, 30% on
+Sunday, plus the bonus when known) and the best dish. Saved under `pscalc.cookingLog.v1`, so Google Drive sync
+covers it. Code: `src/core/cooking.ts`, `src/ui/CookingLogView.tsx`.
+
+Two screenshots are read (`src/ocr/cooking.ts`), on the device like the Pokémon importer:
+
+- **The result screen after cooking** ("料理的最終能量"). The dish name banner is found by its yellow and anchors
+  the rest. The dish name is read from the banner and fuzzy-matched against recipe names in all three languages.
+  The energy number is masked by its colour (orange, or pink when Extra Tasty) and read three times at slightly
+  different sizes, keeping the majority (Tesseract sometimes drops a leading "1"). Extra Tasty is the pink "漂亮成功！"
+  tag over the banner; the number's colour is a second opinion, and the reading is flagged if they disagree.
+- **The cooking screen** ("做料理"): the label under the "!" button is the Extra Tasty bonus (e.g. "+20%"). The
+  labels down the right edge are read and the one with a "%" is kept; the "MAX+36" pot label is skipped. The label
+  is small, white text outlined in orange: when the "+" and "%" aren't read for sure (as in screenshots shrunk by
+  a chat app), the leading digits are kept as a guess and flagged.
+
+The meal comes from when the screenshot was taken, not from the status bar's clock (often hidden on the result
+screen): the time saved in the image (XMP `photoshop:DateCreated` on iPhone, EXIF `DateTimeOriginal`), else a date
+in the file name (`Screenshot_20261113-111914.png`, Telegram's `photo_2026-11-26_12-26-53.jpg`, …), else the
+file's modified time, flagged since it's often just when it was copied (`src/core/photoDate.ts`). Breakfast is
+4:00–11:59, lunch 12:00–17:59 and dinner 18:00–3:59 (after midnight counts toward the day before). A reading and
+a cooking-screen reading of the same meal go into one record. Each screenshot's fingerprint (a SHA-256 prefix) is
+kept so the same one added twice is flagged.
+
+`src/ocr/cooking.screenshots.test.ts` checks the reader against real screenshots listed in
+`src/ocr/__fixtures__/cooking.expected.json`, including when each was taken. Put them in `screenshots/cooking/`
+(not committed) to run it. `OCR_DEBUG=<folder>` saves every image sent to the text recognizer there. Measured so
+far on iPhone screenshots in Traditional Chinese.
 
 ## Visit statistics
 

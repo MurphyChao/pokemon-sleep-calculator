@@ -10,6 +10,7 @@ import {
 	type YieldOptions,
 } from "../core/yield";
 import BoxView, { keyLevels } from "./BoxView";
+import CookingLogView from "./CookingLogView";
 import type { TastySource } from "../core/tasty";
 import DishCard, { useDish } from "./DishCard";
 import EnergyView, { defaultEnergySettings, EnergySettingsCard, type EnergySettings } from "./EnergyView";
@@ -23,7 +24,7 @@ import { type Rank, type RankCategory, rankEntry, rankEntryJob, rankSettingsKey 
 import type { RatingRole } from "../core/rating";
 import { useRankTables } from "./useRankTables";
 
-type Tab = "box" | "slots" | "energy";
+type Tab = "box" | "slots" | "energy" | "cooking";
 
 /** A stable empty box, so hooks keyed on the box don't rerun every render. */
 const noEntries: BoxEntry[] = [];
@@ -32,6 +33,7 @@ const noEntries: BoxEntry[] = [];
 const tabs: { tab: Tab; label: Key }[] = [
 	{ tab: "energy", label: "tabEnergy" },
 	{ tab: "slots", label: "tabSlots" },
+	{ tab: "cooking", label: "tabCooking" },
 ];
 
 /** The theme button's icon and label for each theme; a click moves on to the next one. */
@@ -243,136 +245,143 @@ export default function App() {
 						</span>
 					</button>
 				</nav>
-				<button
-					type="button"
-					className="secondary settings-toggle"
-					aria-label={t("settings")}
-					aria-expanded={settingsOpen}
-					aria-controls="settings-bar"
-					onClick={() => setSettingsOpen(!settingsOpen)}
-				>
-					⚙ <span className="settings-label">{t("settings")}</span> {settingsOpen ? "▴" : "▾"}
-				</button>
-				<div
-					id="settings-bar"
-					className={`settings-bar${settingsOpen ? "" : " collapsed"}${settingsHelp ? " show-help" : ""}`}
-				>
-					<label className="check">
-						<input
-							type="checkbox"
-							checked={options.inventoryLimit}
-							onChange={(e) => setOptions({ ...options, inventoryLimit: e.target.checked })}
-						/>
-						{t("inventoryLimit")}
-						<span className="muted small">{t("inventoryLimitHint")}</span>
-					</label>
-					<label className="check">
-						<input
-							type="checkbox"
-							checked={options.campTicket}
-							onChange={(e) => setOptions({ ...options, campTicket: e.target.checked })}
-						/>
-						{t("campTicket")}
-						<span className="muted small">{t("campTicketHint")}</span>
-					</label>
-					<label className="check">
-						{t("energy")}
-						<select
-							value={options.energy}
-							onChange={(e) => setOptions({ ...options, energy: e.target.value as YieldOptions["energy"] })}
+				{/* The settings are the solvers' and the box's: not shown on the cooking log. */}
+				{tab !== "cooking" && (
+					<>
+						<button
+							type="button"
+							className="secondary settings-toggle"
+							aria-label={t("settings")}
+							aria-expanded={settingsOpen}
+							aria-controls="settings-bar"
+							onClick={() => setSettingsOpen(!settingsOpen)}
 						>
-							<option value="full">{t("energyFull")}</option>
-							<option value="simulated">{t("energySimulated")}</option>
-						</select>
-					</label>
-					<label className="check">
-						{t("sleepScore")}
-						<input
-							type="number"
-							min={0}
-							max={100}
-							className="narrow"
-							value={options.sleepScore}
-							onChange={(e) =>
-								setOptions({
-									...options,
-									sleepScore: Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0))),
-								})
-							}
-						/>
-						<span className="muted small">{t("sleepScoreHint")}</span>
-					</label>
-					<label className="check">
-						<input
-							type="checkbox"
-							checked={finalEvolution}
-							onChange={(e) => setFinalEvolution(e.target.checked)}
-						/>
-						{t("finalEvolution")}
-						<span className="muted small">{t("finalEvolutionHint")}</span>
-					</label>
-					<label className="check">
-						<input
-							type="checkbox"
-							checked={subSkillSeeds}
-							onChange={(e) => setSubSkillSeeds(e.target.checked)}
-						/>
-						{t("maxSubSkillSeeds")}
-						<span className="muted small">{t("maxSubSkillSeedsHint")}</span>
-					</label>
-					<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
-						<label id="level-scale-label" htmlFor="level-scale-input">
-							{t("levelScaling")}
-						</label>
-						<input
-							id="level-scale-input"
-							type="number"
-							min={1}
-							max={100}
-							className="narrow"
-							placeholder={t("levelScalingOff")}
-							value={levelScale ?? ""}
-							onChange={(e) => {
-								const v = Math.round(Number(e.target.value));
-								setLevelScale(e.target.value === "" || !v || v <= 1 ? null : Math.min(100, v));
-							}}
-						/>
-						<div className="key-levels">
+							⚙ <span className="settings-label">{t("settings")}</span> {settingsOpen ? "▴" : "▾"}
+						</button>
+						<div
+							id="settings-bar"
+							className={`settings-bar${settingsOpen ? "" : " collapsed"}${settingsHelp ? " show-help" : ""}`}
+						>
+							<label className="check">
+								<input
+									type="checkbox"
+									checked={options.inventoryLimit}
+									onChange={(e) => setOptions({ ...options, inventoryLimit: e.target.checked })}
+								/>
+								{t("inventoryLimit")}
+								<span className="muted small">{t("inventoryLimitHint")}</span>
+							</label>
+							<label className="check">
+								<input
+									type="checkbox"
+									checked={options.campTicket}
+									onChange={(e) => setOptions({ ...options, campTicket: e.target.checked })}
+								/>
+								{t("campTicket")}
+								<span className="muted small">{t("campTicketHint")}</span>
+							</label>
+							<label className="check">
+								{t("energy")}
+								<select
+									value={options.energy}
+									onChange={(e) => setOptions({ ...options, energy: e.target.value as YieldOptions["energy"] })}
+								>
+									<option value="full">{t("energyFull")}</option>
+									<option value="simulated">{t("energySimulated")}</option>
+								</select>
+							</label>
+							<label className="check">
+								{t("sleepScore")}
+								<input
+									type="number"
+									min={0}
+									max={100}
+									className="narrow"
+									value={options.sleepScore}
+									onChange={(e) =>
+										setOptions({
+											...options,
+											sleepScore: Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0))),
+										})
+									}
+								/>
+								<span className="muted small">{t("sleepScoreHint")}</span>
+							</label>
+							<label className="check">
+								<input
+									type="checkbox"
+									checked={finalEvolution}
+									onChange={(e) => setFinalEvolution(e.target.checked)}
+								/>
+								{t("finalEvolution")}
+								<span className="muted small">{t("finalEvolutionHint")}</span>
+							</label>
+							<label className="check">
+								<input
+									type="checkbox"
+									checked={subSkillSeeds}
+									onChange={(e) => setSubSkillSeeds(e.target.checked)}
+								/>
+								{t("maxSubSkillSeeds")}
+								<span className="muted small">{t("maxSubSkillSeedsHint")}</span>
+							</label>
+							<div className="check level-scale" role="group" aria-labelledby="level-scale-label">
+								<label id="level-scale-label" htmlFor="level-scale-input">
+									{t("levelScaling")}
+								</label>
+								<input
+									id="level-scale-input"
+									type="number"
+									min={1}
+									max={100}
+									className="narrow"
+									placeholder={t("levelScalingOff")}
+									value={levelScale ?? ""}
+									onChange={(e) => {
+										const v = Math.round(Number(e.target.value));
+										setLevelScale(e.target.value === "" || !v || v <= 1 ? null : Math.min(100, v));
+									}}
+								/>
+								<div className="key-levels">
+									<button
+										type="button"
+										className={levelScale === null ? "" : "secondary"}
+										aria-pressed={levelScale === null}
+										onClick={() => setLevelScale(null)}
+									>
+										{t("levelScalingOff")}
+									</button>
+									{keyLevels.map((lv) => (
+										<button
+											type="button"
+											key={lv}
+											className={levelScale === lv ? "" : "secondary"}
+											aria-pressed={levelScale === lv}
+											onClick={() => setLevelScale(lv)}
+										>
+											{lv}
+										</button>
+									))}
+								</div>
+								<span className="muted small">{t("levelScalingHint")}</span>
+							</div>
+							<EventBonusSetting options={options} setOptions={setOptions} />
 							<button
 								type="button"
-								className={levelScale === null ? "" : "secondary"}
-								aria-pressed={levelScale === null}
-								onClick={() => setLevelScale(null)}
+								className="secondary help-toggle settings-help-toggle"
+								aria-expanded={settingsHelp}
+								onClick={() => setSettingsHelp(!settingsHelp)}
 							>
-								{t("levelScalingOff")}
+								{t("settingsHelp")} {settingsHelp ? "▴" : "▾"}
 							</button>
-							{keyLevels.map((lv) => (
-								<button
-									type="button"
-									key={lv}
-									className={levelScale === lv ? "" : "secondary"}
-									aria-pressed={levelScale === lv}
-									onClick={() => setLevelScale(lv)}
-								>
-									{lv}
-								</button>
-							))}
 						</div>
-						<span className="muted small">{t("levelScalingHint")}</span>
-					</div>
-					<EventBonusSetting options={options} setOptions={setOptions} />
-					<button
-						type="button"
-						className="secondary help-toggle settings-help-toggle"
-						aria-expanded={settingsHelp}
-						onClick={() => setSettingsHelp(!settingsHelp)}
-					>
-						{t("settingsHelp")} {settingsHelp ? "▴" : "▾"}
-					</button>
-				</div>
+					</>
+				)}
 			</header>
 			<main>
-				{tab === "box" ? (
+				{tab === "cooking" ? (
+					<CookingLogView />
+				) : tab === "box" ? (
 					<BoxView
 						box={box}
 						adjusted={solverBox}

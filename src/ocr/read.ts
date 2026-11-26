@@ -20,7 +20,8 @@ import { type IconReference, matchPokemonIcon, normalizeIcon } from "./pokemonIc
 
 /** Reads one line of text from a prepared (black on white) image. */
 export interface TextReader {
-	read(img: RgbaImage, opts?: { digits?: boolean }): Promise<string>;
+	/** `digits`: only "Lv." and digits; `chars`: only these characters (overrides `digits`). */
+	read(img: RgbaImage, opts?: { digits?: boolean; chars?: string }): Promise<string>;
 }
 
 export type ImportWarning =
