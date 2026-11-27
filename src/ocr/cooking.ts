@@ -11,6 +11,7 @@
  * game's layout scales with the width. Measured on iPhone screenshots (1206 px wide, and a 588 px copy
  * sent through a chat app) in Traditional Chinese.
  */
+import { dishStrength } from "../core/energy";
 import { recipes } from "../core/recipes";
 import jaRecipes from "../data/recipes.ja.json";
 import zhRecipes from "../data/recipes.zh-TW.json";
@@ -51,10 +52,17 @@ type ColorTest = (r: number, g: number, b: number) => boolean;
 /** The dish name banner's pale yellow (about rgb(254, 230, 113)). */
 const isBanner: ColorTest = (r, g, b) => r > 240 && g > 200 && g < 245 && b > 80 && b < 160;
 /**
- * The title and number's colour: orange (255, 137, 22), pink when Extra Tasty (254, 101, 119), and the peach
- * of digits still fading in (255, 200, 153). Not the yellow sparkles around them (r − g about 40).
+ * The title and number's colour, by hue: orange (255, 137, 22; hue 30°), pink when Extra Tasty (254, 101, 119;
+ * hue 355°), and the pale peach or pink of digits still fading in (255, 210, 170; 255, 180, 190). The number
+ * counts up and fades in, so screenshots often catch its leading digits that pale. Not the background's pale
+ * yellow pattern or the yellow sparkles (hue about 48°), nor white.
  */
-const isAccent: ColorTest = (r, g, b) => r > 200 && r - b > 80 && r - g > 45;
+const isAccent: ColorTest = (r, g, b) => {
+	const chroma = r - Math.min(g, b);
+	if (r < 200 || chroma < 35 || g > r || b > r) return false;
+	const hue = (60 * (g - b)) / chroma;
+	return hue <= 40 && hue >= -30;
+};
 /** The "漂亮成功！" (Extra Tasty) tag's pink (255, 120, 172). */
 const isTag: ColorTest = (r, g, b) => r > 235 && g > 90 && g < 150 && b > 140 && b < 200;
 /** The pot screen's button labels: dark orange text with a white outline (183, 97, 22). */
@@ -98,6 +106,34 @@ function fraction(img: RgbaImage, rect: Rect, test: ColorTest): number {
 	return total ? n / total : 0;
 }
 
+/** Each pixel set if any pixel within `r` (a square) is (`want` 1: dilation) or all are (`want` 0: erosion). */
+function morph(on: Uint8Array, w: number, h: number, r: number, want: 0 | 1): Uint8Array {
+	// Separable: rows, then columns.
+	const pass = (src: Uint8Array, horizontal: boolean) => {
+		const out = new Uint8Array(src.length);
+		for (let y = 0; y < h; y++) {
+			for (let x = 0; x < w; x++) {
+				let v = want ? 0 : 1;
+				for (let d = -r; d <= r && v !== want; d++) {
+					const xx = horizontal ? x + d : x;
+					const yy = horizontal ? y : y + d;
+					// Outside the image counts as background for dilation and as set for erosion (no eaten edges).
+					const s = xx < 0 || yy < 0 || xx >= w || yy >= h ? 1 - want : src[yy * w + xx];
+					if (s === want) v = want;
+				}
+				out[y * w + x] = v;
+			}
+		}
+		return out;
+	};
+	return pass(pass(on, true), false);
+}
+
+/** Morphological closing: fills holes and gaps up to 2r pixels wide (JPEG speckle, the seam of a fading digit). */
+function close(on: Uint8Array, w: number, h: number, r: number): Uint8Array {
+	return morph(morph(on, w, h, r, 1), w, h, r, 0);
+}
+
 /**
  * Black-on-white image of the pixels in `rect` that pass `test` (coloured text on a light, patterned
  * background, where a brightness threshold would lose the faded digits), scaled so the text is about
@@ -115,10 +151,11 @@ function maskText(img: RgbaImage, rect: Rect, test: ColorTest, targetHeight: num
 		right = Math.max(right, i % full.width);
 	}
 	const src = right < left ? full : crop(full, { x: left, y: 0, width: right - left + 1, height: full.height });
+	const on = new Uint8Array(src.width * src.height);
+	for (let i = 0; i < on.length; i++) on[i] = test(src.data[i * 4], src.data[i * 4 + 1], src.data[i * 4 + 2]) ? 1 : 0;
+	const closed = close(on, src.width, src.height, Math.max(1, Math.round(src.height / 40)));
 	const mask = new Uint8ClampedArray(src.width * src.height * 4).fill(255);
-	for (let i = 0; i < src.width * src.height; i++) {
-		if (test(src.data[i * 4], src.data[i * 4 + 1], src.data[i * 4 + 2])) mask[i * 4] = mask[i * 4 + 1] = mask[i * 4 + 2] = 0;
-	}
+	for (let i = 0; i < closed.length; i++) if (closed[i]) mask[i * 4] = mask[i * 4 + 1] = mask[i * 4 + 2] = 0;
 	const scale = targetHeight / src.height;
 	const small = resize({ width: src.width, height: src.height, data: mask }, Math.max(1, Math.round(src.width * scale)), Math.round(targetHeight));
 	const margin = Math.round(small.height * 0.3);
@@ -152,23 +189,22 @@ export function parseEnergy(text: string): number | undefined {
 	return Number(digits);
 }
 
-/** The Extra Tasty bonus is capped at 70 percentage points (see core/tasty.ts). */
-const maxTastyBonus = 70;
+/**
+ * Most a dish's energy can be over its base: recipe level 70 (×3.58), a field bonus up to +100% (×2) and an
+ * event doubling dish energy (×2) come to ×14.3, rounded up for headroom.
+ */
+const maxEnergyFactor = 16;
 
 /**
- * The bonus in a pot screen label: "+20%" → 20 (sure). The label is white text outlined in orange and small,
- * so the "+" and "%" are often misread ("2050", "2000"): then the leading digits are a guess (not sure).
- * Undefined for a label with letters (the pot's "MAX+36") or no digits.
+ * The energies a dish can show: at least its base energy (recipe level 1, no field bonus), doubled when
+ * Extra Tasty; at most maxEnergyFactor times the base, times 3 when Extra Tasty (on Sunday). A digit dropped or
+ * added by OCR is off by ×10, so it falls outside unless the dish is near the edge of the range.
  */
-export function parseTastyBonus(text: string): { value: number; sure: boolean } | undefined {
-	const s = text.normalize("NFKC").replace(/\s/g, "");
-	if (/[A-Z]/i.test(s)) return undefined;
-	const sure = s.match(/^\+?(\d{1,2})%$/);
-	if (sure && Number(sure[1]) <= maxTastyBonus) return { value: Number(sure[1]), sure: true };
-	const digits = s.replace(/^\+/, "").match(/\d+/)?.[0];
-	if (!digits) return undefined;
-	const two = Number(digits.slice(0, 2));
-	return { value: digits.length >= 2 && two <= maxTastyBonus ? two : Number(digits[0]), sure: false };
+export function energyRange(recipeId: string, extraTasty: boolean): [number, number] {
+	const recipe = recipes.find((r) => r.id === recipeId);
+	if (!recipe) return [0, Number.POSITIVE_INFINITY];
+	const base = dishStrength(recipe, 1, 0);
+	return [Math.floor(base * (extraTasty ? 2 : 1) * 0.99), base * maxEnergyFactor * (extraTasty ? 3 : 1)];
 }
 
 /** The value most readings agree on; on a tie, the one with the most digits (OCR drops digits more than it adds them). */
@@ -225,6 +261,9 @@ async function readResult(img: RgbaImage, banner: Band, reader: TextReader): Pro
 	const recipeId = matchRecipe(raw.recipe);
 	if (!recipeId) warnings.push("recipe");
 
+	// Extra Tasty tag: over the banner's left end.
+	const tag = fraction(img, { x: W * 0.1, y: banner.top - W * 0.07, width: W * 0.3, height: W * 0.07 }, isTag) > 0.05;
+
 	// Title and number: coloured text above the dish picture (which starts about half a width above the
 	// banner); the number is the tallest band.
 	const above = rowBands(img, W * 0.1, W * 0.9, isAccent, 0.05, Math.round(W * 0.01)).filter(
@@ -239,51 +278,203 @@ async function readResult(img: RgbaImage, banner: Band, reader: TextReader): Pro
 	if (number) {
 		const rect = { x: W * 0.05, y: number.top - 2, width: W * 0.9, height: number.bottom - number.top + 4 };
 		// Tesseract reads this font best with digits about 20 px tall, and sometimes drops a leading "1" at
-		// other sizes: read at three sizes and go with the majority.
+		// other sizes: read at three sizes, drop readings the dish can't have, and go with the majority.
 		const texts: string[] = [];
 		for (const height of energyTextHeights) texts.push(await reader.read(maskText(img, rect, isAccent, height), { chars: "0123456789," }));
 		raw.energy = texts.join(" | ");
-		const agreed = agreedValue(texts.map(parseEnergy));
+		const [min, max] = recipeId ? energyRange(recipeId, tag) : [0, Number.POSITIVE_INFINITY];
+		const agreed = agreedValue(texts.map(parseEnergy).map((v) => (v !== undefined && v >= min && v <= max ? v : undefined)));
 		energy = agreed?.value;
 		// Kept as a guess to check unless at least two readings agree.
 		if (agreed && agreed.votes < 2) warnings.push("energy");
 		pink = pinkness(img, rect) > 0;
 	}
 	if (energy === undefined) warnings.push("energy");
-
-	// Extra Tasty tag: over the banner's left end.
-	const tag = fraction(img, { x: W * 0.1, y: banner.top - W * 0.07, width: W * 0.3, height: W * 0.07 }, isTag) > 0.05;
 	if (number && tag !== pink) warnings.push("extraTasty");
 	return { kind: "result", recipeId, energy, extraTasty: tag, warnings, raw };
 }
 
-async function readPot(img: RgbaImage, reader: TextReader, raw: Record<string, string>): Promise<CookingReading | undefined> {
+/** The pot screen's two big buttons ("隨機料理", "自選料理"): flat orange, about rgb(254, 187, 68). */
+const isPotButton: ColorTest = (r, g, b) => r > 245 && g > 175 && g < 200 && b > 45 && b < 95;
+
+/** The pot screen has two big orange buttons, each about a sixth of the width tall, one under the other. */
+function isPotScreen(img: RgbaImage): boolean {
 	const W = img.width;
-	// The round buttons down the right edge have labels under them ("MAX+36" under the pot, "+20%" under
-	// the "!"): read each label-coloured band there and keep the one with a percent sign, else the first
-	// one with digits and no letters.
+	// Rows through the buttons' white text are less orange, hence the gap.
+	const buttons = rowBands(img, W * 0.45, W * 0.85, isPotButton, 0.6, Math.round(W * 0.03)).filter(
+		(b) => b.bottom - b.top > W * 0.1 && b.bottom - b.top < W * 0.25,
+	);
+	return buttons.length >= 2;
+}
+
+/**
+ * Digits in a "+20%" label from its size: "+" is about 0.72 of the label's height wide, each digit 0.75 and
+ * "%" 0.92 (measured on the game's labels). Undefined unless it comes out 1 or 2 (the bonus is at most 70).
+ */
+export function labelDigitCount(width: number, height: number): number | undefined {
+	const n = Math.round((width - 1.64 * height) / (0.75 * height));
+	return n === 1 || n === 2 ? n : undefined;
+}
+
+/**
+ * The white letters of outlined text, black on white: light pixels that can't be reached from the image's
+ * edge without crossing the darker outline. (At the label's size the outline fills the digits' holes, so
+ * "0" comes out solid enough to read.)
+ */
+function enclosedLight(img: RgbaImage, threshold: number): RgbaImage {
+	const { width: w, height: h } = img;
+	const light = new Uint8Array(w * h);
+	for (let i = 0; i < w * h; i++) {
+		light[i] = 0.299 * img.data[i * 4] + 0.587 * img.data[i * 4 + 1] + 0.114 * img.data[i * 4 + 2] > threshold ? 1 : 0;
+	}
+	const outside = new Uint8Array(w * h);
+	const stack: number[] = [];
+	for (let x = 0; x < w; x++) stack.push(x, (h - 1) * w + x);
+	for (let y = 0; y < h; y++) stack.push(y * w, y * w + w - 1);
+	while (stack.length) {
+		const i = stack.pop() as number;
+		if (outside[i] || !light[i]) continue;
+		outside[i] = 1;
+		const x = i % w;
+		if (x > 0) stack.push(i - 1);
+		if (x < w - 1) stack.push(i + 1);
+		if (i >= w) stack.push(i - w);
+		if (i < w * (h - 1)) stack.push(i + w);
+	}
+	const out = new Uint8ClampedArray(w * h * 4).fill(255);
+	for (let i = 0; i < w * h; i++) if (light[i] && !outside[i]) out[i * 4] = out[i * 4 + 1] = out[i * 4 + 2] = 0;
+	return { width: w, height: h, data: out };
+}
+
+/** Black-on-white `img` scaled to `height`, smoothed (blocky edges blurred and re-thresholded), with a white margin. */
+function smoothText(img: RgbaImage, height: number): RgbaImage {
+	const k = height / img.height;
+	const up = resize(img, Math.max(1, Math.round(img.width * k * 2)), height * 2);
+	const small = resize(up, Math.max(1, Math.round(up.width / 2)), height);
+	const margin = Math.round(height * 0.4);
+	const width = small.width + margin * 2;
+	const out = new Uint8ClampedArray(width * (height + margin * 2) * 4).fill(255);
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < small.width; x++) {
+			if (small.data[(y * small.width + x) * 4] >= 140) continue;
+			const o = ((y + margin) * width + x + margin) * 4;
+			out[o] = out[o + 1] = out[o + 2] = 0;
+		}
+	}
+	return { width, height: height + margin * 2, data: out };
+}
+
+/** Brightness thresholds and text heights the bonus digits are read at (every combination votes). */
+const bonusThresholds = [205, 210, 215, 220, 225];
+const bonusTextHeights = [40, 44, 48, 52, 56];
+
+/**
+ * The bonus in a "+20%" label, from its digits only (the "+" and "%" are cut off by position, see
+ * labelDigitCount): the white fill read at several thresholds and sizes, keeping the majority of the
+ * readings with the right number of digits.
+ */
+async function readBonusLabel(
+	img: RgbaImage,
+	box: Rect,
+	digits: number,
+	reader: TextReader,
+	raw: Record<string, string>,
+): Promise<{ value: number; sure: boolean } | undefined> {
+	// The label enlarged to about 42 px tall (from 14 px in a chat app's copy, 28 px in an original), with a
+	// margin so the outside can be flood-filled all round.
+	const scale = Math.max(1, 42 / box.height);
+	const label = crop(img, { x: box.x - 2, y: box.y - 2, width: box.width + 4, height: box.height + 4 });
+	const big = resize(label, Math.round(label.width * scale), Math.round(label.height * scale));
+	const digitBox = {
+		x: Math.round((2 + 0.72 * box.height) * scale),
+		y: 0,
+		width: Math.round((box.width - 1.64 * box.height) * scale),
+		height: big.height,
+	};
+	const values: (number | undefined)[] = [];
+	const texts: string[] = [];
+	for (const threshold of bonusThresholds) {
+		const fill = crop(enclosedLight(big, threshold), digitBox);
+		for (const height of bonusTextHeights) {
+			const text = (await reader.read(smoothText(fill, height), { chars: "0123456789" })).replace(/\D/g, "");
+			texts.push(text);
+			values.push(text.length === digits && Number(text) <= maxTastyBonus ? Number(text) : undefined);
+		}
+	}
+	raw.bonus = texts.join(" ");
+	const agreed = agreedValue(values);
+	if (!agreed) return undefined;
+	// Sure when the winner has a clear majority of the readings that came out the right length.
+	const counted = values.filter((v) => v !== undefined).length;
+	return { value: agreed.value, sure: agreed.votes >= 5 && agreed.votes * 2 > counted };
+}
+
+/** The Extra Tasty bonus is capped at 70 percentage points (see core/tasty.ts). */
+const maxTastyBonus = 70;
+
+/**
+ * Reads the pot screen's Extra Tasty bonus. The round buttons down the right edge have labels under them
+ * ("MAX+36" under the pot, "+20%" under the "!"). Each label is read once to tell them apart (the pot's has
+ * letters); the bonus label's digits are then read by readBonusLabel with `digitReader`. With no bonus built
+ * up there's no "!" button: the bonus is 0.
+ */
+async function readPot(
+	img: RgbaImage,
+	reader: TextReader,
+	digitReader: () => Promise<TextReader>,
+	raw: Record<string, string>,
+): Promise<CookingReading> {
+	const W = img.width;
 	const bands = rowBands(img, W * 0.83, W * 0.98, isLabel, 0.05, Math.round(W * 0.01)).filter(
 		(b) => b.top > W * 0.15 && b.bottom < W * 1.2 && b.bottom - b.top > W * 0.012,
 	);
-	let guess: number | undefined;
 	for (const [i, b] of bands.entries()) {
 		const pad = W * 0.008;
 		const rect = { x: W * 0.83, y: b.top - pad, width: W * 0.16, height: b.bottom - b.top + pad * 2 };
 		// The outline is darker than the text and its surroundings, so a brightness threshold finds the letters.
 		const text = await reader.read(binarizeText(crop(img, rect)), { chars: "+0123456789%MAX" });
 		raw[`label${i}`] = text;
-		const bonus = parseTastyBonus(text);
-		if (bonus?.sure) return { kind: "pot", tastyBonus: bonus.value, warnings: [], raw };
-		if (bonus && guess === undefined) guess = bonus.value;
+		if (/[A-Z]/i.test(text) || !/\d/.test(text)) continue;
+		// The label's own box: its outline's extent.
+		const box = boundingBox(img, rect, isLabel);
+		const digits = box && labelDigitCount(box.width, box.height);
+		if (!box || !digits) return { kind: "pot", warnings: ["tastyBonus"], raw };
+		const bonus = await readBonusLabel(img, box, digits, await digitReader(), raw);
+		if (!bonus) return { kind: "pot", warnings: ["tastyBonus"], raw };
+		return { kind: "pot", tastyBonus: bonus.value, warnings: bonus.sure ? [] : ["tastyBonus"], raw };
 	}
-	if (guess === undefined) return undefined;
-	return { kind: "pot", tastyBonus: guess, warnings: ["tastyBonus"], raw };
+	return { kind: "pot", tastyBonus: 0, warnings: [], raw };
 }
 
-/** Reads a cooking result screenshot or a pot screenshot (which one is told by the dish name banner). */
-export async function readCookingScreenshot(img: RgbaImage, reader: TextReader): Promise<CookingReading> {
+/** The smallest rectangle around the pixels in `rect` that pass `test`. */
+function boundingBox(img: RgbaImage, rect: Rect, test: ColorTest): Rect | undefined {
+	let [x0, y0, x1, y1] = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, -1, -1];
+	for (let y = Math.max(0, Math.round(rect.y)); y < Math.min(img.height, rect.y + rect.height); y++) {
+		for (let x = Math.max(0, Math.round(rect.x)); x < Math.min(img.width, rect.x + rect.width); x++) {
+			const [r, g, b] = pixel(img, x, y);
+			if (!test(r, g, b)) continue;
+			x0 = Math.min(x0, x);
+			x1 = Math.max(x1, x);
+			y0 = Math.min(y0, y);
+			y1 = Math.max(y1, y);
+		}
+	}
+	return x1 < 0 ? undefined : { x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 };
+}
+
+/**
+ * Reads a cooking result screenshot or a pot screenshot (told apart by the result's dish name banner and the
+ * pot screen's two big buttons). `digitReader`: a reader for the pot screen's small bonus digits (Tesseract's
+ * English model reads them far better than the Chinese or Japanese one); asked for only when needed. Defaults
+ * to `reader`.
+ */
+export async function readCookingScreenshot(
+	img: RgbaImage,
+	reader: TextReader,
+	digitReader: () => Promise<TextReader> = async () => reader,
+): Promise<CookingReading> {
 	const banner = findBanner(img);
 	if (banner) return readResult(img, banner, reader);
-	const raw: Record<string, string> = {};
-	return (await readPot(img, reader, raw)) ?? { kind: "unknown", warnings: ["layout"], raw };
+	if (isPotScreen(img)) return readPot(img, reader, digitReader, {});
+	return { kind: "unknown", warnings: ["layout"], raw: {} };
 }

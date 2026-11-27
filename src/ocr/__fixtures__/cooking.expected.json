@@ -22,8 +22,58 @@
 		"lang": "zh-TW",
 		"kind": "pot",
 		"tastyBonus": 20,
-		"takenAt": "2026-11-26T12:26:53",
-		"note": "A 588 px copy sent through a chat app: the label is too small to read the + and % for sure, so it's flagged.",
-		"warnings": ["tastyBonus"]
+		"takenAt": "2026-11-26T12:26:53"
+	},
+	{
+		"file": "photo_1_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "result",
+		"recipeId": "apple_acid_yogurt_dressed_salad",
+		"energy": 107320,
+		"extraTasty": false,
+		"takenAt": "2026-11-27T11:27:54",
+		"note": "Leading \"10\" still fading in. Sent through Telegram: the file name has the time it was saved, not taken (10:28)."
+	},
+	{
+		"file": "photo_2_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "pot",
+		"tastyBonus": 0,
+		"takenAt": "2026-11-27T11:27:54",
+		"note": "No bonus built up: no \"!\" button."
+	},
+	{
+		"file": "photo_3_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "result",
+		"recipeId": "apple_acid_yogurt_dressed_salad",
+		"energy": 214641,
+		"extraTasty": true,
+		"takenAt": "2026-11-27T11:27:54",
+		"note": "\"4,\" still fading in."
+	},
+	{
+		"file": "photo_4_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "pot",
+		"tastyBonus": 40,
+		"takenAt": "2026-11-27T11:27:54"
+	},
+	{
+		"file": "photo_5_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "pot",
+		"tastyBonus": 30,
+		"takenAt": "2026-11-27T11:27:54"
+	},
+	{
+		"file": "photo_6_2026-11-27_11-27-54.jpg",
+		"lang": "zh-TW",
+		"kind": "result",
+		"recipeId": "apple_acid_yogurt_dressed_salad",
+		"energy": 107545,
+		"extraTasty": false,
+		"takenAt": "2026-11-27T11:27:54",
+		"note": "Leading \"10\" still fading in."
 	}
 ]

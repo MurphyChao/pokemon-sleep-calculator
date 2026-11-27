@@ -12,7 +12,11 @@
  * so the caller falls back to that (or asks) when this returns nothing.
  */
 
-export type PhotoTimeSource = "metadata" | "fileName";
+/**
+ * "chatApp": a name a chat app gave the picture when it was saved from a chat (Telegram's
+ * "photo_3_2026-11-27_11-27-54.jpg"): its time is when it was sent or saved, not when it was taken.
+ */
+export type PhotoTimeSource = "metadata" | "fileName" | "chatApp";
 
 export interface PhotoTime {
 	/** Local time, "YYYY-MM-DDTHH:MM:SS". */
@@ -60,12 +64,15 @@ export function fileNameTime(name: string): string | undefined {
 	return m ? toTime(m[1], m[2], m[3], m[4], m[5], m[6]) : undefined;
 }
 
+/** Telegram's names for pictures saved from a chat: "photo_2026-11-26_12-26-53.jpg", "photo_3_2026-11-27_11-27-54.jpg". */
+const chatAppName = /^photo_(\d+_)?\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d/;
+
 /** When the screenshot was taken, from its metadata or else its file name. */
 export function photoTakenAt(bytes: Uint8Array, fileName: string): PhotoTime | undefined {
 	const meta = metadataTime(bytes);
 	if (meta) return { time: meta, source: "metadata" };
 	const named = fileNameTime(fileName);
-	if (named) return { time: named, source: "fileName" };
+	if (named) return { time: named, source: chatAppName.test(fileName) ? "chatApp" : "fileName" };
 	return undefined;
 }
 

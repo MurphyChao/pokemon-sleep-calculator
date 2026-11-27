@@ -217,18 +217,26 @@ Two screenshots are read (`src/ocr/cooking.ts`), on the device like the Pokémon
 
 - **The result screen after cooking** ("料理的最終能量"). The dish name banner is found by its yellow and anchors
   the rest. The dish name is read from the banner and fuzzy-matched against recipe names in all three languages.
-  The energy number is masked by its colour (orange, or pink when Extra Tasty) and read three times at slightly
-  different sizes, keeping the majority (Tesseract sometimes drops a leading "1"). Extra Tasty is the pink "漂亮成功！"
-  tag over the banner; the number's colour is a second opinion, and the reading is flagged if they disagree.
-- **The cooking screen** ("做料理"): the label under the "!" button is the Extra Tasty bonus (e.g. "+20%"). The
-  labels down the right edge are read and the one with a "%" is kept; the "MAX+36" pot label is skipped. The label
-  is small, white text outlined in orange: when the "+" and "%" aren't read for sure (as in screenshots shrunk by
-  a chat app), the leading digits are kept as a guess and flagged.
+  The energy number counts up and fades in, so screenshots often catch its leading digits pale peach or pink: it's
+  masked by hue (orange to pink, at any paleness; not the background's yellow pattern or the sparkles), small gaps
+  are closed (JPEG speckle, the seam where a digit fades), and it's read at three sizes. Readings the dish can't
+  have are dropped (below its base energy, or above 16× it, ×3 when Extra Tasty: a digit too few or too many is off
+  by ×10), and the majority wins. Extra Tasty is the pink "漂亮成功！" tag over the banner; the number's colour is a
+  second opinion, and the reading is flagged if they disagree.
+- **The cooking screen** ("做料理"), told by its two big orange buttons: the label under the "!" button is the Extra
+  Tasty bonus (e.g. "+20%"); with no bonus there's no "!" button, and the bonus is 0. The labels down the right edge
+  are read once to skip the pot's "MAX+36" (it has letters). The bonus label is tiny white text outlined in orange
+  (14 px tall in a copy sent through a chat app), which Tesseract can't read whole, so: its size gives the number
+  of digits ("+" is 0.72 of its height wide, a digit 0.75, "%" 0.92), the "+" and "%" are cut off, the digits' white
+  fill (light pixels enclosed by the outline) becomes the text, and it's read with Tesseract's **English** model
+  (far better at lone digits than the Chinese or Japanese one; downloaded only then) at 5 thresholds × 5 sizes.
+  The majority of readings with the right number of digits wins, flagged unless it's a clear majority.
 
 The meal comes from when the screenshot was taken, not from the status bar's clock (often hidden on the result
 screen): the time saved in the image (XMP `photoshop:DateCreated` on iPhone, EXIF `DateTimeOriginal`), else a date
-in the file name (`Screenshot_20261113-111914.png`, Telegram's `photo_2026-11-26_12-26-53.jpg`, …), else the
-file's modified time, flagged since it's often just when it was copied (`src/core/photoDate.ts`). Breakfast is
+in the file name (`Screenshot_20261113-111914.png`, …), else the file's modified time, flagged since it's often
+just when it was copied (`src/core/photoDate.ts`). Pictures saved from Telegram (`photo_3_2026-11-27_11-27-54.jpg`)
+have neither metadata nor the time taken: their name has when they were sent, so it's used but flagged. Breakfast is
 4:00–11:59, lunch 12:00–17:59 and dinner 18:00–3:59 (after midnight counts toward the day before). A reading and
 a cooking-screen reading of the same meal go into one record. Each screenshot's fingerprint (a SHA-256 prefix) is
 kept so the same one added twice is flagged.
@@ -236,7 +244,7 @@ kept so the same one added twice is flagged.
 `src/ocr/cooking.screenshots.test.ts` checks the reader against real screenshots listed in
 `src/ocr/__fixtures__/cooking.expected.json`, including when each was taken. Put them in `screenshots/cooking/`
 (not committed) to run it. `OCR_DEBUG=<folder>` saves every image sent to the text recognizer there. Measured so
-far on iPhone screenshots in Traditional Chinese.
+far on 9 iPhone screenshots in Traditional Chinese (2 originals, 7 sent through Telegram), all read correctly.
 
 ## Visit statistics
 

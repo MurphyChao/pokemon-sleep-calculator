@@ -62,7 +62,7 @@ describe.skipIf(available.length === 0)("cooking screenshot reader", () => {
 					return ocr.read(img, opts);
 				},
 			};
-			const reading = await readCookingScreenshot(load(path), reader);
+			const reading = await readCookingScreenshot(load(path), reader, () => engine("en"));
 			if (process.env.OCR_DEBUG) console.log(want.file, JSON.stringify(reading));
 			const { file, lang, takenAt, note, warnings = [], ...fields } = want as typeof want & { note?: string; warnings?: string[] };
 			expect(reading, JSON.stringify(reading.raw)).toMatchObject(fields);

@@ -41,10 +41,17 @@ describe("photoTakenAt", () => {
 			time: "2026-11-23T07:36:56",
 			source: "metadata",
 		});
-		expect(photoTakenAt(bytes("nothing"), "photo_2026-11-26_12-26-53.jpg")).toEqual({
-			time: "2026-11-26T12:26:53",
+		expect(photoTakenAt(bytes("nothing"), "Screenshot_20261113-111914.png")).toEqual({
+			time: "2026-11-13T11:19:14",
 			source: "fileName",
 		});
 		expect(photoTakenAt(bytes("nothing"), "IMG_1234.PNG")).toBeUndefined();
+	});
+	it("tells a chat app's name (when it was sent, not taken) from a screenshot's", () => {
+		for (const name of ["photo_2026-11-26_12-26-53.jpg", "photo_3_2026-11-27_11-27-54.jpg"]) {
+			expect(photoTakenAt(bytes("nothing"), name)?.source).toBe("chatApp");
+		}
+		// The image's own time still wins.
+		expect(photoTakenAt(bytes("<photoshop:DateCreated>2026-11-27T10:28:00<"), "photo_1_2026-11-27_11-27-54.jpg")?.source).toBe("metadata");
 	});
 });

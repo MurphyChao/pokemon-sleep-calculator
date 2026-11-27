@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agreedValue, matchRecipe, parseEnergy, parseTastyBonus } from "./cooking";
+import { agreedValue, energyRange, labelDigitCount, matchRecipe, parseEnergy } from "./cooking";
 
 describe("matchRecipe", () => {
 	it("matches recipe names in any language, OCR spacing and look-alikes included", () => {
@@ -25,20 +25,28 @@ describe("parseEnergy", () => {
 	});
 });
 
-describe("parseTastyBonus", () => {
-	it("is sure of a label read with its + and %", () => {
-		expect(parseTastyBonus("+20%")).toEqual({ value: 20, sure: true });
-		expect(parseTastyBonus("+5%")).toEqual({ value: 5, sure: true });
-		expect(parseTastyBonus("20%")).toEqual({ value: 20, sure: true });
+describe("energyRange", () => {
+	it("keeps the dish's possible energies and drops a reading off by a digit", () => {
+		const [min, max] = energyRange("apple_acid_yogurt_dressed_salad", false);
+		expect(107320).toBeGreaterThanOrEqual(min);
+		expect(107320).toBeLessThanOrEqual(max);
+		expect(7320).toBeLessThan(min);
+		expect(1073200).toBeGreaterThan(max);
+		// Extra Tasty doubles the least it can be.
+		expect(energyRange("apple_acid_yogurt_dressed_salad", true)[0]).toBeGreaterThan(min * 1.9);
+		expect(energyRange("unknown_dish", false)).toEqual([0, Number.POSITIVE_INFINITY]);
 	});
-	it("guesses from the leading digits when the % was misread", () => {
-		expect(parseTastyBonus("2050")).toEqual({ value: 20, sure: false });
-		expect(parseTastyBonus("+896")).toEqual({ value: 8, sure: false });
-	});
-	it("skips the pot's MAX label", () => {
-		expect(parseTastyBonus("MAX+36")).toBeUndefined();
-		expect(parseTastyBonus("MAX436")).toBeUndefined();
-		expect(parseTastyBonus("")).toBeUndefined();
+});
+
+describe("labelDigitCount", () => {
+	it("tells the bonus label's digits from its size", () => {
+		// "+40%" in a 588 px chat-app copy: 40 × 14 px.
+		expect(labelDigitCount(40, 14)).toBe(2);
+		// "+5%": one digit narrower; twice the size in an original screenshot.
+		expect(labelDigitCount(70, 28)).toBe(1);
+		expect(labelDigitCount(80, 28)).toBe(2);
+		expect(labelDigitCount(20, 14)).toBeUndefined();
+		expect(labelDigitCount(60, 14)).toBeUndefined();
 	});
 });
 

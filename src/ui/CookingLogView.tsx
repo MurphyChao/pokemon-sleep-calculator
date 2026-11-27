@@ -18,7 +18,7 @@ import {
 	weekStart,
 	weekStats,
 } from "../core/cooking";
-import { localTime, photoTakenAt } from "../core/photoDate";
+import { localTime, type PhotoTimeSource, photoTakenAt } from "../core/photoDate";
 import { type RecipeType, recipes } from "../core/recipes";
 import type { CookingReading, CookingWarning } from "../ocr/cooking";
 import type { ScreenshotLang } from "../ocr/tesseract";
@@ -48,8 +48,8 @@ function dayLabel(day: string, opts: Intl.DateTimeFormatOptions = { weekday: "sh
 	return parseDay(day).toLocaleDateString(getLang(), opts);
 }
 
-/** How the screenshot's time was found (see core/photoDate.ts); "fileDate" is the least reliable. */
-type TimeSource = "metadata" | "fileName" | "fileDate";
+/** How the screenshot's time was found (see core/photoDate.ts); "chatApp" and "fileDate" are guesses to check. */
+type TimeSource = PhotoTimeSource | "fileDate";
 
 /** A screenshot being read or waiting for review. */
 interface CookingItem {
@@ -169,6 +169,9 @@ function CookingImport(props: { log: CookingLog; save: (records: CookingRecord[]
 	const { log, save, onSaved } = props;
 	const [lang, setLang] = useStoredState<ScreenshotLang>("pscalc.screenshotLang", getLang());
 	const { getEngine, loading } = useOcrEngine(lang);
+	// The cooking screen's small bonus digits are read with the English model, whatever the game's language
+	// (it reads them far better); loaded only when a screenshot has a bonus to read.
+	const digits = useOcrEngine("en");
 	const [items, setItems] = useState<CookingItem[]>([]);
 	const [dragging, setDragging] = useState(false);
 	const [error, setError] = useState<string | undefined>();
@@ -195,7 +198,7 @@ function CookingImport(props: { log: CookingLog; save: (records: CookingRecord[]
 					update(id, { status: "reading" });
 					const [{ decodeImage }, { readCookingScreenshot }] = await Promise.all([import("../ocr/browser"), import("../ocr/cooking")]);
 					const [ocr, img, when, print] = await Promise.all([getEngine(), decodeImage(file), takenAt(file), fingerprint(file)]);
-					const reading = await readCookingScreenshot(img, ocr);
+					const reading = await readCookingScreenshot(img, ocr, lang === "en" ? undefined : digits.getEngine);
 					const slot = mealSlot(when.time);
 					const draft: CookingRecord =
 						reading.kind === "result"
@@ -245,6 +248,7 @@ function CookingImport(props: { log: CookingLog; save: (records: CookingRecord[]
 	const checks = (item: CookingItem): string[] => {
 		const out = (item.reading?.warnings ?? []).map((w) => t(warningKeys[w]));
 		if (item.timeSource === "fileDate") out.push(t("cookingTimeGuessed"));
+		if (item.timeSource === "chatApp") out.push(t("cookingTimeChatApp"));
 		const dup = item.fingerprint && findShot(log, item.fingerprint);
 		if (dup) out.push(t("cookingDuplicate", { day: dayLabel(dup.day), meal: t(mealLabels[dup.meal]) }));
 		return out;
@@ -306,7 +310,9 @@ function CookingImport(props: { log: CookingLog; save: (records: CookingRecord[]
 					}}
 				/>
 			</div>
-			{loading !== undefined && <p className="muted small">{t("loadingOcr", { pct: Math.round(loading * 100) })}</p>}
+			{(loading ?? digits.loading) !== undefined && (
+				<p className="muted small">{t("loadingOcr", { pct: Math.round((loading ?? digits.loading ?? 0) * 100) })}</p>
+			)}
 			{error && <p className="error small">{error}</p>}
 			{items.length > 0 && (
 				<ul className="cooking-review">
@@ -336,7 +342,7 @@ function CookingImport(props: { log: CookingLog; save: (records: CookingRecord[]
 											{item.status === "waiting" && t("importWaiting")}
 											{item.status === "reading" && t("importReading")}
 											{item.time &&
-												item.timeSource !== "fileDate" &&
+												(item.timeSource === "metadata" || item.timeSource === "fileName") &&
 												t(item.timeSource === "metadata" ? "cookingTimeMetadata" : "cookingTimeFileName", {
 													time: item.time.replace("T", " ").slice(0, 16),
 												})}
